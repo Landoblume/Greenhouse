@@ -7,10 +7,12 @@ struct PlantsView: View {
     @AppStorage(Collections.selectedKey) private var selectedCollection = ""
     @FetchRequest private var allPlants: FetchedResults<Plant>
     @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
+    @Environment(\.managedObjectContext) private var context
     @State private var selecting = false
     @State private var selection: Set<NSManagedObjectID> = []
     @State private var showingAdd = false
     @State private var showingStaple = false
+    @State private var deleting: Plant?
 
     init(household: Household) {
         self.household = household
@@ -54,6 +56,19 @@ struct PlantsView: View {
                         } else {
                             NavigationLink(value: plant) { PlantTile(plant: plant, selected: false) }
                                 .buttonStyle(.plain)
+                                .contextMenu {
+                                    if allPlants.count >= 2 {
+                                        Button {
+                                            selection = [plant.objectID]
+                                            selecting = true
+                                        } label: {
+                                            Label("Staple with other plants…", systemImage: "link")
+                                        }
+                                    }
+                                    Button(role: .destructive) { deleting = plant } label: {
+                                        Label("Delete plant", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                 }
@@ -100,6 +115,20 @@ struct PlantsView: View {
             }
             .sheet(isPresented: $showingAdd) { AddPlantView(household: household) }
             .sheet(item: $choosingPlants) { CollectionPlantsSheet(collection: $0, household: household) }
+            .confirmationDialog("Delete \(deleting?.displayName ?? "plant")?",
+                                isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                                titleVisibility: .visible) {
+                Button("Delete", role: .destructive) {
+                    if let deleting {
+                        Lineage.delete(deleting, context: context)
+                        Persistence.shared.save(context)
+                        NotificationPlanner.reschedule()
+                    }
+                    deleting = nil
+                }
+            } message: {
+                Text("Removes it from both phones, with its photos, history and its own reminders. To combine plants instead, use Staple.")
+            }
             .sheet(isPresented: $showingStaple) {
                 StapleSheet(plants: selectedPlants, household: household) {
                     selecting = false

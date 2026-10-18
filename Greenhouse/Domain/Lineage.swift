@@ -31,6 +31,33 @@ enum Lineage {
         return merged
     }
 
+    /// Deletes a plant for everyone in the household, with its photos and the
+    /// reminders that were only for it. The hidden originals it was stapled or
+    /// split from go too, unless another plant still comes from them (the
+    /// other half of a split), so no history is left pointing at nothing.
+    static func delete(_ plant: Plant, context: NSManagedObjectContext) {
+        var doomed: Set<Plant> = [plant]
+        var queue = [plant]
+        while let next = queue.popLast() {
+            for parent in next.producedBy?.inputs ?? [] where !doomed.contains(parent) {
+                let descendants = parent.consumedBy?.outputs ?? []
+                if descendants.isSubset(of: doomed) {
+                    doomed.insert(parent)
+                    queue.append(parent)
+                }
+            }
+        }
+        let events = doomed.compactMap(\.producedBy) + doomed.compactMap(\.consumedBy)
+        for event in Set(events) where (event.outputs ?? []).isSubset(of: doomed) {
+            context.delete(event)
+        }
+        let tasks = doomed.flatMap { $0.tasks ?? [] }
+        for task in Set(tasks) where (task.plants ?? []).isSubset(of: doomed) {
+            context.delete(task)
+        }
+        for doomedPlant in doomed { context.delete(doomedPlant) }
+    }
+
     @discardableResult
     static func split(
         _ parent: Plant,

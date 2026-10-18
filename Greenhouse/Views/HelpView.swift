@@ -29,8 +29,10 @@ struct HelpView: View {
 
             Projects are things to build or do, like painting a new greenhouse, with an optional target date and the plants they're for. Tap the circle when it's done.
             """)
-            topic("Stapling and splitting", "arrow.triangle.branch", """
-            Combined two pots? Tap Staple on the Plants tab, pick the plants, and they become one tile. Took cuttings or divided a plant? Open it and tap Split.
+            topic("Stapling (merging) and splitting", "arrow.triangle.branch", """
+            Combined two pots? Tap Staple on the Plants tab (or press and hold a plant → Staple with other plants), pick the plants, and they become one tile. Took cuttings or divided a plant? Open it and tap Split.
+
+            To remove a plant for good, press and hold it on the Plants tab → Delete plant. Its photos and its own reminders go with it.
 
             Nothing is lost either way: History on each plant shows where it came from, and photos from the originals carry over.
             """)
