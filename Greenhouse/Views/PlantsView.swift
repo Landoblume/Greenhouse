@@ -204,6 +204,7 @@ struct PlantTile: View {
                     .padding(14)
             }
         }
+        .redrawsOnPhotoChanges(plant)
     }
 }
 
