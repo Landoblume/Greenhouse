@@ -38,7 +38,7 @@ struct HelpView: View {
             Tap a project for its page: a checklist of steps, supplies with costs (tick them as you buy them) against an optional budget, where it's happening, a link, and notes.
             """)
             topic("Combining and splitting", "arrow.triangle.branch", """
-            Potted two plants together? Open one and tap Combine with other plants (or press and hold it on the Plants tab), pick the others, and they become one tile. Took cuttings or divided a plant? Open it and tap Split.
+            Potted two plants together? Open one and tap Combine with other plants (or press and hold it on the Plants tab), pick the others, and they become one tile. Divided a plant into new ones? Open it and tap Split. Took a cutting and kept the plant? Tap Take a cutting instead, or for a cutting you already added, open it, tap Edit and pick its plant under Started from.
 
             To remove a plant for good, press and hold it on the Plants tab → Delete plant. Its photos and its own reminders go with it.
 
@@ -50,7 +50,7 @@ struct HelpView: View {
             For anything else, like a quarterly hydrogen peroxide treatment, tap + on the Care tab. A reminder can cover several plants, or none for household chores. Reminders arrive at the time set in Settings.
             """)
             topic("Anniversaries", "gift", """
-            On the day you got a plant, you'll get a "you've had it a year" note. Combined plants count from their oldest original.
+            On the day you got a plant, you'll get a "you've had it a year" note. Combined plants and cuttings count from their oldest original, which is also their Had since date.
             """)
             topic("Grow zone and light", "thermometer.sun", """
             Set your ZIP in Settings to get your USDA hardiness zone. Outdoor and seasonal plants then say whether they survive winter outside where you live. A ZIP too new for the USDA map gets the zone of the nearest ZIP that's on it. If even that fails, Use my location finds the zone around your phone, or you can pick one by hand.

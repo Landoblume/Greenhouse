@@ -32,6 +32,8 @@ enum SettingsKey {
     /// Your first name, shown on things you log ("Watered by Sam"). Per phone,
     /// so it isn't synced.
     static let myName = "myName"
+    /// Plant-page sections folded away on this phone, one title per line.
+    static let collapsedPlantSections = "collapsedPlantSections"
 }
 
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {

@@ -134,6 +134,8 @@ enum GreenhouseModel {
         relate(plant, "tasks", many: true, task, "plants", many: true)
         relate(plant, "producedBy", many: false, event, "outputs", many: true)
         relate(plant, "consumedBy", many: false, event, "inputs", many: true)
+        // A cutting is a new plant whose parent keeps living, unlike a split.
+        relate(plant, "cuttingOf", many: false, plant, "cuttings", many: true)
         relate(task, "logs", many: true, log, "task", many: false, deleteRule: .cascadeDeleteRule)
         relate(household, "collections", many: true, collection, "household", many: false)
         relate(household, "wishlist", many: true, wish, "household", many: false)

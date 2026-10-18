@@ -5,7 +5,7 @@ import CoreData
 /// Accepting an invite never deletes anything, but the app switches to the
 /// shared household, which would leave plants you'd already added out of
 /// sight. This brings them along: plants, photos, milestones, care reminders with their
-/// history, staple/split links, collections, the wishlist and projects.
+/// history, staple/split and cutting links, collections, the wishlist and projects.
 ///
 /// Objects can't move between Core Data stores (your own household lives in
 /// the private store, a joined one in the shared store), so everything is
@@ -60,6 +60,9 @@ enum HouseholdMerge {
                 milestoneCopy.plant = copy
                 milestoneCopies[milestone.objectID] = milestoneCopy
             }
+        }
+        for plant in plants {
+            copies[plant.objectID]?.cuttingOf = plant.cuttingOf.flatMap { copies[$0.objectID] }
         }
         // A photo can show a milestone written on another plant in its family,
         // so links are restored once every plant is copied.

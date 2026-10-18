@@ -75,4 +75,21 @@ final class MergeTests: XCTestCase {
                        [store.household])
         XCTAssertTrue(HouseholdMerge.candidates(for: store.household, in: [store.household], persistence: store.persistence).isEmpty)
     }
+
+    func testMovingKeepsCuttingLinks() throws {
+        let store = TestStore()
+        let joined = store.persistence.createHousehold(name: "Joined", in: store.context)
+        let parent = store.plant(nickname: "Parent", acquired: day(2023, 5, 1))
+        Lineage.takeCutting(from: parent, nickname: "Kid", date: day(2024, 7, 1),
+                            household: store.household, context: store.context, persistence: store.persistence)
+        store.save()
+
+        HouseholdMerge.move(store.household, into: joined, context: store.context, persistence: store.persistence)
+        store.save()
+
+        let kid = try XCTUnwrap(joined.plants?.first { $0.displayName == "Kid" })
+        XCTAssertEqual(kid.cuttingOf?.displayName, "Parent")
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: kid), day(2023, 5, 1))
+    }
 }
+
