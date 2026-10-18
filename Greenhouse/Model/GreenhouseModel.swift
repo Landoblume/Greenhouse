@@ -55,6 +55,14 @@ enum GreenhouseModel {
             // CloudKit asset rather than inline record data.
             attr("imageData", .binaryData, external: true),
         ])
+        let milestone = entity(Milestone.self, [
+            attr("uuid", .uuid),
+            attr("title", .string),
+            attr("date", .date),
+            attr("notes", .string),
+            attr("addedBy", .string),
+            attr("createdAt", .date),
+        ])
         let event = entity(LineageEvent.self, [
             attr("uuid", .uuid),
             attr("kind", .string),
@@ -104,6 +112,7 @@ enum GreenhouseModel {
         relate(household, "tasks", many: true, task, "household", many: false)
         relate(household, "lineageEvents", many: true, event, "household", many: false)
         relate(plant, "photos", many: true, photo, "plant", many: false, deleteRule: .cascadeDeleteRule)
+        relate(plant, "milestones", many: true, milestone, "plant", many: false, deleteRule: .cascadeDeleteRule)
         relate(plant, "tasks", many: true, task, "plants", many: true)
         relate(plant, "producedBy", many: false, event, "outputs", many: true)
         relate(plant, "consumedBy", many: false, event, "inputs", many: true)
@@ -117,7 +126,7 @@ enum GreenhouseModel {
         relate(project, "plants", many: true, plant, "projects", many: true)
 
         let model = NSManagedObjectModel()
-        model.entities = [household, plant, photo, event, task, log, collection, wish, project]
+        model.entities = [household, plant, photo, milestone, event, task, log, collection, wish, project]
         return model
     }
 

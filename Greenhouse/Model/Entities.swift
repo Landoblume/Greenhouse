@@ -121,6 +121,7 @@ final class Plant: NSManagedObject {
     @NSManaged var consumedBy: LineageEvent?
     @NSManaged var collections: Set<PlantCollection>?
     @NSManaged var projects: Set<Project>?
+    @NSManaged var milestones: Set<Milestone>?
 
     var displayName: String {
         if let nickname, !nickname.trimmingCharacters(in: .whitespaces).isEmpty { return nickname }
@@ -163,6 +164,19 @@ final class Photo: NSManagedObject {
     @NSManaged var takenAt: Date?
     @NSManaged var caption: String?
     @NSManaged var imageData: Data?
+    @NSManaged var plant: Plant?
+}
+
+/// Something that happened to a plant, written down by hand: a new pot, a
+/// repot, its first bloom. Shown in the plant's History.
+@objc(Milestone)
+final class Milestone: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var title: String?
+    @NSManaged var date: Date?
+    @NSManaged var notes: String?
+    @NSManaged var addedBy: String?
+    @NSManaged var createdAt: Date?
     @NSManaged var plant: Plant?
 }
 
@@ -278,6 +292,7 @@ final class Project: NSManagedObject {
 extension Household: Identifiable {}
 extension Plant: Identifiable {}
 extension Photo: Identifiable {}
+extension Milestone: Identifiable {}
 extension LineageEvent: Identifiable {}
 extension CareTask: Identifiable {}
 extension CareLog: Identifiable {}

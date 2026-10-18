@@ -12,6 +12,8 @@ struct PlantDetailView: View {
     @State private var showingEdit = false
     @State private var showingNewTask = false
     @State private var editingTask: CareTask?
+    @State private var addingMilestone = false
+    @State private var editingMilestone: Milestone?
 
     private var timeline: [Lineage.TimelinePhoto] { Lineage.timeline(for: plant) }
 
@@ -121,6 +123,17 @@ struct PlantDetailView: View {
             }
 
             Section("History") {
+                ForEach(Milestones.history(for: plant)) { item in
+                    Button { editingMilestone = item.milestone } label: {
+                        MilestoneRow(item: item, viewedPlant: plant)
+                    }
+                    .foregroundStyle(.primary)
+                }
+                if plant.isActive {
+                    Button { addingMilestone = true } label: {
+                        Label("Add milestone", systemImage: "flag")
+                    }
+                }
                 ForEach(Lineage.history(of: plant)) { line in
                     Group {
                         if let other = line.plant {
@@ -153,6 +166,8 @@ struct PlantDetailView: View {
         .sheet(isPresented: $showingAddPhoto) { AddPhotoSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingSplit) { SplitSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingCombine) { CombineSheet(plant: plant, household: household) }
+        .sheet(isPresented: $addingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: nil) }
+        .sheet(item: $editingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: $0) }
         .sheet(isPresented: $showingEdit) { EditPlantView(plant: plant) }
         .sheet(isPresented: $showingNewTask) { TaskEditorView(household: household, task: nil, preselected: [plant]) }
         .sheet(item: $editingTask) { TaskEditorView(household: household, task: $0, preselected: []) }

@@ -44,6 +44,10 @@ enum DemoData {
         let done = Plans.addProject(title: "Repot the fern", notes: nil, targetDate: nil, plants: [pothos],
                                     collection: nil, household: household, context: context)
         Plans.setDone(done, true)
+        Milestones.add(title: "New pot", date: Calendar.current.date(byAdding: .day, value: -20, to: .now) ?? .now,
+                       notes: "Terracotta from the garden center", by: "Sam", to: aloe, household: household, context: context)
+        Milestones.add(title: "First bloom", date: Calendar.current.date(byAdding: .day, value: -3, to: .now) ?? .now,
+                       notes: nil, by: "Sam", to: aloe, household: household, context: context)
         persistence.save(context)
     }
 }
