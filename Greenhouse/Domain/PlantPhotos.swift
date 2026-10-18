@@ -5,14 +5,15 @@ import UIKit
 /// Changing photos after they're added: the main photo, captions, dates, and
 /// deleting them.
 enum PlantPhotos {
-    /// The photo on the plant's tile and at the top of its page: the one picked
-    /// as main photo if it still exists, otherwise the newest.
+    /// The photo on the plant's tile and at the top of its page: the main
+    /// photo (the first one added, or one picked later) if it still exists,
+    /// otherwise the oldest.
     static func cover(for plant: Plant) -> Photo? {
         let timeline = Lineage.timeline(for: plant)
         if let id = plant.coverPhotoID, let picked = timeline.first(where: { $0.photo.uuid == id }) {
             return picked.photo
         }
-        return timeline.last?.photo
+        return timeline.first?.photo
     }
 
     static func isCover(_ photo: Photo, of plant: Plant) -> Bool {
@@ -38,7 +39,7 @@ enum PlantPhotos {
     }
 
     /// Deletes the photo for everyone in the household. Any plant that used it
-    /// as its main photo goes back to showing the newest one.
+    /// as its main photo goes back to showing the oldest one.
     static func delete(_ photo: Photo, context: NSManagedObjectContext) {
         if let id = photo.uuid {
             let request = NSFetchRequest<Plant>(entityName: "Plant")
