@@ -72,6 +72,7 @@ struct PlansView: View {
             .sheet(item: $editingWish) { WishEditorView(household: household, item: $0) }
             .sheet(item: $buying) { AddPlantView(household: household, wish: $0) }
             .sheet(isPresented: $addingProject) { ProjectEditorView(household: household, project: nil) }
+            .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
         }
     }
@@ -161,9 +162,10 @@ struct ProjectRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(project.isDone ? "Mark not done" : "Mark done")
-            NavigationLink {
-                ProjectDetailView(project: project, household: household)
-            } label: {
+            // A value link, like the plant links on the project's page: mixing
+            // these with view-based links in one stack makes SwiftUI pop the
+            // project page when a plant is opened from it.
+            NavigationLink(value: project) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(project.title ?? "Untitled project")
                         .strikethrough(project.isDone)
