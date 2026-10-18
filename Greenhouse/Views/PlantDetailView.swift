@@ -64,6 +64,8 @@ struct PlantDetailView: View {
                 }
             }
 
+            PlantNotesSection(plant: plant)
+
             ZoneSection(plant: plant, household: household)
 
             if plant.isActive {
@@ -257,6 +259,45 @@ struct TaskRow: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
         }
+    }
+}
+
+/// Notes typed right on the plant's page; saved when you leave the field.
+struct PlantNotesSection: View {
+    @ObservedObject var plant: Plant
+    @Environment(\.managedObjectContext) private var context
+    @State private var notes: String
+    @FocusState private var focused: Bool
+
+    init(plant: Plant) {
+        _plant = ObservedObject(wrappedValue: plant)
+        _notes = State(initialValue: plant.notes ?? "")
+    }
+
+    var body: some View {
+        Section("Notes") {
+            TextField("Anything worth remembering: quirks, where it came from, what it likes…", text: $notes, axis: .vertical)
+                .lineLimit(2...)
+                .focused($focused)
+        }
+        .onChange(of: focused) { _, isFocused in if !isFocused { save() } }
+        .onDisappear(perform: save)
+        .onChange(of: plant.notes) { _, saved in
+            // Changed on the other phone.
+            if !focused { notes = saved ?? "" }
+        }
+        .toolbar {
+            if focused {
+                ToolbarItem(placement: .keyboard) { Button("Done") { focused = false } }
+            }
+        }
+    }
+
+    private func save() {
+        let value = PlantFactory.cleanNotes(notes)
+        guard plant.managedObjectContext != nil, value != plant.notes else { return }
+        plant.notes = value
+        Persistence.shared.save(context)
     }
 }
 

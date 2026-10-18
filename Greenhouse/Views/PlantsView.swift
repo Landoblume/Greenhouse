@@ -129,7 +129,7 @@ struct PlantsView: View {
     private var searchField: some View {
         HStack {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField("Name, species or where it lives", text: $filter.query)
+            TextField("Name, species, where it lives or notes", text: $filter.query)
                 .focused($searchFocused)
                 .submitLabel(.search)
                 .autocorrectionDisabled()

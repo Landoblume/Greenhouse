@@ -109,6 +109,8 @@ final class Plant: NSManagedObject {
     @NSManaged var acquiredDate: Date?
     @NSManaged var location: String?
     @NSManaged var lightSource: String?
+    /// Free-form notes anyone in the household can leave on the plant.
+    @NSManaged var notes: String?
     @NSManaged var coverPhotoID: UUID?
     @NSManaged var setting: String?
     @NSManaged var status: String?

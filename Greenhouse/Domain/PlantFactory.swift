@@ -70,6 +70,12 @@ enum PlantFactory {
         let trimmed = text?.trimmingCharacters(in: .whitespaces) ?? ""
         return trimmed.isEmpty ? nil : trimmed
     }
+
+    /// Notes as stored: trimmed, and nil when there's nothing left.
+    static func cleanNotes(_ text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
 }
 
 enum ImageTools {
