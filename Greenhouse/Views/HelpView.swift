@@ -31,7 +31,7 @@ struct HelpView: View {
             topic("Plans: wishlist and projects", "list.star", """
             The wishlist holds plants you'd like, with notes like where you saw one. It shows the light each one likes and whether it survives winter in your zone. When you bring one home, tap Got it: it becomes a plant and leaves the list.
 
-            Projects are things to build or do, like painting a new greenhouse, with an optional target date and the plants they're for. Set one to In progress and its plants get an orange edge on the Plants tab; tap the circle when it's done.
+            Projects are things to build or do, like painting a new greenhouse, with an optional target date and the plants they're for (pick them here, or from a plant's Edit screen). Set one to In progress and its plants get a green edge on the Plants tab; tap the circle when it's done.
 
             Tap a project for its page: a checklist of steps, supplies with costs (tick them as you buy them) against an optional budget, where it's happening, a link, and notes.
             """)

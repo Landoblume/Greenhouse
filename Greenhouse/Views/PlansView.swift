@@ -171,7 +171,7 @@ struct ProjectRow: View {
                     if let started = project.startedAt, !project.isDone {
                         Label("In progress since \(Lineage.format(started))", systemImage: "hammer.fill")
                             .font(.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.green)
                     }
                     if let target = project.targetDate, !project.isDone {
                         Label("By \(Lineage.format(target))", systemImage: "calendar")
@@ -337,7 +337,7 @@ struct ProjectEditorView: View {
                     }
                     .pickerStyle(.segmented)
                 } footer: {
-                    Text("While a project is in progress, its plants get an orange edge on the Plants tab.")
+                    Text("While a project is in progress, its plants get a green edge on the Plants tab.")
                 }
                 Section {
                     TextField("Where (e.g. back patio)", text: $place)

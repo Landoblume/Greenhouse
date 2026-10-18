@@ -160,6 +160,20 @@ enum Plans {
         }
     }
 
+    /// Projects a plant's Edit screen offers: every unfinished one, plus
+    /// finished ones it's already in (so unticking still works).
+    static func projectChoices(for plant: Plant, in household: Household) -> [Project] {
+        sorted((household.projects ?? []).filter { !$0.isDone || ($0.plants ?? []).contains(plant) })
+    }
+
+    /// Puts the plant in exactly these projects (the other side of picking a
+    /// project's plants).
+    static func setProjects(of plant: Plant, to projects: Set<Project>) {
+        let set = plant.mutableSetValue(forKey: "projects")
+        set.removeAllObjects()
+        set.addObjects(from: Array(projects))
+    }
+
     /// Whether the plant is part of a project that's underway, which the
     /// Plants tab marks on its tile.
     static func isInActiveProject(_ plant: Plant) -> Bool {

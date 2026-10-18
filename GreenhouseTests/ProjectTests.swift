@@ -66,4 +66,22 @@ final class ProjectTests: XCTestCase {
         XCTAssertEqual(Plans.items(.supply, of: moved).map(\.title), ["Paint"])
         XCTAssertEqual(Plans.estimatedCost(of: moved), 32)
     }
+
+    func testAddingAPlantToProjectsFromItsSide() {
+        let store = TestStore()
+        let fern = store.plant("nephrolepis-exaltata", acquired: day(2026, 3, 1))
+        let paint = project(store)
+        let old = project(store)
+        let unrelated = project(store)
+        Plans.setDone(old, true)
+        Plans.setDone(unrelated, true)
+        old.mutableSetValue(forKey: "plants").add(fern)
+
+        XCTAssertEqual(Set(Plans.projectChoices(for: fern, in: store.household)), [paint, old],
+                       "finished projects show only if the plant is already in them")
+
+        Plans.setProjects(of: fern, to: [paint])
+        XCTAssertEqual(paint.plants, [fern])
+        XCTAssertEqual(old.plants ?? [], [])
+    }
 }
