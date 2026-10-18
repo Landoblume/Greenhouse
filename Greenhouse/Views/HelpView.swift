@@ -50,7 +50,7 @@ struct HelpView: View {
             For anything else, like a quarterly hydrogen peroxide treatment, tap + on the Care tab. A reminder can cover several plants, or none for household chores. Reminders arrive at the time set in Settings.
             """)
             topic("Anniversaries", "gift", """
-            On the day you got a plant, you'll get a "you've had it a year" note. Combined plants and cuttings count from their oldest original, which is also their Had since date.
+            On the day you got a plant, you'll get a "you've had it a year" note. Combined plants count from their oldest original, which is also their Had since date. A cutting counts from the day it was taken.
             """)
             topic("Grow zone and light", "thermometer.sun", """
             Set your ZIP in Settings to get your USDA hardiness zone. Outdoor and seasonal plants then say whether they survive winter outside where you live. A ZIP too new for the USDA map gets the zone of the nearest ZIP that's on it. If even that fails, Use my location finds the zone around your phone, or you can pick one by hand.

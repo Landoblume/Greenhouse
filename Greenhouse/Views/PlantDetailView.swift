@@ -56,9 +56,6 @@ struct PlantDetailView: View {
                 if let since = Lineage.effectiveAcquiredDate(of: plant) {
                     LabeledContent("Had since", value: "\(Lineage.format(since)) (\(Self.age(since: since)))")
                 }
-                if plant.cuttingOf != nil, let taken = plant.acquiredDate {
-                    LabeledContent("Cutting taken", value: Lineage.format(taken))
-                }
             }
 
             if !plant.isActive {

@@ -259,11 +259,7 @@ struct CuttingSheet: View {
     }
 
     private var footer: String {
-        var text = "\(plant.displayName) stays as it is. The cutting gets its own tile and watering schedule, and each links to the other in History."
-        if let since = Lineage.effectiveAcquiredDate(of: plant) {
-            text += " Had since shows \(Lineage.format(since)) for both."
-        }
-        return text
+        "\(plant.displayName) stays as it is. The cutting gets its own tile and watering schedule, counts from the day it was taken, and each links to the other in History."
     }
 }
 
@@ -452,9 +448,9 @@ struct EditPlantView: View {
                                 Text("Started from")
                             } footer: {
                                 if let cuttingOf {
-                                    Text("Got it on is when the cutting was taken. Had since counts from \(cuttingOf.displayName)'s date.")
+                                    Text("Got it on is when the cutting was taken. History links it to \(cuttingOf.displayName).")
                                 } else {
-                                    Text("Started this plant as a cutting of one you already have? Pick it, and Had since counts from that plant's date.")
+                                    Text("Started this plant as a cutting of one you already have? Pick it to link them in History.")
                                 }
                             }
                         }
