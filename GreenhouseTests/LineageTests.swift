@@ -1,3 +1,4 @@
+import CoreData
 import XCTest
 @testable import Greenhouse
 
@@ -92,5 +93,65 @@ final class LineageTests: XCTestCase {
         let history = Lineage.history(of: a)
         XCTAssertEqual(history.first?.text, "Stapled on Oct 17, 2026 into:")
         XCTAssertEqual(history.compactMap(\.plant).first, merged)
+    }
+
+    // MARK: Deleting plants
+
+    func testDeletingAPlantRemovesItsPhotosAndOwnReminders() {
+        let store = TestStore()
+        let aloe = store.plant(acquired: day(2026, 3, 26), photo: true)
+        let pothos = store.plant("epipremnum-aureum", acquired: day(2026, 4, 1))
+        let shared = CareSchedule.makeTask(name: "Peroxide", count: 3, unit: .month, firstDue: day(2026, 11, 1),
+                                           plants: [aloe, pothos], household: store.household,
+                                           context: store.context, persistence: store.persistence)
+        store.save()
+
+        Lineage.delete(aloe, context: store.context)
+        store.save()
+
+        XCTAssertEqual(store.household.plants, [pothos])
+        XCTAssertEqual(count(Photo.self, in: store), 0)
+        // Its watering task goes; the shared task stays for the pothos.
+        let tasks = (store.household.tasks ?? [])
+        XCTAssertEqual(tasks.count, 2)
+        XCTAssertTrue(tasks.contains(shared))
+        XCTAssertEqual(shared.plants, [pothos])
+    }
+
+    func testDeletingAStapledPlantRemovesItsHiddenOriginals() {
+        let store = TestStore()
+        let march = store.plant(acquired: day(2026, 3, 26), photo: true)
+        let july = store.plant(acquired: day(2026, 7, 24), photo: true)
+        let merged = Lineage.staple([march, july], nickname: nil, household: store.household,
+                                    context: store.context, persistence: store.persistence)
+        store.save()
+
+        Lineage.delete(merged, context: store.context)
+        store.save()
+
+        XCTAssertEqual(store.household.plants ?? [], [])
+        XCTAssertEqual(count(Photo.self, in: store), 0)
+        XCTAssertEqual(count(LineageEvent.self, in: store), 0)
+        XCTAssertEqual(store.household.tasks ?? [], [])
+    }
+
+    func testDeletingOneHalfOfASplitKeepsTheParentForTheOtherHalf() {
+        let store = TestStore()
+        let parent = store.plant(acquired: day(2026, 3, 26), photo: true)
+        let halves = Lineage.split(parent, names: ["Left", "Right"], household: store.household,
+                                   context: store.context, persistence: store.persistence)
+        store.save()
+
+        Lineage.delete(halves[0], context: store.context)
+        store.save()
+
+        XCTAssertEqual(store.household.plants, [parent, halves[1]])
+        XCTAssertEqual(Lineage.parents(of: halves[1]), [parent])
+        XCTAssertEqual(parent.consumedBy?.outputs, [halves[1]])
+        XCTAssertEqual(Lineage.timeline(for: halves[1]).count, 1)
+    }
+
+    private func count<T: NSManagedObject>(_ type: T.Type, in store: TestStore) -> Int {
+        (try? store.context.count(for: NSFetchRequest<T>(entityName: String(describing: type)))) ?? -1
     }
 }
