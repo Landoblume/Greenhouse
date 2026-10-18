@@ -115,6 +115,7 @@ enum GreenhouseModel {
         relate(household, "lineageEvents", many: true, event, "household", many: false)
         relate(plant, "photos", many: true, photo, "plant", many: false, deleteRule: .cascadeDeleteRule)
         relate(plant, "milestones", many: true, milestone, "plant", many: false, deleteRule: .cascadeDeleteRule)
+        relate(milestone, "photos", many: true, photo, "milestone", many: false)
         relate(plant, "tasks", many: true, task, "plants", many: true)
         relate(plant, "producedBy", many: false, event, "outputs", many: true)
         relate(plant, "consumedBy", many: false, event, "inputs", many: true)

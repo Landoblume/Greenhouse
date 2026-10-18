@@ -69,4 +69,78 @@ final class MilestoneTests: XCTestCase {
         XCTAssertEqual(moved.milestones?.map(\.title), ["New pot"])
         XCTAssertEqual(moved.milestones?.first?.notes, "Blue glaze")
     }
+
+    // MARK: Photos linked to milestones
+
+    func testNewMilestoneFromAPhotoTakesThePhotosDate() throws {
+        let store = TestStore()
+        let aloe = store.plant(acquired: day(2026, 3, 1))
+        let photo = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 5, 4), to: aloe, household: store.household,
+                                          context: store.context, persistence: store.persistence)
+
+        let made = try XCTUnwrap(Milestones.attach(photo, to: .new(title: "First bloom"), by: "Sam", plant: aloe,
+                                                   household: store.household, context: store.context, persistence: store.persistence))
+        store.save()
+
+        XCTAssertEqual(made.title, "First bloom")
+        XCTAssertEqual(made.date, day(2026, 5, 4))
+        XCTAssertEqual(made.plant, aloe)
+        XCTAssertEqual(Milestones.photos(of: made), [photo])
+    }
+
+    func testLinkingUnlinkingAndBlankNewTitle() {
+        let store = TestStore()
+        let aloe = store.plant(acquired: day(2026, 3, 1))
+        let pot = Milestones.add(title: "New pot", date: day(2026, 4, 1), notes: nil, by: "Sam", to: aloe,
+                                 household: store.household, context: store.context, persistence: store.persistence)
+        let photo = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 4, 1), to: aloe, household: store.household,
+                                          context: store.context, persistence: store.persistence)
+        func attach(_ choice: Milestones.Choice) {
+            Milestones.attach(photo, to: choice, by: "Sam", plant: aloe, household: store.household,
+                              context: store.context, persistence: store.persistence)
+        }
+
+        attach(.existing(pot))
+        XCTAssertEqual(photo.milestone, pot)
+        attach(.none)
+        XCTAssertNil(photo.milestone)
+        attach(.new(title: "   "))
+        XCTAssertNil(photo.milestone)
+        XCTAssertEqual(aloe.milestones?.count, 1, "a blank title makes no milestone")
+    }
+
+    func testDeletingAMilestoneKeepsItsPhotos() {
+        let store = TestStore()
+        let aloe = store.plant(acquired: day(2026, 3, 1))
+        let photo = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 4, 1), to: aloe, household: store.household,
+                                          context: store.context, persistence: store.persistence)
+        let pot = Milestones.attach(photo, to: .new(title: "New pot"), by: "Sam", plant: aloe, household: store.household,
+                                    context: store.context, persistence: store.persistence)
+        store.save()
+
+        store.context.delete(pot!)
+        store.save()
+
+        XCTAssertEqual(aloe.photos, [photo])
+        XCTAssertNil(photo.milestone)
+    }
+
+    func testMovingHouseholdsKeepsPhotoLinks() throws {
+        let store = TestStore()
+        let joined = store.persistence.createHousehold(name: "Joined", in: store.context)
+        let aloe = store.plant(nickname: "Aloe", acquired: day(2026, 3, 1))
+        let photo = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 4, 1), to: aloe, household: store.household,
+                                          context: store.context, persistence: store.persistence)
+        Milestones.attach(photo, to: .new(title: "New pot"), by: "Sam", plant: aloe, household: store.household,
+                          context: store.context, persistence: store.persistence)
+        store.save()
+
+        HouseholdMerge.move(store.household, into: joined, context: store.context, persistence: store.persistence)
+        store.save()
+
+        let moved = try XCTUnwrap(joined.plants?.first)
+        let movedPhoto = try XCTUnwrap(moved.photos?.first)
+        XCTAssertEqual(movedPhoto.milestone?.title, "New pot")
+        XCTAssertEqual(movedPhoto.milestone?.plant, moved)
+    }
 }

@@ -106,6 +106,11 @@ struct PlantDetailView: View {
                                             .accessibilityLabel("Main photo")
                                     }
                                 }
+                                if let milestone = item.photo.milestone {
+                                    Label(milestone.title ?? "Milestone", systemImage: "flag.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.tint)
+                                }
                                 if let caption = item.photo.caption {
                                     Text(caption)
                                         .font(.caption)

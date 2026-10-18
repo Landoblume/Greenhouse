@@ -165,6 +165,8 @@ final class Photo: NSManagedObject {
     @NSManaged var caption: String?
     @NSManaged var imageData: Data?
     @NSManaged var plant: Plant?
+    /// The milestone this photo shows, if any (the new pot, the first bloom).
+    @NSManaged var milestone: Milestone?
 }
 
 /// Something that happened to a plant, written down by hand: a new pot, a
@@ -178,6 +180,7 @@ final class Milestone: NSManagedObject {
     @NSManaged var addedBy: String?
     @NSManaged var createdAt: Date?
     @NSManaged var plant: Plant?
+    @NSManaged var photos: Set<Photo>?
 }
 
 @objc(LineageEvent)

@@ -13,6 +13,47 @@ enum Milestones {
         var id: NSManagedObjectID { milestone.objectID }
     }
 
+    /// Which milestone a photo goes with, as picked on the photo screens.
+    enum Choice: Hashable {
+        case none
+        case existing(Milestone)
+        /// A new milestone with this title, dated the day the photo was taken.
+        case new(title: String)
+    }
+
+    /// Links a photo to the picked milestone, creating it first if it's new.
+    /// A blank new title links nothing.
+    @discardableResult
+    static func attach(
+        _ photo: Photo,
+        to choice: Choice,
+        by name: String,
+        plant: Plant,
+        household: Household,
+        context: NSManagedObjectContext,
+        persistence: Persistence = .shared
+    ) -> Milestone? {
+        switch choice {
+        case .none:
+            photo.milestone = nil
+        case .existing(let milestone):
+            photo.milestone = milestone
+        case .new(let title):
+            guard !title.trimmingCharacters(in: .whitespaces).isEmpty else {
+                photo.milestone = nil
+                return nil
+            }
+            photo.milestone = add(title: title, date: photo.takenAt ?? .now, notes: nil, by: name, to: plant,
+                                  household: household, context: context, persistence: persistence)
+        }
+        return photo.milestone
+    }
+
+    /// A milestone's photos, oldest first.
+    static func photos(of milestone: Milestone) -> [Photo] {
+        (milestone.photos ?? []).sorted { ($0.takenAt ?? .distantPast) < ($1.takenAt ?? .distantPast) }
+    }
+
     @discardableResult
     static func add(
         title: String,

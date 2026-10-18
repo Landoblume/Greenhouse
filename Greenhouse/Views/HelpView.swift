@@ -19,7 +19,7 @@ struct HelpView: View {
 
             Tap a photo, then the ••• button, to fix its date, add a caption, crop it, make it the main photo on the plant's tile, or delete it. You can also crop a photo right after taking it.
 
-            Under History, Add milestone writes down things like a new pot, a repot or a first bloom, with the date and a note. Tap one to change or delete it.
+            Under History, Add milestone writes down things like a new pot, a repot or a first bloom, with the date and a note. Tap one to change or delete it. When adding a photo (or editing one), pick a milestone to link them, or start a new milestone that takes the photo's date.
             """)
             topic("Collections", "square.stack", """
             Group plants however you like: Indoor, Outdoor greenhouse, Succulents. Tap + Collection at the top of the Plants tab, then Choose plants, or tap New collection while adding or editing a plant. A plant can be in more than one.

@@ -23,6 +23,21 @@ struct MilestoneRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                let photos = Milestones.photos(of: item.milestone)
+                if !photos.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(photos.prefix(4)) { photo in
+                            PlantPhotoView(photo: photo, maxPixel: 120)
+                                .frame(width: 36, height: 36)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        if photos.count > 4 {
+                            Text("+\(photos.count - 4)").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 2)
+                    .accessibilityLabel(photos.count == 1 ? "1 photo" : "\(photos.count) photos")
+                }
             }
             Spacer()
             Text(item.milestone.date.map(Lineage.format) ?? "")
@@ -64,19 +79,7 @@ struct MilestoneEditorView: View {
                 Section {
                     TextField("What happened (e.g. New pot)", text: $title)
                     if milestone == nil {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(Milestones.suggestions, id: \.self) { suggestion in
-                                    Button(suggestion) { title = suggestion }
-                                        .font(.subheadline)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(title == suggestion ? Color.accentColor : Color(.tertiarySystemFill), in: Capsule())
-                                        .foregroundStyle(title == suggestion ? Color.white : Color.primary)
-                                        .buttonStyle(.plain)
-                                }
-                            }
-                        }
+                        MilestoneSuggestions(title: $title)
                     }
                     DatePicker("Date", selection: $date, in: ...Date(), displayedComponents: .date)
                     TextField("Note (optional, e.g. where the pot's from)", text: $notes, axis: .vertical)
@@ -105,6 +108,10 @@ struct MilestoneEditorView: View {
                     Persistence.shared.save(context)
                     dismiss()
                 }
+            } message: {
+                if !(milestone?.photos ?? []).isEmpty {
+                    Text("Its photos stay on the plant.")
+                }
             }
         }
     }
@@ -118,5 +125,74 @@ struct MilestoneEditorView: View {
         }
         Persistence.shared.save(context)
         dismiss()
+    }
+}
+
+/// "New pot", "Repotted", … as tappable chips that fill in the title.
+struct MilestoneSuggestions: View {
+    @Binding var title: String
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Milestones.suggestions, id: \.self) { suggestion in
+                    Button(suggestion) { title = suggestion }
+                        .font(.subheadline)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(title == suggestion ? Color.accentColor : Color(.tertiarySystemFill), in: Capsule())
+                        .foregroundStyle(title == suggestion ? Color.white : Color.primary)
+                        .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+/// What the milestone picker on the photo screens has selected.
+enum MilestoneSelection: Hashable {
+    case none
+    case existing(Milestone)
+    case new
+
+    init(_ milestone: Milestone?) {
+        self = milestone.map { .existing($0) } ?? .none
+    }
+
+    func choice(newTitle: String) -> Milestones.Choice {
+        switch self {
+        case .none: .none
+        case .existing(let milestone): .existing(milestone)
+        case .new: .new(title: newTitle)
+        }
+    }
+}
+
+/// Picks which milestone a photo goes with: none, one of the plant's, or a
+/// new one that takes the photo's date.
+struct MilestonePicker: View {
+    let plant: Plant
+    @Binding var selection: MilestoneSelection
+    @Binding var newTitle: String
+
+    var body: some View {
+        Section {
+            Picker("Milestone", selection: $selection) {
+                Text("None").tag(MilestoneSelection.none)
+                ForEach(Milestones.history(for: plant)) { item in
+                    Text("\(item.milestone.title ?? "Milestone"), \(item.milestone.date.map(Lineage.format) ?? "")")
+                        .tag(MilestoneSelection.existing(item.milestone))
+                }
+                Text("New milestone…").tag(MilestoneSelection.new)
+            }
+            if selection == .new {
+                TextField("What happened (e.g. First bloom)", text: $newTitle)
+                MilestoneSuggestions(title: $newTitle)
+            }
+        } footer: {
+            if selection == .new {
+                Text("The new milestone gets the photo's date.")
+            }
+        }
     }
 }
