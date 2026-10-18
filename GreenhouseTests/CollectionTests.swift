@@ -104,4 +104,34 @@ final class CollectionTests: XCTestCase {
         Plans.setDone(done, false)
         XCTAssertNil(done.doneAt)
     }
+
+    func testProjectStatesAndInProgressFirst() {
+        let store = TestStore()
+        let fern = store.plant("nephrolepis-exaltata", acquired: day(2026, 3, 1))
+        let aloe = store.plant(acquired: day(2026, 3, 1))
+        let soon = Plans.addProject(title: "Soon", notes: nil, targetDate: day(2026, 11, 1), plants: [aloe], collection: nil,
+                                    household: store.household, context: store.context, persistence: store.persistence)
+        let paint = Plans.addProject(title: "Paint", notes: nil, targetDate: nil, plants: [fern], collection: nil,
+                                     household: store.household, context: store.context, persistence: store.persistence)
+        XCTAssertEqual(Plans.state(of: paint), .planned)
+        XCTAssertFalse(Plans.isInActiveProject(fern))
+
+        Plans.setState(paint, .inProgress, at: day(2026, 10, 10))
+        XCTAssertEqual(Plans.state(of: paint), .inProgress)
+        XCTAssertTrue(Plans.isInActiveProject(fern))
+        XCTAssertFalse(Plans.isInActiveProject(aloe))
+        XCTAssertEqual(Plans.sorted([soon, paint]), [paint, soon], "in progress comes before planned")
+
+        Plans.setState(paint, .inProgress, at: day(2026, 10, 20))
+        XCTAssertEqual(paint.startedAt, day(2026, 10, 10), "re-picking In progress keeps the start")
+
+        Plans.setState(paint, .done, at: day(2026, 10, 25))
+        XCTAssertEqual(Plans.state(of: paint), .done)
+        XCTAssertEqual(paint.startedAt, day(2026, 10, 10))
+        XCTAssertFalse(Plans.isInActiveProject(fern))
+
+        Plans.setState(paint, .planned)
+        XCTAssertNil(paint.startedAt)
+        XCTAssertNil(paint.doneAt)
+    }
 }

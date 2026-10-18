@@ -1,5 +1,20 @@
 import CoreData
 
+/// Where a project is: just an idea, underway, or finished.
+enum ProjectState: CaseIterable, Identifiable {
+    case planned, inProgress, done
+
+    var id: Self { self }
+
+    var label: String {
+        switch self {
+        case .planned: "Planned"
+        case .inProgress: "In progress"
+        case .done: "Done"
+        }
+    }
+}
+
 /// The Plans tab: plants you want, and projects for the plants you have.
 enum Plans {
     @discardableResult
@@ -69,12 +84,41 @@ enum Plans {
         project.doneAt = done ? date : nil
     }
 
-    /// Open projects first (soonest target date, then oldest), then finished
-    /// ones, most recently finished first.
+    static func state(of project: Project) -> ProjectState {
+        if project.isDone { return .done }
+        return project.startedAt == nil ? .planned : .inProgress
+    }
+
+    /// Moving to a state keeps the dates that still apply: a finished project
+    /// remembers when it started, and re-picking In progress keeps the start.
+    static func setState(_ project: Project, _ state: ProjectState, at date: Date = .now) {
+        switch state {
+        case .planned:
+            project.startedAt = nil
+            setDone(project, false)
+        case .inProgress:
+            if project.startedAt == nil { project.startedAt = date }
+            setDone(project, false)
+        case .done:
+            if !project.isDone { setDone(project, true, at: date) }
+        }
+    }
+
+    /// Whether the plant is part of a project that's underway, which the
+    /// Plants tab marks on its tile.
+    static func isInActiveProject(_ plant: Plant) -> Bool {
+        (plant.projects ?? []).contains { state(of: $0) == .inProgress }
+    }
+
+    /// In-progress projects first, then planned ones (soonest target date,
+    /// then oldest), then finished ones, most recently finished first.
     static func sorted(_ projects: [Project]) -> [Project] {
         projects.sorted { a, b in
             if a.isDone != b.isDone { return !a.isDone }
             if a.isDone { return (a.doneAt ?? .distantPast) > (b.doneAt ?? .distantPast) }
+            let aStarted = a.startedAt != nil
+            let bStarted = b.startedAt != nil
+            if aStarted != bStarted { return aStarted }
             let aTarget = a.targetDate ?? .distantFuture
             let bTarget = b.targetDate ?? .distantFuture
             if aTarget != bTarget { return aTarget < bTarget }

@@ -41,6 +41,8 @@ enum HouseholdMerge {
         let tasks = Array(source.tasks ?? [])
 
         var copies: [NSManagedObjectID: Plant] = [:]
+        var milestoneCopies: [NSManagedObjectID: Milestone] = [:]
+        var photoCopies: [(original: Photo, copy: Photo)] = []
         for plant in plants {
             let copy = persistence.insert(Plant.self, alongside: target, in: context)
             copyAttributes(of: plant, to: copy)
@@ -50,12 +52,19 @@ enum HouseholdMerge {
                 let photoCopy = persistence.insert(Photo.self, alongside: target, in: context)
                 copyAttributes(of: photo, to: photoCopy)
                 photoCopy.plant = copy
+                photoCopies.append((photo, photoCopy))
             }
             for milestone in plant.milestones ?? [] {
                 let milestoneCopy = persistence.insert(Milestone.self, alongside: target, in: context)
                 copyAttributes(of: milestone, to: milestoneCopy)
                 milestoneCopy.plant = copy
+                milestoneCopies[milestone.objectID] = milestoneCopy
             }
+        }
+        // A photo can show a milestone written on another plant in its family,
+        // so links are restored once every plant is copied.
+        for (original, copy) in photoCopies {
+            copy.milestone = original.milestone.flatMap { milestoneCopies[$0.objectID] }
         }
 
         for event in events {

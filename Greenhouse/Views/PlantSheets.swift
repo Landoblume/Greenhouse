@@ -10,6 +10,9 @@ struct AddPhotoSheet: View {
     @State private var takenAt = Date()
     @State private var dateFromPhoto = false
     @State private var caption = ""
+    @State private var milestone: MilestoneSelection = .none
+    @State private var newMilestoneTitle = ""
+    @AppStorage(SettingsKey.myName) private var myName = ""
 
     var body: some View {
         NavigationStack {
@@ -28,6 +31,7 @@ struct AddPhotoSheet: View {
                         Text("Date read from the photo. Change it if it's wrong.")
                     }
                 }
+                MilestonePicker(plant: plant, selection: $milestone, newTitle: $newMilestoneTitle)
             }
             .navigationTitle("Add photo")
             .navigationBarTitleDisplayMode(.inline)
@@ -36,7 +40,9 @@ struct AddPhotoSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if let data = image.flatMap({ ImageTools.preparedJPEG(from: $0) }) {
-                            PlantFactory.addPhoto(data, takenAt: takenAt, caption: caption, to: plant, household: household, context: context)
+                            let photo = PlantFactory.addPhoto(data, takenAt: takenAt, caption: caption, to: plant, household: household, context: context)
+                            Milestones.attach(photo, to: milestone.choice(newTitle: newMilestoneTitle), by: myName,
+                                              plant: plant, household: household, context: context)
                             Persistence.shared.save(context)
                         }
                         dismiss()
@@ -230,6 +236,11 @@ struct PhotoDetailView: View {
                 if let caption = photo.caption {
                     Text(caption).font(.body)
                 }
+                if let milestone = photo.milestone {
+                    Label(milestone.title ?? "Milestone", systemImage: "flag.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.tint)
+                }
                 if PlantPhotos.isCover(photo, of: plant) {
                     Label("Main photo", systemImage: "star.fill")
                         .font(.caption)
@@ -242,7 +253,7 @@ struct PhotoDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             Menu {
-                Button { editing = true } label: { Label("Edit date or caption", systemImage: "pencil") }
+                Button { editing = true } label: { Label("Edit date, caption or milestone", systemImage: "pencil") }
                 Button { cropping = true } label: { Label("Crop photo", systemImage: "crop") }
                 if !PlantPhotos.isCover(photo, of: plant) {
                     Button {
@@ -256,7 +267,7 @@ struct PhotoDetailView: View {
             }
             .accessibilityLabel("Photo options")
         }
-        .sheet(isPresented: $editing) { EditPhotoSheet(photo: photo) }
+        .sheet(isPresented: $editing) { EditPhotoSheet(photo: photo, plant: plant) }
         .fullScreenCover(isPresented: $cropping) {
             if let data = photo.imageData, let image = UIImage(data: data) {
                 CropView(image: image) { cropped in
@@ -279,25 +290,36 @@ struct PhotoDetailView: View {
 
 struct EditPhotoSheet: View {
     @ObservedObject var photo: Photo
+    /// The plant whose page it was opened from; its milestones (and its
+    /// originals') are the ones offered.
+    let plant: Plant
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(SettingsKey.myName) private var myName = ""
     @State private var caption: String
     @State private var takenAt: Date
+    @State private var milestone: MilestoneSelection
+    @State private var newMilestoneTitle = ""
 
     // Starting values are set here, not in onAppear: a date picker that first
     // draws with today and is then changed can keep showing today, and saving
     // would write that back.
-    init(photo: Photo) {
+    init(photo: Photo, plant: Plant) {
         _photo = ObservedObject(wrappedValue: photo)
+        self.plant = plant
         _caption = State(initialValue: photo.caption ?? "")
         _takenAt = State(initialValue: photo.takenAt ?? Date())
+        _milestone = State(initialValue: MilestoneSelection(photo.milestone))
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                DatePicker("Taken on", selection: $takenAt, in: ...Date(), displayedComponents: .date)
-                TextField("Caption", text: $caption, axis: .vertical)
+                Section {
+                    DatePicker("Taken on", selection: $takenAt, in: ...Date(), displayedComponents: .date)
+                    TextField("Caption", text: $caption, axis: .vertical)
+                }
+                MilestonePicker(plant: plant, selection: $milestone, newTitle: $newMilestoneTitle)
             }
             .navigationTitle("Edit photo")
             .navigationBarTitleDisplayMode(.inline)
@@ -306,6 +328,11 @@ struct EditPhotoSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         PlantPhotos.update(photo, caption: caption, takenAt: takenAt)
+                        if let household = plant.household {
+                            // A new milestone goes on the plant the photo was taken of.
+                            Milestones.attach(photo, to: milestone.choice(newTitle: newMilestoneTitle), by: myName,
+                                              plant: photo.plant ?? plant, household: household, context: context)
+                        }
                         Persistence.shared.save(context)
                         dismiss()
                     }

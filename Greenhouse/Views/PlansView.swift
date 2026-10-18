@@ -167,6 +167,11 @@ struct ProjectRow: View {
                     Text(project.title ?? "Untitled project")
                         .strikethrough(project.isDone)
                         .foregroundStyle(project.isDone ? .secondary : .primary)
+                    if let started = project.startedAt, !project.isDone {
+                        Label("In progress since \(Lineage.format(started))", systemImage: "hammer.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                     if let target = project.targetDate, !project.isDone {
                         Label("By \(Lineage.format(target))", systemImage: "calendar")
                             .font(.caption)
@@ -305,6 +310,7 @@ struct ProjectEditorView: View {
     @AppStorage(Collections.selectedKey) private var selectedCollection = ""
     @State private var title = ""
     @State private var notes = ""
+    @State private var state: ProjectState = .planned
     @State private var hasTarget = false
     @State private var target = Date()
     @State private var plantIDs: Set<NSManagedObjectID> = []
@@ -318,6 +324,14 @@ struct ProjectEditorView: View {
                 Section {
                     TextField("What (e.g. Spray paint a new greenhouse)", text: $title)
                     TextField("Notes, supplies, measurements…", text: $notes, axis: .vertical)
+                }
+                Section {
+                    Picker("State", selection: $state) {
+                        ForEach(ProjectState.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                } footer: {
+                    Text("While a project is in progress, its plants get an orange edge on the Plants tab.")
                 }
                 Section {
                     Toggle("Target date", isOn: $hasTarget)
@@ -375,6 +389,7 @@ struct ProjectEditorView: View {
         if let project {
             title = project.title ?? ""
             notes = project.notes ?? ""
+            state = Plans.state(of: project)
             hasTarget = project.targetDate != nil
             target = project.targetDate ?? Date()
             plantIDs = Set((project.plants ?? []).map(\.objectID))
@@ -389,9 +404,11 @@ struct ProjectEditorView: View {
         if let project {
             Plans.update(project, title: title, notes: notes, targetDate: hasTarget ? target : nil, plants: plants)
             project.collection = collection
+            Plans.setState(project, state)
         } else {
-            Plans.addProject(title: title, notes: notes, targetDate: hasTarget ? target : nil, plants: plants,
-                             collection: collection, household: household, context: context)
+            let project = Plans.addProject(title: title, notes: notes, targetDate: hasTarget ? target : nil, plants: plants,
+                                           collection: collection, household: household, context: context)
+            Plans.setState(project, state)
         }
         Persistence.shared.save(context)
         dismiss()

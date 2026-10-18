@@ -106,6 +106,11 @@ struct PlantDetailView: View {
                                             .accessibilityLabel("Main photo")
                                     }
                                 }
+                                if let milestone = item.photo.milestone {
+                                    Label(milestone.title ?? "Milestone", systemImage: "flag.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.tint)
+                                }
                                 if let caption = item.photo.caption {
                                     Text(caption)
                                         .font(.caption)
@@ -171,7 +176,7 @@ struct PlantDetailView: View {
         .sheet(isPresented: $showingEdit) { EditPlantView(plant: plant) }
         .sheet(isPresented: $showingNewTask) { TaskEditorView(household: household, task: nil, preselected: [plant]) }
         .sheet(item: $editingTask) { TaskEditorView(household: household, task: $0, preselected: []) }
-        .redrawsOnPhotoChanges(plant)
+        .redrawsOnRelatedChanges(plant)
     }
 
     static func age(since date: Date, now: Date = .now) -> String {
@@ -257,16 +262,16 @@ struct TaskRow: View {
 
 extension View {
     /// A plant view only watches the plant itself, so editing one of its photos
-    /// (a new date, a caption, here or on the other phone) wouldn't redraw it.
-    /// This redraws it whenever any photo changes, which also re-sorts the
-    /// timeline and re-picks the newest photo.
-    func redrawsOnPhotoChanges(_ plant: Plant) -> some View {
+    /// or projects (a new date, a project started, here or on the other phone)
+    /// wouldn't redraw it. This redraws it whenever any photo or project
+    /// changes, which also re-sorts the timeline and re-picks the newest photo.
+    func redrawsOnRelatedChanges(_ plant: Plant) -> some View {
         onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
             let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
-            let changedPhoto = keys.contains { key in
-                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is Photo } ?? false
+            let changed = keys.contains { key in
+                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is Photo || $0 is Project } ?? false
             }
-            if changedPhoto { plant.objectWillChange.send() }
+            if changed { plant.objectWillChange.send() }
         }
     }
 }
