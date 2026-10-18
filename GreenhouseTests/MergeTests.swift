@@ -89,7 +89,7 @@ final class MergeTests: XCTestCase {
 
         let kid = try XCTUnwrap(joined.plants?.first { $0.displayName == "Kid" })
         XCTAssertEqual(kid.cuttingOf?.displayName, "Parent")
-        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: kid), day(2023, 5, 1))
+        XCTAssertEqual(kid.acquiredDate, day(2024, 7, 1))
     }
 }
 

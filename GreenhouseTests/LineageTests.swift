@@ -157,7 +157,7 @@ final class LineageTests: XCTestCase {
 
     // MARK: Cuttings (v1.3.6)
 
-    func testCuttingKeepsParentAndCountsFromItsDate() throws {
+    func testCuttingKeepsParentAndCountsFromTheDayItWasTaken() throws {
         let store = TestStore()
         let snake = store.plant("dracaena-trifasciata", nickname: "Snake", acquired: day(2023, 5, 1), waterEvery: 14)
         let cutting = Lineage.takeCutting(from: snake, nickname: "Snake jr", date: day(2024, 7, 1),
@@ -167,7 +167,7 @@ final class LineageTests: XCTestCase {
         XCTAssertTrue(snake.isActive, "the parent keeps living")
         XCTAssertTrue(cutting.isActive)
         XCTAssertEqual(cutting.acquiredDate, day(2024, 7, 1), "Got it on is when the cutting was taken")
-        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: cutting), day(2023, 5, 1), "Had since follows the parent")
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: cutting), day(2024, 7, 1), "Had since is the cutting's own date")
         XCTAssertEqual(Lineage.effectiveAcquiredDate(of: snake), day(2023, 5, 1))
         XCTAssertEqual(cutting.scientificName, snake.scientificName)
         XCTAssertEqual(cutting.wateringTask?.intervalCount, 14)
@@ -191,7 +191,8 @@ final class LineageTests: XCTestCase {
         let second = store.plant(nickname: "Second", acquired: day(2024, 7, 1))
 
         XCTAssertTrue(Lineage.setCuttingParent(of: second, to: first))
-        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: second), day(2023, 5, 1))
+        XCTAssertEqual(second.cuttingOf, first)
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: second), day(2024, 7, 1), "linking doesn't change its date")
         XCTAssertFalse(Lineage.setCuttingParent(of: first, to: second), "a plant can't come from its own cutting")
         XCTAssertNil(first.cuttingOf)
         XCTAssertFalse(Lineage.setCuttingParent(of: first, to: first))
@@ -199,10 +200,20 @@ final class LineageTests: XCTestCase {
         XCTAssertEqual(Lineage.cuttingParentChoices(for: second, in: store.household), [first])
 
         XCTAssertTrue(Lineage.setCuttingParent(of: second, to: nil))
-        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: second), day(2024, 7, 1))
+        XCTAssertNil(second.cuttingOf)
     }
 
-    func testCombiningACuttingCountsFromTheOldestPlant() {
+    func testCombiningACuttingBackWithItsParentCountsFromTheParent() {
+        let store = TestStore()
+        let parent = store.plant(acquired: day(2023, 5, 1))
+        let cutting = Lineage.takeCutting(from: parent, nickname: nil, date: day(2024, 7, 1),
+                                          household: store.household, context: store.context, persistence: store.persistence)
+        let merged = Lineage.staple([parent, cutting], nickname: nil, date: day(2025, 1, 1),
+                                    household: store.household, context: store.context, persistence: store.persistence)
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: merged), day(2023, 5, 1))
+    }
+
+    func testCombiningACuttingWithAnotherPlantCountsFromTheCutting() {
         let store = TestStore()
         let parent = store.plant(acquired: day(2023, 5, 1))
         let cutting = Lineage.takeCutting(from: parent, nickname: nil, date: day(2024, 7, 1),
@@ -210,7 +221,7 @@ final class LineageTests: XCTestCase {
         let other = store.plant(acquired: day(2024, 9, 1))
         let merged = Lineage.staple([cutting, other], nickname: nil, date: day(2025, 1, 1),
                                     household: store.household, context: store.context, persistence: store.persistence)
-        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: merged), day(2023, 5, 1))
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: merged), day(2024, 7, 1))
         XCTAssertTrue(Lineage.history(of: merged).contains { $0.plant == parent }, "the cutting's parent shows in the tree")
     }
 

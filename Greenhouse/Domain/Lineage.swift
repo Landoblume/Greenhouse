@@ -83,8 +83,8 @@ enum Lineage {
     }
 
     /// A new plant started from `parent`, which stays active. The cutting
-    /// counts from the parent's date for Had since and anniversaries, gets the
-    /// parent's watering schedule, and joins its collections.
+    /// counts from the day it was taken, gets the parent's watering schedule,
+    /// and joins its collections.
     @discardableResult
     static func takeCutting(
         from parent: Plant,
@@ -177,9 +177,8 @@ enum Lineage {
         walkUp(from: plant, parents(of:))
     }
 
-    /// Ancestors plus the plants it was taken as a cutting of (and theirs).
-    /// A cutting's parent kept living, so its photos stay its own, but the
-    /// line still decides how long you've had the plant.
+    /// Ancestors plus the plants it was taken as a cutting of (and theirs),
+    /// for keeping the family tree free of loops.
     static func origins(of plant: Plant) -> [Plant] {
         walkUp(from: plant) { parents(of: $0) + [$0.cuttingOf].compactMap { $0 } }
     }
@@ -197,11 +196,12 @@ enum Lineage {
         return result
     }
 
-    /// The earliest acquired date in the plant's line, cuttings included: how
-    /// long you've had it. A cutting taken in July 2024 from a plant you got in
-    /// May 2023 has been with you since May 2023.
+    /// The earliest acquired date among the plant and what it was combined or
+    /// split from: how long you've had it. A cutting counts from the day it was
+    /// taken, not from its parent; combine it back with that parent and the
+    /// combined plant counts from the parent's date.
     static func effectiveAcquiredDate(of plant: Plant) -> Date? {
-        ([plant] + origins(of: plant)).compactMap(\.acquiredDate).min()
+        ([plant] + ancestors(of: plant)).compactMap(\.acquiredDate).min()
     }
 
     struct TimelinePhoto: Identifiable {
