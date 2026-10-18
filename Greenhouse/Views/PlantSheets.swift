@@ -218,6 +218,7 @@ struct PhotoDetailView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var editing = false
+    @State private var cropping = false
     @State private var confirmingDelete = false
 
     var body: some View {
@@ -242,6 +243,7 @@ struct PhotoDetailView: View {
         .toolbar {
             Menu {
                 Button { editing = true } label: { Label("Edit date or caption", systemImage: "pencil") }
+                Button { cropping = true } label: { Label("Crop photo", systemImage: "crop") }
                 if !PlantPhotos.isCover(photo, of: plant) {
                     Button {
                         PlantPhotos.setCover(photo, of: plant)
@@ -255,6 +257,14 @@ struct PhotoDetailView: View {
             .accessibilityLabel("Photo options")
         }
         .sheet(isPresented: $editing) { EditPhotoSheet(photo: photo) }
+        .fullScreenCover(isPresented: $cropping) {
+            if let data = photo.imageData, let image = UIImage(data: data) {
+                CropView(image: image) { cropped in
+                    PlantPhotos.replaceImage(of: photo, with: cropped)
+                    Persistence.shared.save(context)
+                }
+            }
+        }
         .confirmationDialog("Delete this photo?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 dismiss()

@@ -89,6 +89,24 @@ enum ImageTools {
         return resized.jpegData(compressionQuality: quality)
     }
 
+    /// Redraws the image upright at its pixel size, so pixel coordinates
+    /// match what's on screen (camera photos are often stored sideways with a
+    /// rotation flag).
+    static func upright(_ image: UIImage) -> UIImage {
+        guard image.imageOrientation != .up || image.scale != 1 else { return image }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let size = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+
+    /// Cuts `rect` (in pixels) out of an upright image.
+    static func cropped(_ image: UIImage, to rect: CGRect) -> UIImage? {
+        upright(image).cgImage?.cropping(to: rect).map { UIImage(cgImage: $0) }
+    }
+
     /// Decodes a small version without loading the full image into memory.
     static func thumbnail(from data: Data, maxPixel: CGFloat) -> UIImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
@@ -106,9 +124,30 @@ enum ImageTools {
 final class ThumbnailCache {
     static let shared = ThumbnailCache()
     private let cache = NSCache<NSString, UIImage>()
+    /// Bumped when a photo changes (a crop, here or on the other phone), so
+    /// the old thumbnails are no longer looked up.
+    private var versions: [NSManagedObjectID: Int] = [:]
+    private var observer: NSObjectProtocol?
+
+    private init() {
+        observer = NotificationCenter.default.addObserver(
+            forName: .NSManagedObjectContextObjectsDidChange, object: nil, queue: .main
+        ) { [weak self] note in
+            for key in [NSUpdatedObjectsKey, NSRefreshedObjectsKey] {
+                for photo in (note.userInfo?[key] as? Set<NSManagedObject> ?? []) where photo is Photo {
+                    self?.versions[photo.objectID, default: 0] += 1
+                }
+            }
+        }
+    }
+
+    func forget(_ photo: Photo) {
+        versions[photo.objectID, default: 0] += 1
+    }
 
     func image(for photo: Photo, maxPixel: CGFloat) -> UIImage? {
-        let key = "\(photo.objectID.uriRepresentation().absoluteString)-\(Int(maxPixel))" as NSString
+        let version = versions[photo.objectID] ?? 0
+        let key = "\(photo.objectID.uriRepresentation().absoluteString)-\(version)-\(Int(maxPixel))" as NSString
         if let cached = cache.object(forKey: key) { return cached }
         guard let data = photo.imageData, let image = ImageTools.thumbnail(from: data, maxPixel: maxPixel) else { return nil }
         cache.setObject(image, forKey: key)

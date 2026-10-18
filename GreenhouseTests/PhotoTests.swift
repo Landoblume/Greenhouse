@@ -92,4 +92,35 @@ final class PhotoTests: XCTestCase {
         XCTAssertTrue(CGImageDestinationFinalize(destination))
         return output as Data
     }
+
+    // MARK: Cropping
+
+    func testUncroppedWindowCoversTheWholeImage() {
+        let image = CGSize(width: 4000, height: 3000)
+        let window = ImageCrop.window(ratio: ImageCrop.Aspect.original.ratio(for: image), in: CGSize(width: 400, height: 800))
+        XCTAssertEqual(window, CGSize(width: 400, height: 300))
+        XCTAssertEqual(ImageCrop.rect(imageSize: image, window: window, zoom: 1, offset: .zero),
+                       CGRect(x: 0, y: 0, width: 4000, height: 3000))
+    }
+
+    func testSquareCropOfALandscapePhotoTakesTheMiddle() {
+        let image = CGSize(width: 4000, height: 3000)
+        let window = CGSize(width: 300, height: 300)
+        XCTAssertEqual(ImageCrop.rect(imageSize: image, window: window, zoom: 1, offset: .zero),
+                       CGRect(x: 500, y: 0, width: 3000, height: 3000))
+    }
+
+    func testZoomingAndDraggingMovesTheCrop() {
+        let image = CGSize(width: 4000, height: 3000)
+        let window = CGSize(width: 400, height: 300)  // 0.1 pt per pixel at zoom 1
+        // Zoom 2 shows the middle half.
+        XCTAssertEqual(ImageCrop.rect(imageSize: image, window: window, zoom: 2, offset: .zero),
+                       CGRect(x: 1000, y: 750, width: 2000, height: 1500))
+        // Dragging the image right by 50 pt (250 px at 0.2 pt/px) shows more of its left side.
+        XCTAssertEqual(ImageCrop.rect(imageSize: image, window: window, zoom: 2, offset: CGSize(width: 50, height: 0)),
+                       CGRect(x: 750, y: 750, width: 2000, height: 1500))
+        // Dragging too far stops at the image's edge.
+        XCTAssertEqual(ImageCrop.rect(imageSize: image, window: window, zoom: 2, offset: CGSize(width: 9999, height: -9999)),
+                       CGRect(x: 0, y: 1500, width: 2000, height: 1500))
+    }
 }

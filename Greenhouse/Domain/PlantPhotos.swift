@@ -1,5 +1,6 @@
 import CoreData
 import ImageIO
+import UIKit
 
 /// Changing photos after they're added: the main photo, captions, dates, and
 /// deleting them.
@@ -26,6 +27,14 @@ enum PlantPhotos {
         let trimmed = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         photo.caption = trimmed.isEmpty ? nil : trimmed
         photo.takenAt = takenAt
+    }
+
+    /// Swaps in a cropped version of the photo, for both phones. The date and
+    /// caption stay.
+    static func replaceImage(of photo: Photo, with image: UIImage) {
+        guard let data = ImageTools.preparedJPEG(from: image) else { return }
+        ThumbnailCache.shared.forget(photo)
+        photo.imageData = data
     }
 
     /// Deletes the photo for everyone in the household. Any plant that used it
