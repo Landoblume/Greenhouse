@@ -153,9 +153,15 @@ struct ZoneSection: View {
                 if let species = plant.species {
                     LabeledContent("Light", value: species.light)
                     LabeledContent("Frost", value: species.frost)
-                    Text("Care data: \(SpeciesCatalog.shared.source).")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    Group {
+                        if species.verified == true, let source = species.source, let url = URL(string: source) {
+                            Link("Zones from \(species.sourceHost ?? "source")", destination: url)
+                        } else {
+                            Text("Zone range not yet checked against a reference.")
+                        }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
             }
         }

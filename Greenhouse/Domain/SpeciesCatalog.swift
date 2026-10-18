@@ -13,8 +13,15 @@ struct Species: Codable, Identifiable, Hashable {
     let waterDays: Int
     /// "tender", "semi-hardy" or "hardy".
     let frost: String
+    /// Page the zone range came from, when there is one.
+    let source: String?
+    /// True when the zone range was read off `source`, not recalled.
+    let verified: Bool?
 
     var primaryCommonName: String { common.first ?? latin }
+
+    /// e.g. "plants.ces.ncsu.edu", for a short credit line.
+    var sourceHost: String? { source.flatMap { URL(string: $0)?.host() } }
     var zoneRange: String { "zones \(zoneMin)–\(zoneMax)" }
 }
 
@@ -62,17 +69,23 @@ final class SpeciesCatalog {
         guard !q.isEmpty else { return species }
         let scored: [(Species, Int)] = species.compactMap { entry in
             let names = ([entry.latin] + entry.common).map(Self.normalize)
-            if names.contains(where: { $0.hasPrefix(q) }) { return (entry, 0) }
-            if names.contains(where: { $0.split(separator: " ").contains { $0.hasPrefix(q) } }) { return (entry, 1) }
-            if names.contains(where: { $0.contains(q) }) { return (entry, 2) }
+            // An exact name wins, so "pothos" lists plain pothos above its
+            // many "... pothos" cultivars.
+            if names.contains(q) { return (entry, 0) }
+            if names.contains(where: { $0.hasPrefix(q) }) { return (entry, 1) }
+            if names.contains(where: { $0.split(separator: " ").contains { $0.hasPrefix(q) } }) { return (entry, 2) }
+            if names.contains(where: { $0.contains(q) }) { return (entry, 3) }
             return nil
         }
         return scored.sorted { $0.1 == $1.1 ? $0.0.latin < $1.0.latin : $0.1 < $1.1 }.map(\.0)
     }
 
+    /// Lowercases, drops accents, and strips the quotes around cultivar names,
+    /// so "marble queen" matches Epipremnum aureum 'Marble Queen' word by word.
     static func normalize(_ text: String) -> String {
         text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
             .replacingOccurrences(of: "×", with: "x")
+            .filter { !"'‘’\"“”".contains($0) }
             .trimmingCharacters(in: .whitespaces)
     }
 }

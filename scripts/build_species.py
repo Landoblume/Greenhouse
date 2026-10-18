@@ -1,20 +1,29 @@
-"""Regenerate Greenhouse/Resources/species.json from the table below.
+"""Regenerate Greenhouse/Resources/species.json.
 
     python3 scripts/build_species.py
 
-Columns: latin, common names, USDA zone min, zone max, light, water every N
-days (a starting point; each plant's schedule is editable), frost tolerance.
+Two inputs, merged by Latin name:
+- scripts/houseplants.json: researched houseplants (species and popular
+  cultivars), each with the page its zone range came from and whether that
+  was actually checked. These win when a name appears in both.
+- ROWS below: herbs, edibles and garden plants, drafted from general
+  horticulture references and NOT checked entry by entry.
 
-The ranges were drafted from general horticulture references and have NOT been
-checked entry by entry yet. Fix a row here when you find it's off, rerun, and
-commit both files.
+Columns in ROWS: latin, common names, USDA zone min, zone max, light, water
+every N days (a starting point; each plant's schedule is editable), frost
+tolerance. Fix a row (here or in the JSON) when you find it's off, rerun, and
+commit the result.
+
+IDs are slugs of the Latin name, and saved plants point at them, so renaming
+an entry's Latin name orphans its plants' care data.
 """
 
 import json
 import re
 from pathlib import Path
 
-SOURCE = "Drafted from general horticulture references; not yet checked entry by entry"
+SOURCE = "Per entry; entries without a source were drafted from general horticulture references"
+HOUSEPLANTS = Path(__file__).with_name("houseplants.json")
 
 BI = "Bright, indirect"
 MI = "Medium, indirect"
@@ -124,30 +133,50 @@ ROWS = [
 ]
 
 
+LIGHTS = {BI, MI, LI, SUN, PART, SHADE, "Low to medium, indirect", "Bright, some direct sun",
+          "Bright, direct or indirect"}
+
+
 def slug(latin: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", latin.lower()).strip("-")
 
 
+def entry(latin, common, zmin, zmax, light, water, frost, source=None, verified=False) -> dict:
+    assert zmin <= zmax and 1 <= zmin and zmax <= 13, latin
+    assert light in LIGHTS, (latin, light)
+    assert frost in ("tender", "semi-hardy", "hardy"), (latin, frost)
+    assert 1 <= water <= 60, latin
+    plain = latin.replace(" × ", " x ")
+    return {
+        "id": slug(plain),
+        # Botanical convention writes hybrids with ×; the inputs use x for typing ease.
+        "latin": plain.replace(" x ", " × "),
+        "common": common,
+        "zoneMin": zmin,
+        "zoneMax": zmax,
+        "light": light,
+        "waterDays": water,
+        "frost": frost,
+        "source": source,
+        "verified": verified,
+    }
+
+
 def main() -> None:
-    species = []
-    for latin, common, zmin, zmax, light, water, frost in ROWS:
-        assert zmin <= zmax, latin
-        species.append({
-            "id": slug(latin),
-            # Botanical convention writes hybrids with ×; the table uses x for typing ease.
-            "latin": latin.replace(" x ", " × "),
-            "common": common,
-            "zoneMin": zmin,
-            "zoneMax": zmax,
-            "light": light,
-            "waterDays": water,
-            "frost": frost,
-        })
-    ids = [s["id"] for s in species]
-    assert len(ids) == len(set(ids)), "duplicate ids"
+    by_id: dict[str, dict] = {}
+    for row in json.loads(HOUSEPLANTS.read_text()) if HOUSEPLANTS.exists() else []:
+        e = entry(row["latin"], row["common"], row["zoneMin"], row["zoneMax"], row["light"],
+                  row["waterDays"], row["frost"], row.get("source"), bool(row.get("verified")))
+        by_id[e["id"]] = e
+    for row in ROWS:
+        e = entry(*row)
+        by_id.setdefault(e["id"], e)
+
+    species = sorted(by_id.values(), key=lambda s: s["latin"])
     out = Path(__file__).resolve().parent.parent / "Greenhouse/Resources/species.json"
     out.write_text(json.dumps({"source": SOURCE, "species": species}, indent=2, ensure_ascii=False) + "\n")
-    print(f"wrote {len(species)} species to {out}")
+    verified = sum(1 for s in species if s["verified"])
+    print(f"wrote {len(species)} species ({verified} verified) to {out}")
 
 
 if __name__ == "__main__":
