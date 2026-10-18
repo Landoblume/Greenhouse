@@ -57,16 +57,16 @@ enum PlantFactory {
         context: NSManagedObjectContext,
         persistence: Persistence = .shared
     ) -> Photo {
-        let isFirst = (plant.photos ?? []).isEmpty
         let photo = persistence.insert(Photo.self, alongside: household, in: context)
         photo.uuid = UUID()
         photo.takenAt = takenAt
         photo.caption = nonEmpty(caption)
         photo.imageData = data
         photo.plant = plant
-        // The first photo becomes the main one and stays until someone picks
-        // another; later photos never take over.
-        if isFirst, plant.coverPhotoID == nil { plant.coverPhotoID = photo.uuid }
+        // A plant with no main photo yet gets one saved: its first photo, or
+        // for a combined plant the oldest one it inherited. It stays until
+        // someone picks another; later photos never take over.
+        if plant.coverPhotoID == nil { plant.coverPhotoID = PlantPhotos.cover(for: plant)?.uuid }
         return photo
     }
 

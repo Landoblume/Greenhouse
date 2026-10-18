@@ -22,6 +22,8 @@ enum Lineage {
         precondition(plants.count >= 2, "Stapling needs at least two plants")
         let event = makeEvent(.staple, date: date, household: household, context: context, persistence: persistence)
         let merged = makeChild(of: plants[0], nickname: nickname, date: date, household: household, context: context, persistence: persistence)
+        // Keeps the picture of the plant you combined from.
+        merged.coverPhotoID = PlantPhotos.cover(for: plants[0])?.uuid
         merged.producedBy = event
         for plant in plants {
             plant.statusValue = .stapled
@@ -72,6 +74,7 @@ enum Lineage {
         let event = makeEvent(.split, date: date, household: household, context: context, persistence: persistence)
         let children = names.map { name in
             let child = makeChild(of: parent, nickname: name, date: date, household: household, context: context, persistence: persistence)
+            child.coverPhotoID = PlantPhotos.cover(for: parent)?.uuid
             child.producedBy = event
             return child
         }
@@ -212,11 +215,18 @@ enum Lineage {
         var id: NSManagedObjectID { photo.objectID }
     }
 
-    /// This plant's photos plus its ancestors', oldest first.
+    /// This plant's photos plus its ancestors', oldest first. Photos with the
+    /// same date are ordered by id, so the order (and the main photo picked
+    /// from it) is the same on every launch and on both phones.
     static func timeline(for plant: Plant) -> [TimelinePhoto] {
         ([plant] + ancestors(of: plant))
             .flatMap { source in (source.photos ?? []).map { TimelinePhoto(photo: $0, source: source) } }
-            .sorted { ($0.photo.takenAt ?? .distantPast) < ($1.photo.takenAt ?? .distantPast) }
+            .sorted { a, b in
+                let aDate = a.photo.takenAt ?? .distantPast
+                let bDate = b.photo.takenAt ?? .distantPast
+                if aDate != bDate { return aDate < bDate }
+                return (a.photo.uuid?.uuidString ?? "") < (b.photo.uuid?.uuidString ?? "")
+            }
     }
 
     /// e.g. "Combined from Aloe vera (acq. Mar 26, 2026) + Aloe vera (acq. Jul 24, 2026) on Oct 17, 2026"
