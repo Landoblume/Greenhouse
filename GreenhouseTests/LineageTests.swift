@@ -250,5 +250,15 @@ final class LineageTests: XCTestCase {
         XCTAssertNotNil(original.managedObjectContext, "the cutting still comes from it")
         XCTAssertEqual(cutting.cuttingOf, original)
     }
+
+    func testCuttingLinesInHistoryCanBeUnlinked() {
+        let store = TestStore()
+        let parent = store.plant(acquired: day(2023, 5, 1))
+        let cutting = Lineage.takeCutting(from: parent, nickname: nil, date: day(2024, 7, 1),
+                                          household: store.household, context: store.context, persistence: store.persistence)
+        XCTAssertEqual(Lineage.history(of: cutting).first?.unlinks, cutting)
+        XCTAssertEqual(Lineage.history(of: parent).last?.unlinks, cutting)
+        XCTAssertNil(Lineage.history(of: parent).first?.unlinks, "Acquired isn't a link")
+    }
 }
 

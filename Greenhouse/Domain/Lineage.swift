@@ -5,6 +5,8 @@ import CoreData
 /// A plant record is an identity over time. Stapling retires the inputs and
 /// creates one new plant; splitting retires the parent and creates several.
 /// Taking a cutting creates a new plant and leaves the parent as it is.
+/// Since v1.3.9 the app only offers combining and cuttings; split stays so
+/// plants split earlier still read correctly.
 /// Photos and logs stay on the plant they were recorded on, and a plant's
 /// timeline is its own photos plus its ancestors'.
 enum Lineage {
@@ -248,6 +250,8 @@ enum Lineage {
         let text: String
         /// Set when the line names a plant you can open.
         let plant: Plant?
+        /// Set on a cutting link: the cutting that swiping Unlink detaches.
+        var unlinks: Plant? = nil
     }
 
     /// The plant's story as an indented list: what it became (if retired),
@@ -278,7 +282,7 @@ enum Lineage {
             lines.append(HistoryLine(depth: 0, text: "Cuttings taken:", plant: nil))
             for cutting in cuttings {
                 let taken = cutting.acquiredDate.map(format) ?? "?"
-                lines.append(HistoryLine(depth: 1, text: "\(cutting.displayName) · \(taken)", plant: cutting))
+                lines.append(HistoryLine(depth: 1, text: "\(cutting.displayName) · \(taken)", plant: cutting, unlinks: cutting))
             }
         }
         return lines
@@ -288,7 +292,7 @@ enum Lineage {
     private static func cuttingLine(for plant: Plant, depth: Int) -> HistoryLine? {
         guard let parent = plant.cuttingOf else { return nil }
         let taken = plant.acquiredDate.map(format) ?? "an unknown date"
-        return HistoryLine(depth: depth, text: "Cutting from \(parent.displayName) on \(taken)", plant: parent)
+        return HistoryLine(depth: depth, text: "Cutting from \(parent.displayName) on \(taken)", plant: parent, unlinks: plant)
     }
 
     private static func appendOrigin(of plant: Plant, depth: Int, into lines: inout [HistoryLine], visited: inout Set<NSManagedObjectID>) {

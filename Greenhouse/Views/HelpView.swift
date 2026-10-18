@@ -37,8 +37,8 @@ struct HelpView: View {
 
             Tap a project for its page: a checklist of steps, supplies with costs (tick them as you buy them) against an optional budget, where it's happening, a link, and notes.
             """)
-            topic("Combining and splitting", "arrow.triangle.branch", """
-            Potted two plants together? Open one and tap Combine with other plants (or press and hold it on the Plants tab), pick the others, and they become one tile. Divided a plant into new ones? Open it and tap Split. Took a cutting and kept the plant? Tap Take a cutting instead, or for a cutting you already added, open it, tap Edit and pick its plant under Started from.
+            topic("Combining and cuttings", "arrow.triangle.branch", """
+            Potted two plants together? Open one and tap Combine with other plants (or press and hold it on the Plants tab), pick the others, and they become one tile. Took a cutting, or divided a plant into pieces? Open it and tap Take a cutting for each new plant: the original keeps everything, and each cutting starts on the day it was taken. For a cutting you already added, open it, tap Edit and pick its plant under Started from. To undo a link, swipe it left in History and tap Unlink.
 
             To remove a plant for good, press and hold it on the Plants tab → Delete plant. Its photos and its own reminders go with it.
 
