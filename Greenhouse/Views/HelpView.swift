@@ -43,7 +43,7 @@ struct HelpView: View {
             On the day you got a plant, you'll get a "you've had it a year" note. Stapled plants count from their oldest original.
             """)
             topic("Grow zone and light", "thermometer.sun", """
-            Set your ZIP in Settings to get your USDA hardiness zone. Outdoor and seasonal plants then say whether they survive winter outside where you live.
+            Set your ZIP in Settings to get your USDA hardiness zone. Outdoor and seasonal plants then say whether they survive winter outside where you live. A ZIP too new for the USDA map gets the zone of the nearest ZIP that's on it. If even that fails, Use my location finds the zone around your phone, or you can pick one by hand.
 
             Each plant's page shows the light you picked next to what the species likes. Measure the light here uses the camera to estimate how bright the spot really is and says whether that suits the plant.
             """)

@@ -7,7 +7,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.2"
+    MARKETING_VERSION: "1.2.1"
     # scripts/testflight.sh overrides this with a timestamp on every upload,
     # because App Store Connect rejects a build number it has already seen.
     CURRENT_PROJECT_VERSION: "1"
@@ -31,6 +31,7 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_NSCameraUsageDescription: "Take photos of your plants to see how they grow."
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Finds your grow zone when your ZIP code is too new for the USDA zone map. Used once, not saved."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"
