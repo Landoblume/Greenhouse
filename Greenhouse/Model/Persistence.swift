@@ -152,7 +152,11 @@ final class Persistence {
                 try cloudKit.initializeCloudKitSchema(options: [])
                 defaults.set("Ready (\(Date.now.formatted(date: .abbreviated, time: .shortened)))", forKey: Self.schemaStatusKey)
             } catch {
-                defaults.set("Failed: \(error.localizedDescription)", forKey: Self.schemaStatusKey)
+                // localizedDescription is just "A Core Data error occurred";
+                // the useful part is in userInfo.
+                let detail = "\(error as NSError)"
+                print("Greenhouse: CloudKit schema setup failed: \(detail)")
+                defaults.set("Failed: \(detail.prefix(500))", forKey: Self.schemaStatusKey)
             }
         }
         #endif
