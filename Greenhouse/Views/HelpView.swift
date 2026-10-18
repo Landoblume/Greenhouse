@@ -17,7 +17,7 @@ struct HelpView: View {
             topic("Photos", "camera", """
             On a plant's page, Add photo starts its timeline. Photos from your library keep the date they were taken. With two or more photos, Then vs now shows the first and latest side by side.
 
-            Tap a photo, then the ••• button, to fix its date, add a caption, crop it, make it the main photo on the plant's tile, or delete it. You can also crop a photo right after taking it.
+            Tap a photo, then the ••• button, to fix its date, add a caption, crop it, make it the main photo on the plant's tile, or delete it. A plant's first photo is its main photo until you pick another. You can also crop a photo right after taking it.
 
             Each plant's page has a Notes box anyone in the household can write in.
 

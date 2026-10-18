@@ -44,7 +44,7 @@ enum GreenhouseModel {
             attr("lightSource", .string),
             attr("notes", .string),
             /// The photo shown on the tile and at the top of the plant's page;
-            /// nil means the newest one.
+            /// set to the first photo added; nil means the oldest one.
             attr("coverPhotoID", .uuid),
             attr("setting", .string, default: PlantSetting.indoor.rawValue),
             attr("status", .string, default: PlantStatus.active.rawValue),

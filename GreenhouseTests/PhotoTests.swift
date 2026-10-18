@@ -6,21 +6,43 @@ import XCTest
 
 /// v1.2: changing photos after they're added.
 final class PhotoTests: XCTestCase {
-    func testMainPhotoDefaultsToNewestAndCanBePicked() throws {
+    func testFirstPhotoAddedStaysMainUntilAnotherIsPicked() throws {
         let store = TestStore()
         let plant = store.plant(acquired: day(2026, 3, 1))
-        let first = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 3, 1), to: plant, household: store.household,
+        let first = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 6, 1), to: plant, household: store.household,
                                           context: store.context, persistence: store.persistence)
-        let second = PlantFactory.addPhoto(Data([2]), takenAt: day(2026, 6, 1), to: plant, household: store.household,
-                                           context: store.context, persistence: store.persistence)
-        XCTAssertEqual(PlantPhotos.cover(for: plant), second)
+        let newer = PlantFactory.addPhoto(Data([2]), takenAt: day(2026, 9, 1), to: plant, household: store.household,
+                                          context: store.context, persistence: store.persistence)
+        let olderFromLibrary = PlantFactory.addPhoto(Data([3]), takenAt: day(2026, 3, 1), to: plant, household: store.household,
+                                                     context: store.context, persistence: store.persistence)
+        XCTAssertEqual(PlantPhotos.cover(for: plant), first, "later photos, newer or older, don't take over")
 
-        PlantPhotos.setCover(first, of: plant)
-        XCTAssertEqual(PlantPhotos.cover(for: plant), first)
-        XCTAssertTrue(PlantPhotos.isCover(first, of: plant))
+        PlantPhotos.setCover(newer, of: plant)
+        XCTAssertEqual(PlantPhotos.cover(for: plant), newer)
+        XCTAssertTrue(PlantPhotos.isCover(newer, of: plant))
+        XCTAssertFalse(PlantPhotos.isCover(olderFromLibrary, of: plant))
     }
 
-    func testDeletingTheMainPhotoFallsBackToNewest() throws {
+    func testPlantCreatedWithAPhotoUsesItAsMain() throws {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2026, 3, 1), photo: true)
+        let photo = try XCTUnwrap(plant.photos?.first)
+        XCTAssertEqual(plant.coverPhotoID, photo.uuid)
+    }
+
+    func testPlantsWithoutAPickedMainPhotoShowTheOldest() {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2026, 3, 1))
+        let late = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 9, 1), to: plant, household: store.household,
+                                         context: store.context, persistence: store.persistence)
+        let early = PlantFactory.addPhoto(Data([2]), takenAt: day(2026, 4, 1), to: plant, household: store.household,
+                                          context: store.context, persistence: store.persistence)
+        plant.coverPhotoID = nil  // like plants saved before main photos were set on upload
+        XCTAssertEqual(PlantPhotos.cover(for: plant), early)
+        XCTAssertNotEqual(PlantPhotos.cover(for: plant), late)
+    }
+
+    func testDeletingTheMainPhotoFallsBackToOldest() throws {
         let store = TestStore()
         let plant = store.plant(acquired: day(2026, 3, 1))
         let test = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 10, 17), to: plant, household: store.household,
