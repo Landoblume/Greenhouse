@@ -40,8 +40,8 @@ final class Persistence {
             let cloudKit = NSPersistentCloudKitContainer(name: "Greenhouse", managedObjectModel: GreenhouseModel.shared)
             let directory = NSPersistentContainer.defaultDirectoryURL()
             cloudKit.persistentStoreDescriptions = [
-                Self.storeDescription(url: directory.appendingPathComponent("private.sqlite"), scope: .private),
-                Self.storeDescription(url: directory.appendingPathComponent("shared.sqlite"), scope: .shared),
+                Self.storeDescription(url: directory.appendingPathComponent("private\(Self.storeSuffix).sqlite"), scope: .private),
+                Self.storeDescription(url: directory.appendingPathComponent("shared\(Self.storeSuffix).sqlite"), scope: .shared),
             ]
             container = cloudKit
         }
@@ -61,12 +61,22 @@ final class Persistence {
             }
         }
         if inMemory { privateStore = container.persistentStoreCoordinator.persistentStores.first }
+        if let cloudKit { SyncMonitor.shared.start(container: cloudKit) }
 
         // Changes synced in from the other phone land in a background context;
         // this merges them into the UI's context automatically.
         viewContext.automaticallyMergesChangesFromParent = true
         viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
     }
+
+    /// Debug builds sync with CloudKit's Development database and TestFlight
+    /// builds with Production. Separate local files keep the two from mixing
+    /// when one kind of build is installed over the other on the same phone.
+    #if DEBUG
+    private static let storeSuffix = "-debug"
+    #else
+    private static let storeSuffix = ""
+    #endif
 
     private static func storeDescription(url: URL, scope: CKDatabase.Scope) -> NSPersistentStoreDescription {
         let description = NSPersistentStoreDescription(url: url)
@@ -147,9 +157,10 @@ final class Persistence {
         let defaults = UserDefaults.standard
         if !force, defaults.string(forKey: Self.schemaStatusKey)?.hasPrefix("Ready") == true { return }
         defaults.set("Uploading…", forKey: Self.schemaStatusKey)
-        DispatchQueue.global(qos: .utility).async {
+        Task.detached(priority: .utility) { [self] in
             do {
                 try cloudKit.initializeCloudKitSchema(options: [])
+                try await createShareRecordType(cloudKit)
                 defaults.set("Ready (\(Date.now.formatted(date: .abbreviated, time: .shortened)))", forKey: Self.schemaStatusKey)
             } catch {
                 // localizedDescription is just "A Core Data error occurred";
@@ -160,5 +171,26 @@ final class Persistence {
             }
         }
         #endif
+    }
+
+    /// Invites use CloudKit's built-in `cloudkit.share` record type, which
+    /// initializeCloudKitSchema doesn't create. It only appears in Development
+    /// once a share is actually saved there, and without it Production rejects
+    /// every invite ("Cannot create new type cloudkit.share in production
+    /// schema"). So: share a throwaway household, then delete it.
+    private func createShareRecordType(_ cloudKit: NSPersistentCloudKitContainer) async throws {
+        guard let privateStore else { return }
+        let context = cloudKit.newBackgroundContext()
+        let household = try await context.perform {
+            let household = Household(entity: self.entityDescription(Household.self), insertInto: context)
+            context.assign(household, to: privateStore)
+            household.uuid = UUID()
+            household.name = "Schema check (deleted automatically)"
+            household.createdAt = .distantPast
+            try context.save()
+            return household
+        }
+        let (_, share, _) = try await cloudKit.share([household], to: nil)
+        try await cloudKit.purgeObjectsAndRecordsInZone(with: share.recordID.zoneID, in: privateStore)
     }
 }

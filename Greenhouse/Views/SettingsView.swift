@@ -49,9 +49,10 @@ struct SettingsView: View {
                         .disabled(sharing)
                     }
                     if let shareError {
-                        Text(shareError).font(.caption).foregroundStyle(.red)
+                        ErrorText(text: shareError)
                     }
                     ICloudStatusView()
+                    SyncStatusRow()
                 } header: {
                     Text("Household")
                 } footer: {
@@ -155,7 +156,8 @@ struct SettingsView: View {
             let share = try await Persistence.shared.shareForInvite(household)
             SharingPresenter.present(share: share)
         } catch {
-            shareError = error.localizedDescription
+            print("Greenhouse: invite failed: \(SyncMonitor.describe(error))")
+            shareError = SyncMonitor.describe(error)
         }
     }
 
@@ -170,6 +172,37 @@ struct SettingsView: View {
             Persistence.shared.save(context)
         } catch {
             zoneError = error.localizedDescription
+        }
+    }
+}
+
+/// Last iCloud sync result: a time when it's working, the full reason when not.
+struct SyncStatusRow: View {
+    @ObservedObject private var monitor = SyncMonitor.shared
+
+    var body: some View {
+        if let error = monitor.lastError {
+            ErrorText(text: error)
+        } else if let success = monitor.lastSuccess {
+            Label("Synced with iCloud \(success.formatted(.relative(presentation: .named)))", systemImage: "checkmark.icloud")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// Error details you can select and copy, to paste into a bug report.
+struct ErrorText: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(text)
+                .font(.caption.monospaced())
+                .foregroundStyle(.red)
+                .textSelection(.enabled)
+            Button("Copy details") { UIPasteboard.general.string = text }
+                .font(.caption)
         }
     }
 }
