@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 
 struct AddPhotoSheet: View {
@@ -83,53 +84,71 @@ struct ThenNowView: View {
     }
 }
 
-struct StapleSheet: View {
-    let plants: [Plant]
+/// Combine one plant with others into a single new plant (two pots potted
+/// together, say). Opened from the plant's page or by pressing and holding it.
+struct CombineSheet: View {
+    let plant: Plant
     let household: Household
-    let onDone: () -> Void
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
-    @State private var nickname = ""
+    @State private var others: Set<NSManagedObjectID> = []
+    @State private var nickname: String
     @State private var date = Date()
+
+    init(plant: Plant, household: Household) {
+        self.plant = plant
+        self.household = household
+        _nickname = State(initialValue: plant.displayName)
+    }
+
+    private var candidates: [Plant] {
+        (household.plants ?? [])
+            .filter { $0.isActive && $0 != plant }
+            .sorted { ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast) }
+    }
+
+    private var chosen: [Plant] {
+        [plant] + candidates.filter { others.contains($0.objectID) }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    ForEach(plants) { plant in
-                        VStack(alignment: .leading) {
-                            Text(plant.displayName)
-                            Text("acq. \(plant.acquiredDate.map(Lineage.format) ?? "?")")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                    ForEach(candidates) { other in
+                        PlantCheckRow(plant: other, isOn: others.contains(other.objectID)) {
+                            if others.contains(other.objectID) { others.remove(other.objectID) } else { others.insert(other.objectID) }
                         }
                     }
                 } header: {
-                    Text("Combining")
+                    Text("Combine \(plant.displayName) with")
                 } footer: {
-                    Text("These become one plant with one tile. Their photos, history and care carry over, and the originals stay reachable from History.")
+                    Text("They become one plant with one tile. Their photos, history and care carry over, and the originals stay reachable from History.")
                 }
                 Section("New plant") {
                     TextField("Nickname (optional)", text: $nickname)
-                    DatePicker("Stapled on", selection: $date, in: ...Date(), displayedComponents: .date)
+                    DatePicker("Combined on", selection: $date, in: ...Date(), displayedComponents: .date)
                 }
             }
-            .navigationTitle("Staple plants")
+            .overlay {
+                if candidates.isEmpty {
+                    ContentUnavailableView("Nothing to combine with", systemImage: "leaf",
+                                           description: Text("Add another plant first."))
+                }
+            }
+            .navigationTitle("Combine plants")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Staple") {
-                        Lineage.staple(plants, nickname: nickname, date: date, household: household, context: context)
+                    Button("Combine") {
+                        Lineage.staple(chosen, nickname: nickname, date: date, household: household, context: context)
                         Persistence.shared.save(context)
                         NotificationPlanner.reschedule()
-                        onDone()
                         dismiss()
                     }
+                    .disabled(others.isEmpty)
                 }
-            }
-            .onAppear {
-                if nickname.isEmpty { nickname = plants.first?.displayName ?? "" }
             }
         }
     }

@@ -1,17 +1,15 @@
 import CoreData
 import SwiftUI
 
-/// Home screen: one tile per active plant, plus select-to-staple.
+/// Home screen: one tile per active plant.
 struct PlantsView: View {
     @ObservedObject var household: Household
     @AppStorage(Collections.selectedKey) private var selectedCollection = ""
     @FetchRequest private var allPlants: FetchedResults<Plant>
     @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
     @Environment(\.managedObjectContext) private var context
-    @State private var selecting = false
-    @State private var selection: Set<NSManagedObjectID> = []
     @State private var showingAdd = false
-    @State private var showingStaple = false
+    @State private var combining: Plant?
     @State private var deleting: Plant?
 
     init(household: Household) {
@@ -25,10 +23,6 @@ struct PlantsView: View {
     private var collection: PlantCollection? { Collections.find(selectedCollection, in: household) }
     private var plants: [Plant] { allPlants.filter { Collections.contains(collection, $0) } }
     @State private var choosingPlants: PlantCollection?
-
-    private var selectedPlants: [Plant] {
-        plants.filter { selection.contains($0.objectID) }
-    }
 
     var body: some View {
         NavigationStack {
@@ -48,28 +42,18 @@ struct PlantsView: View {
                 }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], spacing: 12) {
                     ForEach(plants) { plant in
-                        if selecting {
-                            Button { toggle(plant) } label: {
-                                PlantTile(plant: plant, selected: selection.contains(plant.objectID))
-                            }
+                        NavigationLink(value: plant) { PlantTile(plant: plant) }
                             .buttonStyle(.plain)
-                        } else {
-                            NavigationLink(value: plant) { PlantTile(plant: plant, selected: false) }
-                                .buttonStyle(.plain)
-                                .contextMenu {
-                                    if allPlants.count >= 2 {
-                                        Button {
-                                            selection = [plant.objectID]
-                                            selecting = true
-                                        } label: {
-                                            Label("Staple with other plants…", systemImage: "link")
-                                        }
-                                    }
-                                    Button(role: .destructive) { deleting = plant } label: {
-                                        Label("Delete plant", systemImage: "trash")
+                            .contextMenu {
+                                if allPlants.count >= 2 {
+                                    Button { combining = plant } label: {
+                                        Label("Combine with other plants…", systemImage: "arrow.triangle.merge")
                                     }
                                 }
-                        }
+                                Button(role: .destructive) { deleting = plant } label: {
+                                    Label("Delete plant", systemImage: "trash")
+                                }
+                            }
                     }
                 }
                 .padding()
@@ -86,31 +70,9 @@ struct PlantsView: View {
             .navigationTitle(household.name ?? "Plants")
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    if allPlants.count >= 2 {
-                        Button(selecting ? "Cancel" : "Staple") {
-                            selecting.toggle()
-                            selection = []
-                        }
-                    }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingAdd = true } label: { Image(systemName: "plus") }
                         .accessibilityLabel("Add plant")
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                if selecting {
-                    Button {
-                        showingStaple = true
-                    } label: {
-                        Text(selection.count < 2 ? "Pick 2 or more plants to staple" : "Staple \(selection.count) plants together")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(selection.count < 2)
-                    .padding()
-                    .background(.bar)
                 }
             }
             .sheet(isPresented: $showingAdd) { AddPlantView(household: household) }
@@ -127,22 +89,9 @@ struct PlantsView: View {
                     deleting = nil
                 }
             } message: {
-                Text("Removes it from both phones, with its photos, history and its own reminders. To combine plants instead, use Staple.")
+                Text("Removes it from both phones, with its photos, history and its own reminders. To merge it with another plant instead, use Combine.")
             }
-            .sheet(isPresented: $showingStaple) {
-                StapleSheet(plants: selectedPlants, household: household) {
-                    selecting = false
-                    selection = []
-                }
-            }
-        }
-    }
-
-    private func toggle(_ plant: Plant) {
-        if selection.contains(plant.objectID) {
-            selection.remove(plant.objectID)
-        } else {
-            selection.insert(plant.objectID)
+            .sheet(item: $combining) { CombineSheet(plant: $0, household: household) }
         }
     }
 }
@@ -191,7 +140,6 @@ struct MergeCard: View {
 
 struct PlantTile: View {
     @ObservedObject var plant: Plant
-    let selected: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -220,19 +168,6 @@ struct PlantTile: View {
         }
         .padding(8)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
-        .overlay {
-            if selected {
-                RoundedRectangle(cornerRadius: 16).stroke(Color.accentColor, lineWidth: 3)
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if selected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.white, Color.accentColor)
-                    .padding(14)
-            }
-        }
         .redrawsOnPhotoChanges(plant)
     }
 }

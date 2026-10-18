@@ -8,6 +8,7 @@ struct PlantDetailView: View {
     @AppStorage(SettingsKey.myName) private var myName = ""
     @State private var showingAddPhoto = false
     @State private var showingSplit = false
+    @State private var showingCombine = false
     @State private var showingEdit = false
     @State private var showingNewTask = false
     @State private var editingTask: CareTask?
@@ -56,7 +57,7 @@ struct PlantDetailView: View {
 
             if !plant.isActive {
                 Section {
-                    Label("This plant is retired: it was \(plant.statusValue == .stapled ? "stapled into another" : "split into new plants"). See History below.", systemImage: "archivebox")
+                    Label("This plant is retired: it was \(plant.statusValue == .stapled ? "combined into another" : "split into new plants"). See History below.", systemImage: "archivebox")
                         .font(.callout)
                 }
             }
@@ -134,6 +135,9 @@ struct PlantDetailView: View {
 
             if plant.isActive {
                 Section {
+                    Button { showingCombine = true } label: {
+                        Label("Combine with other plants…", systemImage: "arrow.triangle.merge")
+                    }
                     Button { showingSplit = true } label: {
                         Label("Split into new plants…", systemImage: "arrow.triangle.branch")
                     }
@@ -148,6 +152,7 @@ struct PlantDetailView: View {
         }
         .sheet(isPresented: $showingAddPhoto) { AddPhotoSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingSplit) { SplitSheet(plant: plant, household: household) }
+        .sheet(isPresented: $showingCombine) { CombineSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingEdit) { EditPlantView(plant: plant) }
         .sheet(isPresented: $showingNewTask) { TaskEditorView(household: household, task: nil, preselected: [plant]) }
         .sheet(item: $editingTask) { TaskEditorView(household: household, task: $0, preselected: []) }

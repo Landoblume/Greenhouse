@@ -156,14 +156,14 @@ enum Lineage {
             .sorted { ($0.photo.takenAt ?? .distantPast) < ($1.photo.takenAt ?? .distantPast) }
     }
 
-    /// e.g. "Stapled from Aloe vera (acq. Mar 26, 2026) + Aloe vera (acq. Jul 24, 2026) on Oct 17, 2026"
+    /// e.g. "Combined from Aloe vera (acq. Mar 26, 2026) + Aloe vera (acq. Jul 24, 2026) on Oct 17, 2026"
     static func summary(of event: LineageEvent) -> String {
         let date = event.date.map(format) ?? "an unknown date"
         let inputs = sortedByAcquired(event.inputs ?? [])
         switch event.kindValue {
         case .staple:
             let names = inputs.map { "\($0.displayName) (acq. \($0.acquiredDate.map(format) ?? "?"))" }
-            return "Stapled from \(names.joined(separator: " + ")) on \(date)"
+            return "Combined from \(names.joined(separator: " + ")) on \(date)"
         case .split:
             return "Split from \(inputs.first?.displayName ?? "a plant") on \(date)"
         }
@@ -183,7 +183,7 @@ enum Lineage {
         var lines: [HistoryLine] = []
         if let retired = plant.consumedBy {
             let date = retired.date.map(format) ?? "?"
-            let verb = retired.kindValue == .staple ? "Stapled" : "Split"
+            let verb = retired.kindValue == .staple ? "Combined" : "Split"
             lines.append(HistoryLine(depth: 0, text: "\(verb) on \(date) into:", plant: nil))
             for output in sortedByAcquired(retired.outputs ?? []) {
                 lines.append(HistoryLine(depth: 1, text: output.displayName, plant: output))
