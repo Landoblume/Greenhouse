@@ -30,7 +30,7 @@ final class LineageTests: XCTestCase {
                                     household: store.household, context: store.context, persistence: store.persistence)
 
         let summary = Lineage.summary(of: try! XCTUnwrap(merged.producedBy))
-        XCTAssertTrue(summary.hasPrefix("Stapled from Aloe vera (acq. Mar 26, 2026) + Aloe vera (acq. Jul 24, 2026)"), summary)
+        XCTAssertTrue(summary.hasPrefix("Combined from Aloe vera (acq. Mar 26, 2026) + Aloe vera (acq. Jul 24, 2026)"), summary)
         XCTAssertTrue(summary.hasSuffix("on Oct 17, 2026"), summary)
         let history = Lineage.history(of: merged)
         XCTAssertEqual(history.compactMap(\.plant), [march, july])
@@ -76,7 +76,7 @@ final class LineageTests: XCTestCase {
 
         let history = Lineage.history(of: merged)
         let texts = history.map(\.text)
-        XCTAssertTrue(texts[0].hasPrefix("Stapled from"))
+        XCTAssertTrue(texts[0].hasPrefix("Combined from"))
         XCTAssertTrue(texts.contains("Split from Mom on Apr 1, 2026"), texts.joined(separator: "\n"))
         let mom = try! XCTUnwrap(history.first { $0.plant == mother })
         XCTAssertEqual(mom.depth, 3, "mother sits under the split, under Kid 1")
@@ -91,7 +91,7 @@ final class LineageTests: XCTestCase {
         let merged = Lineage.staple([a, b], nickname: "Together", date: day(2026, 10, 17),
                                     household: store.household, context: store.context, persistence: store.persistence)
         let history = Lineage.history(of: a)
-        XCTAssertEqual(history.first?.text, "Stapled on Oct 17, 2026 into:")
+        XCTAssertEqual(history.first?.text, "Combined on Oct 17, 2026 into:")
         XCTAssertEqual(history.compactMap(\.plant).first, merged)
     }
 

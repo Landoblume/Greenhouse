@@ -29,8 +29,8 @@ struct HelpView: View {
 
             Projects are things to build or do, like painting a new greenhouse, with an optional target date and the plants they're for. Tap the circle when it's done.
             """)
-            topic("Stapling (merging) and splitting", "arrow.triangle.branch", """
-            Combined two pots? Tap Staple on the Plants tab (or press and hold a plant → Staple with other plants), pick the plants, and they become one tile. Took cuttings or divided a plant? Open it and tap Split.
+            topic("Combining and splitting", "arrow.triangle.branch", """
+            Potted two plants together? Open one and tap Combine with other plants (or press and hold it on the Plants tab), pick the others, and they become one tile. Took cuttings or divided a plant? Open it and tap Split.
 
             To remove a plant for good, press and hold it on the Plants tab → Delete plant. Its photos and its own reminders go with it.
 
@@ -42,7 +42,7 @@ struct HelpView: View {
             For anything else, like a quarterly hydrogen peroxide treatment, tap + on the Care tab. A reminder can cover several plants, or none for household chores. Reminders arrive at the time set in Settings.
             """)
             topic("Anniversaries", "gift", """
-            On the day you got a plant, you'll get a "you've had it a year" note. Stapled plants count from their oldest original.
+            On the day you got a plant, you'll get a "you've had it a year" note. Combined plants count from their oldest original.
             """)
             topic("Grow zone and light", "thermometer.sun", """
             Set your ZIP in Settings to get your USDA hardiness zone. Outdoor and seasonal plants then say whether they survive winter outside where you live. A ZIP too new for the USDA map gets the zone of the nearest ZIP that's on it. If even that fails, Use my location finds the zone around your phone, or you can pick one by hand.

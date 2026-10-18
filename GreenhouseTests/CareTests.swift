@@ -117,7 +117,7 @@ final class CareTests: XCTestCase {
 
         let note = try! XCTUnwrap(NotificationPlanner.nextAnniversary(of: merged, after: day(2026, 2, 1), hour: 9, minute: 0, calendar: .current))
         XCTAssertTrue(Calendar.current.isDate(note.date, inSameDayAs: day(2026, 3, 26)))
-        XCTAssertEqual(note.body, "You've had Aloe for 1 year 🎉 (stapled together Jan 5, 2026)")
+        XCTAssertEqual(note.body, "You've had Aloe for 1 year 🎉 (combined Jan 5, 2026)")
     }
 
     func testAnniversaryRollsToNextYearAndHandlesFutureDates() {

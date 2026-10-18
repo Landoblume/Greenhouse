@@ -121,7 +121,7 @@ enum NotificationPlanner {
             let years = year - startYear
             var body = "You've had \(plant.displayName) for \(years) year\(years == 1 ? "" : "s") 🎉"
             if let event = plant.producedBy, event.kindValue == .staple, let date = event.date {
-                body += " (stapled together \(Lineage.format(date)))"
+                body += " (combined \(Lineage.format(date)))"
             }
             return PlannedNotification(
                 id: "anniversary-\(plant.uuid?.uuidString ?? "")-\(year)",
