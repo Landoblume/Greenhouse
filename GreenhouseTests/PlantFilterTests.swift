@@ -50,4 +50,17 @@ final class PlantFilterTests: XCTestCase {
         XCTAssertEqual(PlantFilter(sort: .nextWatering).apply(to: plants), [apple, zebra])
         XCTAssertEqual(PlantFilter(sort: .newest).apply(to: plants), [apple, zebra])
     }
+
+    func testFoldingPlantPageSections() {
+        var list = ""
+        list = CollapsedSections.toggled("Photos", in: list)
+        list = CollapsedSections.toggled("History", in: list)
+        XCTAssertTrue(CollapsedSections.isCollapsed("Photos", in: list))
+        XCTAssertTrue(CollapsedSections.isCollapsed("History", in: list))
+        XCTAssertFalse(CollapsedSections.isCollapsed("Care", in: list))
+        list = CollapsedSections.toggled("Photos", in: list)
+        XCTAssertFalse(CollapsedSections.isCollapsed("Photos", in: list))
+        XCTAssertEqual(list, "History")
+    }
 }
+

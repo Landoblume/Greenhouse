@@ -122,6 +122,9 @@ final class Plant: NSManagedObject {
     @NSManaged var producedBy: LineageEvent?
     /// The staple or split that retired this plant, if any.
     @NSManaged var consumedBy: LineageEvent?
+    /// The plant this one was started from as a cutting; that plant stays active.
+    @NSManaged var cuttingOf: Plant?
+    @NSManaged var cuttings: Set<Plant>?
     @NSManaged var collections: Set<PlantCollection>?
     @NSManaged var projects: Set<Project>?
     @NSManaged var milestones: Set<Milestone>?

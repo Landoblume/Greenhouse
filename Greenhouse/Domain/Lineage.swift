@@ -4,6 +4,7 @@ import CoreData
 ///
 /// A plant record is an identity over time. Stapling retires the inputs and
 /// creates one new plant; splitting retires the parent and creates several.
+/// Taking a cutting creates a new plant and leaves the parent as it is.
 /// Photos and logs stay on the plant they were recorded on, and a plant's
 /// timeline is its own photos plus its ancestors'.
 enum Lineage {
@@ -40,7 +41,7 @@ enum Lineage {
         var queue = [plant]
         while let next = queue.popLast() {
             for parent in next.producedBy?.inputs ?? [] where !doomed.contains(parent) {
-                let descendants = parent.consumedBy?.outputs ?? []
+                let descendants = (parent.consumedBy?.outputs ?? []).union(parent.cuttings ?? [])
                 if descendants.isSubset(of: doomed) {
                     doomed.insert(parent)
                     queue.append(parent)
@@ -79,6 +80,54 @@ enum Lineage {
         CareSchedule.transferTasks(from: [parent], to: children, date: date, household: household, context: context, persistence: persistence)
         Collections.inherit(from: [parent], to: children)
         return children
+    }
+
+    /// A new plant started from `parent`, which stays active. The cutting
+    /// counts from the parent's date for Had since and anniversaries, gets the
+    /// parent's watering schedule, and joins its collections.
+    @discardableResult
+    static func takeCutting(
+        from parent: Plant,
+        nickname: String?,
+        date: Date = .now,
+        household: Household,
+        context: NSManagedObjectContext,
+        persistence: Persistence = .shared
+    ) -> Plant {
+        let cutting = makeChild(of: parent, nickname: nickname, date: date, household: household, context: context, persistence: persistence)
+        cutting.cuttingOf = parent
+        let watering = parent.wateringTask
+        let count = watering.map { Int($0.intervalCount) } ?? 7
+        let unit = watering?.unit ?? .day
+        let firstDue = CareSchedule.addInterval(count, unit, to: Calendar.current.startOfDay(for: date))
+        CareSchedule.makeTask(name: "Water", count: count, unit: unit, firstDue: firstDue, isWatering: true,
+                              plants: [cutting], household: household, context: context, persistence: persistence)
+        Collections.inherit(from: [parent], to: [cutting])
+        return cutting
+    }
+
+    /// Links a plant that was added on its own as a cutting of another (nil
+    /// unlinks it). Returns false and changes nothing when that would make a
+    /// loop, like a plant being a cutting of its own cutting.
+    @discardableResult
+    static func setCuttingParent(of plant: Plant, to parent: Plant?) -> Bool {
+        if let parent, parent == plant || origins(of: parent).contains(plant) { return false }
+        plant.cuttingOf = parent
+        return true
+    }
+
+    /// Plants the Edit screen offers as "Cutting of": any other plant in the
+    /// household that doesn't itself come from this one, same species first.
+    static func cuttingParentChoices(for plant: Plant, in household: Household) -> [Plant] {
+        (household.plants ?? [])
+            .filter { $0 != plant && !origins(of: $0).contains(plant) }
+            .sorted { a, b in
+                let aSame = a.scientificName == plant.scientificName
+                let bSame = b.scientificName == plant.scientificName
+                if aSame != bSame { return aSame }
+                if a.isActive != b.isActive { return a.isActive }
+                return a.displayName.localizedCaseInsensitiveCompare(b.displayName) == .orderedAscending
+            }
     }
 
     private static func makeEvent(
@@ -122,23 +171,37 @@ enum Lineage {
         sortedByAcquired(plant.producedBy?.inputs ?? [])
     }
 
-    /// Every plant upstream of this one, nearest first, without repeats.
+    /// Every plant this one was combined or split from, nearest first,
+    /// without repeats. Their photos and milestones show on this plant.
     static func ancestors(of plant: Plant) -> [Plant] {
+        walkUp(from: plant, parents(of:))
+    }
+
+    /// Ancestors plus the plants it was taken as a cutting of (and theirs).
+    /// A cutting's parent kept living, so its photos stay its own, but the
+    /// line still decides how long you've had the plant.
+    static func origins(of plant: Plant) -> [Plant] {
+        walkUp(from: plant) { parents(of: $0) + [$0.cuttingOf].compactMap { $0 } }
+    }
+
+    private static func walkUp(from plant: Plant, _ step: (Plant) -> [Plant]) -> [Plant] {
         var result: [Plant] = []
         var seen: Set<NSManagedObjectID> = [plant.objectID]
-        var queue = parents(of: plant)
+        var queue = step(plant)
         while !queue.isEmpty {
             let next = queue.removeFirst()
             guard seen.insert(next.objectID).inserted else { continue }
             result.append(next)
-            queue.append(contentsOf: parents(of: next))
+            queue.append(contentsOf: step(next))
         }
         return result
     }
 
-    /// The earliest acquired date in the plant's line: how long you've had it.
+    /// The earliest acquired date in the plant's line, cuttings included: how
+    /// long you've had it. A cutting taken in July 2024 from a plant you got in
+    /// May 2023 has been with you since May 2023.
     static func effectiveAcquiredDate(of plant: Plant) -> Date? {
-        ([plant] + ancestors(of: plant)).compactMap(\.acquiredDate).min()
+        ([plant] + origins(of: plant)).compactMap(\.acquiredDate).min()
     }
 
     struct TimelinePhoto: Identifiable {
@@ -178,7 +241,7 @@ enum Lineage {
     }
 
     /// The plant's story as an indented list: what it became (if retired),
-    /// then where it came from, recursively.
+    /// then where it came from, recursively, then cuttings taken from it.
     static func history(of plant: Plant) -> [HistoryLine] {
         var lines: [HistoryLine] = []
         if let retired = plant.consumedBy {
@@ -190,13 +253,32 @@ enum Lineage {
             }
         }
         if plant.producedBy == nil {
-            let acquired = plant.acquiredDate.map(format) ?? "an unknown date"
-            lines.append(HistoryLine(depth: 0, text: "Acquired \(acquired)", plant: nil))
+            if let line = cuttingLine(for: plant, depth: 0) {
+                lines.append(line)
+            } else {
+                let acquired = plant.acquiredDate.map(format) ?? "an unknown date"
+                lines.append(HistoryLine(depth: 0, text: "Acquired \(acquired)", plant: nil))
+            }
         } else {
             var visited: Set<NSManagedObjectID> = []
             appendOrigin(of: plant, depth: 0, into: &lines, visited: &visited)
         }
+        let cuttings = sortedByAcquired(plant.cuttings ?? [])
+        if !cuttings.isEmpty {
+            lines.append(HistoryLine(depth: 0, text: "Cuttings taken:", plant: nil))
+            for cutting in cuttings {
+                let taken = cutting.acquiredDate.map(format) ?? "?"
+                lines.append(HistoryLine(depth: 1, text: "\(cutting.displayName) · \(taken)", plant: cutting))
+            }
+        }
         return lines
+    }
+
+    /// e.g. "Cutting from Mom's pothos on Jul 24, 2024", linking to the parent.
+    private static func cuttingLine(for plant: Plant, depth: Int) -> HistoryLine? {
+        guard let parent = plant.cuttingOf else { return nil }
+        let taken = plant.acquiredDate.map(format) ?? "an unknown date"
+        return HistoryLine(depth: depth, text: "Cutting from \(parent.displayName) on \(taken)", plant: parent)
     }
 
     private static func appendOrigin(of plant: Plant, depth: Int, into lines: inout [HistoryLine], visited: inout Set<NSManagedObjectID>) {
@@ -205,6 +287,7 @@ enum Lineage {
         for parent in sortedByAcquired(event.inputs ?? []) {
             let acquired = parent.acquiredDate.map(format) ?? "?"
             lines.append(HistoryLine(depth: depth + 1, text: "\(parent.displayName) · acq. \(acquired)", plant: parent))
+            if let line = cuttingLine(for: parent, depth: depth + 2) { lines.append(line) }
             appendOrigin(of: parent, depth: depth + 2, into: &lines, visited: &visited)
         }
     }

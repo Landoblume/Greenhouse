@@ -154,4 +154,90 @@ final class LineageTests: XCTestCase {
     private func count<T: NSManagedObject>(_ type: T.Type, in store: TestStore) -> Int {
         (try? store.context.count(for: NSFetchRequest<T>(entityName: String(describing: type)))) ?? -1
     }
+
+    // MARK: Cuttings (v1.3.6)
+
+    func testCuttingKeepsParentAndCountsFromItsDate() throws {
+        let store = TestStore()
+        let snake = store.plant("dracaena-trifasciata", nickname: "Snake", acquired: day(2023, 5, 1), waterEvery: 14)
+        let cutting = Lineage.takeCutting(from: snake, nickname: "Snake jr", date: day(2024, 7, 1),
+                                          household: store.household, context: store.context, persistence: store.persistence)
+        store.save()
+
+        XCTAssertTrue(snake.isActive, "the parent keeps living")
+        XCTAssertTrue(cutting.isActive)
+        XCTAssertEqual(cutting.acquiredDate, day(2024, 7, 1), "Got it on is when the cutting was taken")
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: cutting), day(2023, 5, 1), "Had since follows the parent")
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: snake), day(2023, 5, 1))
+        XCTAssertEqual(cutting.scientificName, snake.scientificName)
+        XCTAssertEqual(cutting.wateringTask?.intervalCount, 14)
+        XCTAssertNotNil(snake.wateringTask, "the parent's schedule stays")
+        XCTAssertEqual(Lineage.history(of: cutting).first?.text, "Cutting from Snake on Jul 1, 2024")
+        XCTAssertEqual(Lineage.history(of: cutting).first?.plant, snake)
+        XCTAssertTrue(Lineage.history(of: snake).contains { $0.plant == cutting })
+    }
+
+    func testCuttingTimelineIsItsOwn() {
+        let store = TestStore()
+        let parent = store.plant(acquired: day(2023, 5, 1), photo: true)
+        let cutting = Lineage.takeCutting(from: parent, nickname: nil, date: day(2024, 7, 1),
+                                          household: store.household, context: store.context, persistence: store.persistence)
+        XCTAssertTrue(Lineage.timeline(for: cutting).isEmpty, "the parent's photos stay on the parent")
+    }
+
+    func testLinkingAnExistingPlantAsACuttingRefusesLoops() {
+        let store = TestStore()
+        let first = store.plant(nickname: "First", acquired: day(2023, 5, 1))
+        let second = store.plant(nickname: "Second", acquired: day(2024, 7, 1))
+
+        XCTAssertTrue(Lineage.setCuttingParent(of: second, to: first))
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: second), day(2023, 5, 1))
+        XCTAssertFalse(Lineage.setCuttingParent(of: first, to: second), "a plant can't come from its own cutting")
+        XCTAssertNil(first.cuttingOf)
+        XCTAssertFalse(Lineage.setCuttingParent(of: first, to: first))
+        XCTAssertFalse(Lineage.cuttingParentChoices(for: first, in: store.household).contains(second))
+        XCTAssertEqual(Lineage.cuttingParentChoices(for: second, in: store.household), [first])
+
+        XCTAssertTrue(Lineage.setCuttingParent(of: second, to: nil))
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: second), day(2024, 7, 1))
+    }
+
+    func testCombiningACuttingCountsFromTheOldestPlant() {
+        let store = TestStore()
+        let parent = store.plant(acquired: day(2023, 5, 1))
+        let cutting = Lineage.takeCutting(from: parent, nickname: nil, date: day(2024, 7, 1),
+                                          household: store.household, context: store.context, persistence: store.persistence)
+        let other = store.plant(acquired: day(2024, 9, 1))
+        let merged = Lineage.staple([cutting, other], nickname: nil, date: day(2025, 1, 1),
+                                    household: store.household, context: store.context, persistence: store.persistence)
+        XCTAssertEqual(Lineage.effectiveAcquiredDate(of: merged), day(2023, 5, 1))
+        XCTAssertTrue(Lineage.history(of: merged).contains { $0.plant == parent }, "the cutting's parent shows in the tree")
+    }
+
+    func testDeletingAParentKeepsItsCuttings() {
+        let store = TestStore()
+        let parent = store.plant(acquired: day(2023, 5, 1))
+        let cutting = Lineage.takeCutting(from: parent, nickname: nil, date: day(2024, 7, 1),
+                                          household: store.household, context: store.context, persistence: store.persistence)
+        store.save()
+        Lineage.delete(parent, context: store.context)
+        store.save()
+        XCTAssertFalse(cutting.isDeleted)
+        XCTAssertNil(cutting.cuttingOf)
+    }
+
+    func testDeletingAPlantKeepsARetiredOriginalThatHasCuttings() {
+        let store = TestStore()
+        let original = store.plant(acquired: day(2023, 5, 1))
+        let cutting = Lineage.takeCutting(from: original, nickname: nil, date: day(2024, 7, 1),
+                                          household: store.household, context: store.context, persistence: store.persistence)
+        let kids = Lineage.split(original, names: ["A", "B"], date: day(2025, 1, 1),
+                                 household: store.household, context: store.context, persistence: store.persistence)
+        store.save()
+        for kid in kids { Lineage.delete(kid, context: store.context) }
+        store.save()
+        XCTAssertNotNil(original.managedObjectContext, "the cutting still comes from it")
+        XCTAssertEqual(cutting.cuttingOf, original)
+    }
 }
+

@@ -9,6 +9,7 @@ struct PlantDetailView: View {
     @State private var showingAddPhoto = false
     @State private var showingSplit = false
     @State private var showingCombine = false
+    @State private var showingCutting = false
     @State private var showingEdit = false
     @State private var showingNewTask = false
     @State private var editingTask: CareTask?
@@ -55,6 +56,9 @@ struct PlantDetailView: View {
                 if let since = Lineage.effectiveAcquiredDate(of: plant) {
                     LabeledContent("Had since", value: "\(Lineage.format(since)) (\(Self.age(since: since)))")
                 }
+                if plant.cuttingOf != nil, let taken = plant.acquiredDate {
+                    LabeledContent("Cutting taken", value: Lineage.format(taken))
+                }
             }
 
             if !plant.isActive {
@@ -69,7 +73,7 @@ struct PlantDetailView: View {
             ZoneSection(plant: plant, household: household)
 
             if plant.isActive {
-                Section("Care") {
+                CollapsibleSection("Care", summary: "\(plant.activeTasks.count)") {
                     ForEach(plant.activeTasks) { task in
                         TaskRow(task: task, household: household) { editingTask = task }
                     }
@@ -79,7 +83,7 @@ struct PlantDetailView: View {
                 }
             }
 
-            Section("Photos") {
+            CollapsibleSection("Photos", summary: "\(timeline.count)") {
                 if plant.isActive {
                     Button { showingAddPhoto = true } label: { Label("Add photo", systemImage: "camera") }
                 }
@@ -129,7 +133,7 @@ struct PlantDetailView: View {
                 }
             }
 
-            Section("History") {
+            CollapsibleSection("History") {
                 ForEach(Milestones.history(for: plant)) { item in
                     Button { editingMilestone = item.milestone } label: {
                         MilestoneRow(item: item, viewedPlant: plant)
@@ -161,6 +165,9 @@ struct PlantDetailView: View {
                     Button { showingSplit = true } label: {
                         Label("Split into new plants…", systemImage: "arrow.triangle.branch")
                     }
+                    Button { showingCutting = true } label: {
+                        Label("Take a cutting…", systemImage: "scissors")
+                    }
                 }
             }
         }
@@ -173,6 +180,7 @@ struct PlantDetailView: View {
         .sheet(isPresented: $showingAddPhoto) { AddPhotoSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingSplit) { SplitSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingCombine) { CombineSheet(plant: plant, household: household) }
+        .sheet(isPresented: $showingCutting) { CuttingSheet(plant: plant, household: household) }
         .sheet(isPresented: $addingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: nil) }
         .sheet(item: $editingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: $0) }
         .sheet(isPresented: $showingEdit) { EditPlantView(plant: plant) }
@@ -198,7 +206,7 @@ struct ZoneSection: View {
     var body: some View {
         let advice = Hardiness.advice(setting: plant.settingValue, zone: household.hardinessZone, species: plant.species)
         if advice != .none {
-            Section("Grow zone") {
+            CollapsibleSection("Grow zone") {
                 Label {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(advice.message)
@@ -275,7 +283,7 @@ struct PlantNotesSection: View {
     }
 
     var body: some View {
-        Section("Notes") {
+        CollapsibleSection("Notes") {
             TextField("Anything worth remembering: quirks, where it came from, what it likes…", text: $notes, axis: .vertical)
                 .lineLimit(2...)
                 .focused($focused)

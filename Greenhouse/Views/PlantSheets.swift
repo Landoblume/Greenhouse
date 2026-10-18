@@ -180,7 +180,7 @@ struct SplitSheet: View {
                         TextField("Plant \(index + 1)", text: $names[index])
                     }
                 } footer: {
-                    Text("\(plant.displayName) is retired and each new plant links back to it. Cuttings, divisions and pups all work this way.")
+                    Text("\(plant.displayName) is retired and each new plant links back to it. Divisions and pups work this way. Keeping \(plant.displayName) and just taking a cutting? Use Take a cutting instead.")
                 }
                 Section {
                     DatePicker("Split on", selection: $date, in: ...Date(), displayedComponents: .date)
@@ -214,6 +214,56 @@ struct SplitSheet: View {
         } else {
             names = Array(names.prefix(count))
         }
+    }
+}
+
+/// A new plant from a cutting; the parent stays as it is.
+struct CuttingSheet: View {
+    let plant: Plant
+    let household: Household
+    @Environment(\.managedObjectContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    @State private var nickname: String
+    @State private var date = Date()
+
+    init(plant: Plant, household: Household) {
+        self.plant = plant
+        self.household = household
+        _nickname = State(initialValue: "\(plant.displayName) cutting")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Nickname (optional)", text: $nickname)
+                    DatePicker("Taken on", selection: $date, in: ...Date(), displayedComponents: .date)
+                } footer: {
+                    Text(footer)
+                }
+            }
+            .navigationTitle("Take a cutting")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        Lineage.takeCutting(from: plant, nickname: nickname, date: date, household: household, context: context)
+                        Persistence.shared.save(context)
+                        NotificationPlanner.reschedule()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private var footer: String {
+        var text = "\(plant.displayName) stays as it is. The cutting gets its own tile and watering schedule, and each links to the other in History."
+        if let since = Lineage.effectiveAcquiredDate(of: plant) {
+            text += " Had since shows \(Lineage.format(since)) for both."
+        }
+        return text
     }
 }
 
@@ -353,6 +403,7 @@ struct EditPlantView: View {
     @State private var light: LightSource?
     @State private var collections: Set<PlantCollection>
     @State private var projects: Set<Project>
+    @State private var cuttingOf: Plant?
 
     // See EditPhotoSheet: start from the plant's values so the date picker
     // never shows a stale date.
@@ -365,6 +416,7 @@ struct EditPlantView: View {
         _light = State(initialValue: plant.lightSourceValue)
         _collections = State(initialValue: plant.collections ?? [])
         _projects = State(initialValue: plant.projects ?? [])
+        _cuttingOf = State(initialValue: plant.cuttingOf)
     }
 
     var body: some View {
@@ -380,6 +432,33 @@ struct EditPlantView: View {
                     LightSourcePicker(selection: $light)
                 }
                 if let household = plant.household {
+                    // Combined or split plants already know where they came from.
+                    if plant.producedBy == nil {
+                        let parents = Lineage.cuttingParentChoices(for: plant, in: household)
+                        if !parents.isEmpty {
+                            Section {
+                                Picker("Cutting of", selection: $cuttingOf) {
+                                    Text("None").tag(Plant?.none)
+                                    ForEach(parents) { parent in
+                                        VStack(alignment: .leading) {
+                                            Text(parent.displayName)
+                                            Text(parentDetail(parent)).font(.caption).foregroundStyle(.secondary)
+                                        }
+                                        .tag(Plant?.some(parent))
+                                    }
+                                }
+                                .pickerStyle(.navigationLink)
+                            } header: {
+                                Text("Started from")
+                            } footer: {
+                                if let cuttingOf {
+                                    Text("Got it on is when the cutting was taken. Had since counts from \(cuttingOf.displayName)'s date.")
+                                } else {
+                                    Text("Started this plant as a cutting of one you already have? Pick it, and Had since counts from that plant's date.")
+                                }
+                            }
+                        }
+                    }
                     CollectionToggles(household: household, selection: $collections)
                     let choices = Plans.projectChoices(for: plant, in: household)
                     if !choices.isEmpty {
@@ -420,6 +499,7 @@ struct EditPlantView: View {
                         plant.lightSourceValue = light
                         Collections.setMembership(of: plant, to: collections)
                         Plans.setProjects(of: plant, to: projects)
+                        Lineage.setCuttingParent(of: plant, to: cuttingOf)
                         Persistence.shared.save(context)
                         NotificationPlanner.reschedule()
                         dismiss()
@@ -427,5 +507,10 @@ struct EditPlantView: View {
                 }
             }
         }
+    }
+
+    private func parentDetail(_ parent: Plant) -> String {
+        let got = parent.acquiredDate.map { "got \(Lineage.format($0))" } ?? "no date"
+        return parent.isActive ? got : "\(got) · retired"
     }
 }
