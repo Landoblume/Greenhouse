@@ -252,8 +252,17 @@ struct EditPhotoSheet: View {
     @ObservedObject var photo: Photo
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
-    @State private var caption = ""
-    @State private var takenAt = Date()
+    @State private var caption: String
+    @State private var takenAt: Date
+
+    // Starting values are set here, not in onAppear: a date picker that first
+    // draws with today and is then changed can keep showing today, and saving
+    // would write that back.
+    init(photo: Photo) {
+        _photo = ObservedObject(wrappedValue: photo)
+        _caption = State(initialValue: photo.caption ?? "")
+        _takenAt = State(initialValue: photo.takenAt ?? Date())
+    }
 
     var body: some View {
         NavigationStack {
@@ -273,10 +282,6 @@ struct EditPhotoSheet: View {
                     }
                 }
             }
-            .onAppear {
-                caption = photo.caption ?? ""
-                takenAt = photo.takenAt ?? Date()
-            }
         }
     }
 }
@@ -285,12 +290,24 @@ struct EditPlantView: View {
     @ObservedObject var plant: Plant
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
-    @State private var nickname = ""
-    @State private var location = ""
-    @State private var acquired = Date()
-    @State private var setting: PlantSetting = .indoor
+    @State private var nickname: String
+    @State private var location: String
+    @State private var acquired: Date
+    @State private var setting: PlantSetting
     @State private var light: LightSource?
-    @State private var collections: Set<PlantCollection> = []
+    @State private var collections: Set<PlantCollection>
+
+    // See EditPhotoSheet: start from the plant's values so the date picker
+    // never shows a stale date.
+    init(plant: Plant) {
+        _plant = ObservedObject(wrappedValue: plant)
+        _nickname = State(initialValue: plant.nickname ?? "")
+        _location = State(initialValue: plant.location ?? "")
+        _acquired = State(initialValue: plant.acquiredDate ?? Date())
+        _setting = State(initialValue: plant.settingValue)
+        _light = State(initialValue: plant.lightSourceValue)
+        _collections = State(initialValue: plant.collections ?? [])
+    }
 
     var body: some View {
         NavigationStack {
@@ -327,14 +344,6 @@ struct EditPlantView: View {
                         dismiss()
                     }
                 }
-            }
-            .onAppear {
-                nickname = plant.nickname ?? ""
-                location = plant.location ?? ""
-                acquired = plant.acquiredDate ?? Date()
-                setting = plant.settingValue
-                light = plant.lightSourceValue
-                collections = plant.collections ?? []
             }
         }
     }

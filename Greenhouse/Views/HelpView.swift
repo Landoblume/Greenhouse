@@ -20,7 +20,7 @@ struct HelpView: View {
             Tap a photo, then the ••• button, to fix its date, add a caption, make it the main photo on the plant's tile, or delete it.
             """)
             topic("Collections", "square.stack", """
-            Group plants however you like: Indoor, Outdoor greenhouse, Succulents. Tap + Collection at the top of the Plants tab, then Choose plants. A plant can be in more than one.
+            Group plants however you like: Indoor, Outdoor greenhouse, Succulents. Tap + Collection at the top of the Plants tab, then Choose plants, or tap New collection while adding or editing a plant. A plant can be in more than one.
 
             Picking a collection filters the Plants, Care and Plans tabs together, so each one has its own reminders, wishlist and projects. Press and hold a collection to rename or delete it; deleting never removes plants.
             """)
@@ -43,7 +43,7 @@ struct HelpView: View {
             On the day you got a plant, you'll get a "you've had it a year" note. Stapled plants count from their oldest original.
             """)
             topic("Grow zone and light", "thermometer.sun", """
-            Set your ZIP in Settings to get your USDA hardiness zone. Outdoor and seasonal plants then say whether they survive winter outside where you live.
+            Set your ZIP in Settings to get your USDA hardiness zone. Outdoor and seasonal plants then say whether they survive winter outside where you live. A ZIP too new for the USDA map gets the zone of the nearest ZIP that's on it. If even that fails, Use my location finds the zone around your phone, or you can pick one by hand.
 
             Each plant's page shows the light you picked next to what the species likes. Measure the light here uses the camera to estimate how bright the spot really is and says whether that suits the plant.
             """)

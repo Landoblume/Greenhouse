@@ -109,24 +109,45 @@ struct CollectionBar: View {
     }
 }
 
-/// Which collections a plant is in, as toggles. Hidden until the household has one.
+/// Which collections a plant is in, as toggles, plus a button to make a new
+/// one without leaving the form. A new collection starts switched on.
 struct CollectionToggles: View {
     @ObservedObject var household: Household
     @Binding var selection: Set<PlantCollection>
+    @Environment(\.managedObjectContext) private var context
+    @State private var naming = false
+    @State private var draft = ""
 
     var body: some View {
-        if !household.sortedCollections.isEmpty {
-            Section("Collections") {
-                ForEach(household.sortedCollections) { collection in
-                    Toggle(collection.name ?? "Untitled", isOn: Binding(
-                        get: { selection.contains(collection) },
-                        set: { on in
-                            if on { selection.insert(collection) } else { selection.remove(collection) }
-                        }
-                    ))
-                }
+        Section("Collections") {
+            ForEach(household.sortedCollections) { collection in
+                Toggle(collection.name ?? "Untitled", isOn: Binding(
+                    get: { selection.contains(collection) },
+                    set: { on in
+                        if on { selection.insert(collection) } else { selection.remove(collection) }
+                    }
+                ))
+            }
+            Button {
+                draft = ""
+                naming = true
+            } label: {
+                Label("New collection", systemImage: "plus")
             }
         }
+        .alert("New collection", isPresented: $naming) {
+            TextField("Name (e.g. Succulents)", text: $draft)
+            Button("Cancel", role: .cancel) {}
+            Button("Add", action: create)
+        }
+    }
+
+    private func create() {
+        let name = draft.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        let collection = Collections.create(name: name, household: household, context: context)
+        Persistence.shared.save(context)
+        selection.insert(collection)
     }
 }
 

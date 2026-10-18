@@ -13,6 +13,7 @@ struct SettingsView: View {
     @State private var zip = ""
     @State private var lookingUp = false
     @State private var zoneError: String?
+    @State private var zoneNote: String?
     @State private var sharing = false
     @State private var shareError: String?
     @State private var participants: Int?
@@ -77,9 +78,18 @@ struct SettingsView: View {
                         Button("Look up") { Task { await lookUpZone() } }
                             .disabled(lookingUp || zip.count != 5)
                     }
+                    Button {
+                        Task { await lookUpZoneHere() }
+                    } label: {
+                        Label("Use my location", systemImage: "location")
+                    }
+                    .disabled(lookingUp)
                     if lookingUp { ProgressView() }
                     if let zoneError {
                         Text(zoneError).font(.caption).foregroundStyle(.red)
+                    }
+                    if let zoneNote {
+                        Text(zoneNote).font(.caption).foregroundStyle(.secondary)
                     }
                     Picker("Zone", selection: Binding(
                         get: { household.hardinessZone ?? "" },
@@ -186,12 +196,35 @@ struct SettingsView: View {
     private func lookUpZone() async {
         lookingUp = true
         zoneError = nil
+        zoneNote = nil
         defer { lookingUp = false }
         do {
-            let zone = try await ZoneLookup.zone(forZIP: zip)
+            let match = try await ZoneLookup.zone(forZIP: zip)
             household.zip = zip
-            household.hardinessZone = zone
+            household.hardinessZone = match.zone
+            if let nearby = match.nearbyZIP {
+                zoneNote = "\(zip) is newer than the USDA zone map, so this is \(match.zone) from nearby \(nearby)."
+            }
             Persistence.shared.save(context)
+        } catch {
+            zoneError = error.localizedDescription
+        }
+    }
+
+    /// For ZIPs too new for any map: the zone of the nearest ZIP the USDA map
+    /// knows around the phone. The location is used once and not saved.
+    private func lookUpZoneHere() async {
+        lookingUp = true
+        zoneError = nil
+        zoneNote = nil
+        defer { lookingUp = false }
+        do {
+            let here = try await OneTimeLocation().coordinate()
+            let match = try await ZoneLookup.zone(near: here)
+            if zip.count == 5 { household.zip = zip }
+            household.hardinessZone = match.zone
+            Persistence.shared.save(context)
+            zoneNote = "Zone \(match.zone), from \(match.nearbyZIP ?? "the ZIP") near you."
         } catch {
             zoneError = error.localizedDescription
         }
