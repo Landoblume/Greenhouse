@@ -1,0 +1,265 @@
+import CloudKit
+import SwiftUI
+import UserNotifications
+
+struct SettingsView: View {
+    @ObservedObject var household: Household
+    @Environment(\.managedObjectContext) private var context
+    @AppStorage(SettingsKey.myName) private var myName = ""
+    @AppStorage(NotificationPlanner.hourKey) private var notifyHour = 9
+    @AppStorage(NotificationPlanner.minuteKey) private var notifyMinute = 0
+    @AppStorage(Persistence.schemaStatusKey) private var schemaStatus = "Not run"
+
+    @State private var zip = ""
+    @State private var lookingUp = false
+    @State private var zoneError: String?
+    @State private var sharing = false
+    @State private var shareError: String?
+    @State private var participants: Int?
+    @State private var notificationsAllowed: Bool?
+    @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
+
+    private var isMember: Bool { Persistence.shared.isShared(household) }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    NavigationLink {
+                        HelpView()
+                    } label: {
+                        Label("How Greenhouse works", systemImage: "questionmark.circle")
+                    }
+                }
+
+                Section("You") {
+                    TextField("Your first name", text: $myName)
+                }
+
+                Section {
+                    TextField("Household name", text: Binding(
+                        get: { household.name ?? "" },
+                        set: { household.name = $0 }
+                    ))
+                    .onSubmit { Persistence.shared.save(context) }
+                    if isMember {
+                        Label("You joined this household from an invite.", systemImage: "person.2")
+                    } else {
+                        Button {
+                            Task { await invite() }
+                        } label: {
+                            if sharing {
+                                ProgressView()
+                            } else {
+                                Label(participants.map { $0 > 0 ? "Manage sharing (\($0) joined)" : "Invite to household" } ?? "Invite to household",
+                                      systemImage: "person.badge.plus")
+                            }
+                        }
+                        .disabled(sharing)
+                    }
+                    if let shareError {
+                        ErrorText(text: shareError)
+                    }
+                    ICloudStatusView()
+                    SyncStatusRow()
+                } header: {
+                    Text("Household")
+                } footer: {
+                    if !isMember {
+                        Text("Sends an iCloud link (by Messages, for example). Whoever taps it sees and edits the same plants on their iPhone.")
+                    }
+                }
+
+                Section {
+                    HStack {
+                        TextField("ZIP code", text: $zip)
+                            .keyboardType(.numberPad)
+                        Button("Look up") { Task { await lookUpZone() } }
+                            .disabled(lookingUp || zip.count != 5)
+                    }
+                    if lookingUp { ProgressView() }
+                    if let zoneError {
+                        Text(zoneError).font(.caption).foregroundStyle(.red)
+                    }
+                    Picker("Zone", selection: Binding(
+                        get: { household.hardinessZone ?? "" },
+                        set: {
+                            household.hardinessZone = $0.isEmpty ? nil : $0
+                            Persistence.shared.save(context)
+                        }
+                    )) {
+                        Text("Not set").tag("")
+                        ForEach(USDAZone.all, id: \.self) { Text($0).tag($0) }
+                    }
+                } header: {
+                    Text("Grow zone")
+                } footer: {
+                    Text("USDA hardiness zone, from your ZIP code or picked by hand. Outdoor and seasonal plants use it to tell you whether they survive winter outside. Both phones share it.")
+                }
+
+                let others = HouseholdMerge.others(of: household, in: Array(households))
+                if !others.isEmpty {
+                    Section {
+                        ForEach(others) { other in
+                            OtherHouseholdRow(source: other, target: household)
+                        }
+                    } header: {
+                        Text("Your other households")
+                    } footer: {
+                        Text("Plants you added before joining \(household.name ?? "this household"). Bringing them here moves their photos, reminders and history too.")
+                    }
+                }
+
+                Section {
+                    DatePicker("Remind me at", selection: Binding(
+                        get: { Calendar.current.date(bySettingHour: notifyHour, minute: notifyMinute, second: 0, of: .now) ?? .now },
+                        set: {
+                            notifyHour = Calendar.current.component(.hour, from: $0)
+                            notifyMinute = Calendar.current.component(.minute, from: $0)
+                            NotificationPlanner.reschedule()
+                        }
+                    ), displayedComponents: .hourAndMinute)
+                    if notificationsAllowed == false {
+                        Button("Turn on notifications in Settings") {
+                            if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Reminders")
+                } footer: {
+                    Text("Care reminders and plant anniversaries arrive at this time on the day they're due.")
+                }
+
+                #if DEBUG
+                Section {
+                    LabeledContent("CloudKit schema", value: schemaStatus)
+                    Button("Upload schema again") {
+                        Persistence.shared.initializeCloudKitSchemaIfNeeded(force: true)
+                    }
+                } header: {
+                    Text("Developer")
+                } footer: {
+                    Text("Debug builds only. After this says Ready, deploy the schema to Production in the CloudKit Console so TestFlight builds can sync (see README).")
+                }
+                #endif
+
+                Section {
+                    LabeledContent("Version", value: Self.version)
+                }
+            }
+            .navigationTitle("Settings")
+            .onAppear { zip = household.zip ?? "" }
+            .task { await refresh() }
+        }
+    }
+
+    private static var version: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (\(build))"
+    }
+
+    private func refresh() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        notificationsAllowed = settings.authorizationStatus == .authorized
+        if let share = Persistence.shared.existingShare(for: household) {
+            participants = share.participants.filter { $0.role != .owner && $0.acceptanceStatus == .accepted }.count
+        }
+    }
+
+    private func invite() async {
+        sharing = true
+        shareError = nil
+        defer { sharing = false }
+        do {
+            let share = try await Persistence.shared.shareForInvite(household)
+            SharingPresenter.present(share: share)
+        } catch {
+            print("Greenhouse: invite failed: \(SyncMonitor.describe(error))")
+            shareError = SyncMonitor.describe(error)
+        }
+    }
+
+    private func lookUpZone() async {
+        lookingUp = true
+        zoneError = nil
+        defer { lookingUp = false }
+        do {
+            let zone = try await ZoneLookup.zone(forZIP: zip)
+            household.zip = zip
+            household.hardinessZone = zone
+            Persistence.shared.save(context)
+        } catch {
+            zoneError = error.localizedDescription
+        }
+    }
+}
+
+/// Last iCloud sync result: a time when it's working, the full reason when not.
+struct SyncStatusRow: View {
+    @ObservedObject private var monitor = SyncMonitor.shared
+
+    var body: some View {
+        if let error = monitor.lastError {
+            ErrorText(text: error)
+        } else if let success = monitor.lastSuccess {
+            Label("Synced with iCloud \(success.formatted(.relative(presentation: .named)))", systemImage: "checkmark.icloud")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// Error details you can select and copy, to paste into a bug report.
+struct ErrorText: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(text)
+                .font(.caption.monospaced())
+                .foregroundStyle(.red)
+                .textSelection(.enabled)
+            Button("Copy details") { UIPasteboard.general.string = text }
+                .font(.caption)
+        }
+    }
+}
+
+/// One of your own households, with a button to bring its plants here.
+struct OtherHouseholdRow: View {
+    @ObservedObject var source: Household
+    let target: Household
+    @Environment(\.managedObjectContext) private var context
+    @State private var confirming = false
+
+    private var count: Int { (source.plants ?? []).filter(\.isActive).count }
+    private var joined: Int { Persistence.shared.joinedCount(for: source) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(source.name ?? "Untitled household")
+            Text("\(count) plant\(count == 1 ? "" : "s")" + (joined > 0 ? " · \(joined) other \(joined == 1 ? "person" : "people") joined it" : ""))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Bring \(count == 1 ? "it" : "them") into \(target.name ?? "this household")") { confirming = true }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+        }
+        .confirmationDialog("Move \(count) plant\(count == 1 ? "" : "s") into \(target.name ?? "this household")?",
+                            isPresented: $confirming, titleVisibility: .visible) {
+            Button("Move them") {
+                HouseholdMerge.move(source, into: target, context: context)
+                Persistence.shared.save(context)
+                NotificationPlanner.reschedule()
+            }
+        } message: {
+            Text(joined > 0
+                 ? "\(joined) other \(joined == 1 ? "person" : "people") joined \(source.name ?? "that household") and will no longer see these plants there."
+                 : "Everyone here will see them. \(source.name ?? "Your other household") is removed once they've moved.")
+        }
+    }
+}

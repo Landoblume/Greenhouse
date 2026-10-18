@@ -1,0 +1,67 @@
+name: Greenhouse
+options:
+  bundleIdPrefix: com.landenblume
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.2"
+    # scripts/testflight.sh overrides this with a timestamp on every upload,
+    # because App Store Connect rejects a build number it has already seen.
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+
+targets:
+  Greenhouse:
+    type: application
+    platform: iOS
+    sources:
+      - Greenhouse
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.landenblume.greenhouse
+        GENERATE_INFOPLIST_FILE: YES
+        # Keys the INFOPLIST_KEY_ settings can't express (CloudKit sharing,
+        # background pushes). Xcode merges this file into the generated plist.
+        INFOPLIST_FILE: Greenhouse/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Greenhouse
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_NSCameraUsageDescription: "Take photos of your plants to see how they grow."
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1"
+        # iCloud (CloudKit) + push. Push is how CloudKit tells this phone that
+        # the other phone changed something, so sync isn't only on launch.
+        CODE_SIGN_ENTITLEMENTS: Greenhouse/Greenhouse.entitlements
+        CODE_SIGN_STYLE: Automatic
+        # Same team as Vantage; kept here because the .xcodeproj is generated.
+        DEVELOPMENT_TEAM: B4ZJ9XUYWJ
+
+  GreenhouseTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - GreenhouseTests
+    dependencies:
+      - target: Greenhouse
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.landenblume.greenhouse.tests
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_TEAM: B4ZJ9XUYWJ
+
+schemes:
+  Greenhouse:
+    build:
+      targets:
+        Greenhouse: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - GreenhouseTests
