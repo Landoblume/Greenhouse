@@ -4,7 +4,7 @@ import CoreData
 ///
 /// Accepting an invite never deletes anything, but the app switches to the
 /// shared household, which would leave plants you'd already added out of
-/// sight. This brings them along: plants, photos, care reminders with their
+/// sight. This brings them along: plants, photos, milestones, care reminders with their
 /// history, staple/split links, collections, the wishlist and projects.
 ///
 /// Objects can't move between Core Data stores (your own household lives in
@@ -50,6 +50,11 @@ enum HouseholdMerge {
                 let photoCopy = persistence.insert(Photo.self, alongside: target, in: context)
                 copyAttributes(of: photo, to: photoCopy)
                 photoCopy.plant = copy
+            }
+            for milestone in plant.milestones ?? [] {
+                let milestoneCopy = persistence.insert(Milestone.self, alongside: target, in: context)
+                copyAttributes(of: milestone, to: milestoneCopy)
+                milestoneCopy.plant = copy
             }
         }
 
@@ -105,7 +110,7 @@ enum HouseholdMerge {
             target.zip = source.zip
         }
 
-        // Tasks and plants cascade to their logs and photos.
+        // Tasks and plants cascade to their logs, photos and milestones.
         tasks.forEach(context.delete)
         events.forEach(context.delete)
         collections.forEach(context.delete)

@@ -18,6 +18,8 @@ struct HelpView: View {
             On a plant's page, Add photo starts its timeline. Photos from your library keep the date they were taken. With two or more photos, Then vs now shows the first and latest side by side.
 
             Tap a photo, then the ••• button, to fix its date, add a caption, crop it, make it the main photo on the plant's tile, or delete it. You can also crop a photo right after taking it.
+
+            Under History, Add milestone writes down things like a new pot, a repot or a first bloom, with the date and a note. Tap one to change or delete it.
             """)
             topic("Collections", "square.stack", """
             Group plants however you like: Indoor, Outdoor greenhouse, Succulents. Tap + Collection at the top of the Plants tab, then Choose plants, or tap New collection while adding or editing a plant. A plant can be in more than one.
@@ -36,7 +38,7 @@ struct HelpView: View {
 
             To remove a plant for good, press and hold it on the Plants tab → Delete plant. Its photos and its own reminders go with it.
 
-            Nothing is lost either way: History on each plant shows where it came from, and photos from the originals carry over.
+            Nothing is lost either way: History on each plant shows where it came from, and photos and milestones from the originals carry over.
             """)
             topic("Care reminders", "drop", """
             Every plant gets a watering schedule. Tap Watered (or Done) when it's handled and the next date moves on, with your name on it so the other phone knows.
