@@ -160,63 +160,6 @@ struct CombineSheet: View {
     }
 }
 
-struct SplitSheet: View {
-    let plant: Plant
-    let household: Household
-    @Environment(\.managedObjectContext) private var context
-    @Environment(\.dismiss) private var dismiss
-    @State private var names: [String] = []
-    @State private var date = Date()
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Stepper("\(names.count) new plants", value: Binding(
-                        get: { names.count },
-                        set: { resize(to: $0) }
-                    ), in: 2...12)
-                    ForEach(names.indices, id: \.self) { index in
-                        TextField("Plant \(index + 1)", text: $names[index])
-                    }
-                } footer: {
-                    Text("\(plant.displayName) is retired and each new plant links back to it. Divisions and pups work this way. Keeping \(plant.displayName) and just taking a cutting? Use Take a cutting instead.")
-                }
-                Section {
-                    DatePicker("Split on", selection: $date, in: ...Date(), displayedComponents: .date)
-                }
-            }
-            .navigationTitle("Split \(plant.displayName)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Split") {
-                        let finalNames = names.enumerated().map { index, name in
-                            name.trimmingCharacters(in: .whitespaces).isEmpty ? defaultName(index) : name
-                        }
-                        Lineage.split(plant, names: finalNames, date: date, household: household, context: context)
-                        Persistence.shared.save(context)
-                        NotificationPlanner.reschedule()
-                        dismiss()
-                    }
-                }
-            }
-            .onAppear { if names.isEmpty { resize(to: 2) } }
-        }
-    }
-
-    private func defaultName(_ index: Int) -> String { "\(plant.displayName) #\(index + 1)" }
-
-    private func resize(to count: Int) {
-        if count > names.count {
-            names += (names.count..<count).map(defaultName)
-        } else {
-            names = Array(names.prefix(count))
-        }
-    }
-}
-
 /// A new plant from a cutting; the parent stays as it is.
 struct CuttingSheet: View {
     let plant: Plant

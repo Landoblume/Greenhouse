@@ -7,7 +7,6 @@ struct PlantDetailView: View {
     @Environment(\.managedObjectContext) private var context
     @AppStorage(SettingsKey.myName) private var myName = ""
     @State private var showingAddPhoto = false
-    @State private var showingSplit = false
     @State private var showingCombine = false
     @State private var showingCutting = false
     @State private var showingEdit = false
@@ -151,6 +150,14 @@ struct PlantDetailView: View {
                         }
                     }
                     .padding(.leading, CGFloat(line.depth) * 16)
+                    .swipeActions {
+                        if let cutting = line.unlinks {
+                            Button("Unlink", role: .destructive) {
+                                Lineage.setCuttingParent(of: cutting, to: nil)
+                                Persistence.shared.save(context)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -158,9 +165,6 @@ struct PlantDetailView: View {
                 Section {
                     Button { showingCombine = true } label: {
                         Label("Combine with other plants…", systemImage: "arrow.triangle.merge")
-                    }
-                    Button { showingSplit = true } label: {
-                        Label("Split into new plants…", systemImage: "arrow.triangle.branch")
                     }
                     Button { showingCutting = true } label: {
                         Label("Take a cutting…", systemImage: "scissors")
@@ -175,7 +179,6 @@ struct PlantDetailView: View {
             }
         }
         .sheet(isPresented: $showingAddPhoto) { AddPhotoSheet(plant: plant, household: household) }
-        .sheet(isPresented: $showingSplit) { SplitSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingCombine) { CombineSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingCutting) { CuttingSheet(plant: plant, household: household) }
         .sheet(isPresented: $addingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: nil) }
