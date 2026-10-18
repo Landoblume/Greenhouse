@@ -281,6 +281,8 @@ final class Project: NSManagedObject {
     @NSManaged var targetDate: Date?
     @NSManaged var isDone: Bool
     @NSManaged var doneAt: Date?
+    /// When it went from planned to in progress.
+    @NSManaged var startedAt: Date?
     @NSManaged var createdAt: Date?
     @NSManaged var household: Household?
     @NSManaged var collection: PlantCollection?

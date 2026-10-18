@@ -105,6 +105,8 @@ enum GreenhouseModel {
             attr("targetDate", .date),
             attr("isDone", .boolean, default: NSNumber(value: false)),
             attr("doneAt", .date),
+            /// Set while the project is underway; nil means just planned.
+            attr("startedAt", .date),
             attr("createdAt", .date),
         ])
 

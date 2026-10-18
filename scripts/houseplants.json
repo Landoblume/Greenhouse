@@ -397,6 +397,20 @@
     "verified": true
   },
   {
+    "latin": "Monstera deliciosa var. borsigiana",
+    "common": [
+      "Monstera borsigiana",
+      "Borsigiana"
+    ],
+    "zoneMin": 10,
+    "zoneMax": 12,
+    "light": "Bright, indirect",
+    "waterDays": 7,
+    "frost": "tender",
+    "source": "https://plants.ces.ncsu.edu/plants/monstera-deliciosa/",
+    "verified": true
+  },
+  {
     "latin": "Monstera deliciosa 'Thai Constellation'",
     "common": [
       "Thai Constellation monstera"

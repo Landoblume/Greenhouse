@@ -38,9 +38,10 @@ enum DemoData {
                       by: "Sam", collection: nil, household: household, context: context)
         Plans.addWish(species: nil, scientificName: "Haworthia cooperi", notes: nil, by: "Sam",
                       collection: succulents, household: household, context: context)
-        Plans.addProject(title: "Spray paint the new greenhouse", notes: "Matte black, two coats",
-                         targetDate: Calendar.current.date(byAdding: .day, value: 10, to: .now), plants: [aloe],
-                         collection: nil, household: household, context: context)
+        let paint = Plans.addProject(title: "Spray paint the new greenhouse", notes: "Matte black, two coats",
+                                     targetDate: Calendar.current.date(byAdding: .day, value: 10, to: .now), plants: [aloe],
+                                     collection: nil, household: household, context: context)
+        Plans.setState(paint, .inProgress)
         let done = Plans.addProject(title: "Repot the fern", notes: nil, targetDate: nil, plants: [pothos],
                                     collection: nil, household: household, context: context)
         Plans.setDone(done, true)
