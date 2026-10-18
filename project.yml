@@ -7,7 +7,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.3.1"
+    MARKETING_VERSION: "1.3.2"
     # scripts/testflight.sh overrides this with a timestamp on every upload,
     # because App Store Connect rejects a build number it has already seen.
     CURRENT_PROJECT_VERSION: "1"

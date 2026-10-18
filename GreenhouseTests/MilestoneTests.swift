@@ -143,4 +143,21 @@ final class MilestoneTests: XCTestCase {
         XCTAssertEqual(movedPhoto.milestone?.title, "New pot")
         XCTAssertEqual(movedPhoto.milestone?.plant, moved)
     }
+
+    // MARK: Quick picks
+
+    func testQuickPicksIncludeCombinedAndCanBeChangedWithoutTouchingSavedMilestones() {
+        let store = TestStore()
+        let aloe = store.plant(acquired: day(2026, 3, 1))
+        XCTAssertTrue(Milestones.suggestions(for: store.household).contains("Combined"))
+        let pot = Milestones.add(title: "New pot", date: day(2026, 4, 1), notes: nil, by: "Sam", to: aloe,
+                                 household: store.household, context: store.context, persistence: store.persistence)
+
+        Milestones.setSuggestions(["Terracotta pot", "  ", "Combined"], for: store.household)
+        XCTAssertEqual(Milestones.suggestions(for: store.household), ["Terracotta pot", "Combined"])
+        XCTAssertEqual(pot.title, "New pot")
+
+        Milestones.setSuggestions(Milestones.defaultSuggestions, for: store.household)
+        XCTAssertNil(store.household.milestoneSuggestions, "the original list is stored as nothing, so future defaults apply")
+    }
 }

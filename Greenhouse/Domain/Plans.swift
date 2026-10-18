@@ -79,6 +79,62 @@ enum Plans {
         set.addObjects(from: plants)
     }
 
+    static func updateDetails(_ project: Project, budget: Double, place: String?, link: String?) {
+        project.budget = max(0, budget)
+        project.place = nonEmpty(place)
+        project.link = nonEmpty(link)
+    }
+
+    // MARK: Steps and supplies
+
+    /// The phone's currency, for costs and budgets.
+    static var currencyCode: String { Locale.current.currency?.identifier ?? "USD" }
+
+    @discardableResult
+    static func addItem(
+        _ kind: ProjectItemKind,
+        title: String,
+        cost: Double = 0,
+        to project: Project,
+        household: Household,
+        context: NSManagedObjectContext,
+        persistence: Persistence = .shared
+    ) -> ProjectItem? {
+        let trimmed = title.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        let item = persistence.insert(ProjectItem.self, alongside: household, in: context)
+        item.uuid = UUID()
+        item.kind = kind.rawValue
+        item.title = trimmed
+        item.cost = max(0, cost)
+        item.createdAt = .now
+        item.project = project
+        return item
+    }
+
+    /// Steps or supplies in the order they were added.
+    static func items(_ kind: ProjectItemKind, of project: Project) -> [ProjectItem] {
+        (project.items ?? [])
+            .filter { $0.kindValue == kind }
+            .sorted { ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast) }
+    }
+
+    /// e.g. (2, 5) for two of five steps done.
+    static func stepProgress(of project: Project) -> (done: Int, total: Int) {
+        let steps = items(.step, of: project)
+        return (steps.filter(\.isDone).count, steps.count)
+    }
+
+    /// What all the supplies add up to.
+    static func estimatedCost(of project: Project) -> Double {
+        items(.supply, of: project).reduce(0) { $0 + $1.cost }
+    }
+
+    /// What the supplies already bought add up to.
+    static func spent(on project: Project) -> Double {
+        items(.supply, of: project).filter(\.isDone).reduce(0) { $0 + $1.cost }
+    }
+
     static func setDone(_ project: Project, _ done: Bool, at date: Date = .now) {
         project.isDone = done
         project.doneAt = done ? date : nil

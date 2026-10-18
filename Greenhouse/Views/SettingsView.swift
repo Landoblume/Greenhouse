@@ -38,6 +38,14 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        MilestoneOptionsView(household: household)
+                    } label: {
+                        Label("Milestone quick picks", systemImage: "flag")
+                    }
+                }
+
+                Section {
                     TextField("Household name", text: Binding(
                         get: { household.name ?? "" },
                         set: { household.name = $0 }

@@ -2,8 +2,25 @@ import CoreData
 
 /// Dated events written into a plant's History by hand.
 enum Milestones {
-    /// Quick picks on the add screen; any title works.
-    static let suggestions = ["New pot", "Repotted", "Fertilized", "Pruned", "First bloom", "New leaf", "Propagated", "Moved spots"]
+    /// The quick picks a household starts with.
+    static let defaultSuggestions = ["New pot", "Repotted", "Combined", "Fertilized", "Pruned", "First bloom", "New leaf",
+                                     "Propagated", "Moved spots"]
+
+    /// The household's quick picks (Settings → Milestone quick picks). They
+    /// only fill in the title, so changing the list never changes saved
+    /// milestones.
+    static func suggestions(for household: Household?) -> [String] {
+        let saved = household?.milestoneSuggestions?
+            .split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        return saved ?? defaultSuggestions
+    }
+
+    static func setSuggestions(_ list: [String], for household: Household) {
+        let cleaned = list.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        household.milestoneSuggestions = cleaned == defaultSuggestions ? nil : cleaned.joined(separator: "\n")
+    }
 
     struct Item: Identifiable {
         let milestone: Milestone
