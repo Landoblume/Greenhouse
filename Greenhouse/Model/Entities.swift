@@ -78,8 +78,13 @@ final class Household: NSManagedObject {
     @NSManaged var tasks: Set<CareTask>?
     @NSManaged var lineageEvents: Set<LineageEvent>?
 
+    /// Name of the throwaway household the debug schema step shares and then
+    /// deletes. Filtered out everywhere, so a leftover one never shows up.
+    static let schemaCheckName = "Schema check (deleted automatically)"
+
     static func all() -> NSFetchRequest<Household> {
         let request = NSFetchRequest<Household>(entityName: "Household")
+        request.predicate = NSPredicate(format: "name == nil OR name != %@", schemaCheckName)
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
         return request
     }

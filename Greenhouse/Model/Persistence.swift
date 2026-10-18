@@ -39,6 +39,19 @@ final class Persistence {
         } else {
             let cloudKit = NSPersistentCloudKitContainer(name: "Greenhouse", managedObjectModel: GreenhouseModel.shared)
             let directory = NSPersistentContainer.defaultDirectoryURL()
+            #if DEBUG
+            // Launch with `-resetDebugStore YES` to start the debug copy's local
+            // data from scratch (it re-downloads from iCloud Development).
+            // Only the "-debug" files exist in this branch; TestFlight data is
+            // never touched.
+            if UserDefaults.standard.bool(forKey: "resetDebugStore") {
+                let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+                let debugFiles = ["private-debug.sqlite", "shared-debug.sqlite", ".private-debug_SUPPORT", ".shared-debug_SUPPORT"]
+                for name in names where debugFiles.contains(where: { name.hasPrefix($0) }) {
+                    try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
+                }
+            }
+            #endif
             cloudKit.persistentStoreDescriptions = [
                 Self.storeDescription(url: directory.appendingPathComponent("private\(Self.storeSuffix).sqlite"), scope: .private),
                 Self.storeDescription(url: directory.appendingPathComponent("shared\(Self.storeSuffix).sqlite"), scope: .shared),
@@ -146,6 +159,7 @@ final class Persistence {
     // MARK: - CloudKit schema
 
     static let schemaStatusKey = "cloudKitSchemaStatus"
+    static let shareTypeKey = "cloudKitShareTypeCreated"
 
     /// TestFlight builds talk to CloudKit's Production environment, which only
     /// knows record types that were deployed from Development. This pushes the
@@ -156,11 +170,16 @@ final class Persistence {
         guard let cloudKit else { return }
         let defaults = UserDefaults.standard
         if !force, defaults.string(forKey: Self.schemaStatusKey)?.hasPrefix("Ready") == true { return }
-        defaults.set("Uploading…", forKey: Self.schemaStatusKey)
+        defaults.set("Uploading model…", forKey: Self.schemaStatusKey)
         Task.detached(priority: .utility) { [self] in
             do {
                 try cloudKit.initializeCloudKitSchema(options: [])
-                try await createShareRecordType(cloudKit)
+                // The share type only ever has to be created once per container.
+                if !defaults.bool(forKey: Self.shareTypeKey) {
+                    defaults.set("Creating share type…", forKey: Self.schemaStatusKey)
+                    try await createShareRecordType(cloudKit)
+                    defaults.set(true, forKey: Self.shareTypeKey)
+                }
                 defaults.set("Ready (\(Date.now.formatted(date: .abbreviated, time: .shortened)))", forKey: Self.schemaStatusKey)
             } catch {
                 // localizedDescription is just "A Core Data error occurred";
@@ -185,8 +204,8 @@ final class Persistence {
             let household = Household(entity: self.entityDescription(Household.self), insertInto: context)
             context.assign(household, to: privateStore)
             household.uuid = UUID()
-            household.name = "Schema check (deleted automatically)"
-            household.createdAt = .distantPast
+            household.name = Household.schemaCheckName
+            household.createdAt = .now
             try context.save()
             return household
         }
