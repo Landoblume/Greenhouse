@@ -38,6 +38,32 @@ final class MergeTests: XCTestCase {
         XCTAssertEqual(store.persistence.currentHousehold(in: store.context), joined)
     }
 
+    func testMovingCarriesCollectionsWishlistAndProjects() throws {
+        let store = TestStore()
+        let mine = store.household
+        let joined = store.persistence.createHousehold(name: "Joined", in: store.context)
+        let aloe = store.plant(nickname: "Aloe", acquired: day(2026, 3, 1))
+        let group = Collections.create(name: "Succulents", plants: [aloe], household: mine,
+                                       context: store.context, persistence: store.persistence)
+        Plans.addWish(species: nil, scientificName: "Haworthia", notes: nil, by: "Sam", collection: group,
+                      household: mine, context: store.context, persistence: store.persistence)
+        Plans.addProject(title: "Repot", notes: nil, targetDate: nil, plants: [aloe], collection: group,
+                         household: mine, context: store.context, persistence: store.persistence)
+        store.save()
+
+        HouseholdMerge.move(mine, into: joined, context: store.context, persistence: store.persistence)
+        store.save()
+
+        let movedGroup = try XCTUnwrap(joined.collections?.first)
+        XCTAssertEqual(movedGroup.name, "Succulents")
+        XCTAssertEqual(movedGroup.plants?.map(\.displayName), ["Aloe"])
+        XCTAssertEqual(joined.wishlist?.first?.collection, movedGroup)
+        let project = try XCTUnwrap(joined.projects?.first)
+        XCTAssertEqual(project.collection, movedGroup)
+        XCTAssertEqual(project.plants?.map(\.displayName), ["Aloe"])
+        XCTAssertTrue(group.isDeleted || group.managedObjectContext == nil)
+    }
+
     func testOnlyOwnNonEmptyHouseholdsAreOffered() {
         let store = TestStore()
         let joined = store.persistence.createHousehold(name: "Joined", in: store.context)

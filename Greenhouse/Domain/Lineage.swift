@@ -27,6 +27,7 @@ enum Lineage {
             plant.consumedBy = event
         }
         CareSchedule.transferTasks(from: plants, to: [merged], date: date, household: household, context: context, persistence: persistence)
+        Collections.inherit(from: plants, to: [merged])
         return merged
     }
 
@@ -49,6 +50,7 @@ enum Lineage {
         parent.statusValue = .split
         parent.consumedBy = event
         CareSchedule.transferTasks(from: [parent], to: children, date: date, household: household, context: context, persistence: persistence)
+        Collections.inherit(from: [parent], to: children)
         return children
     }
 
@@ -64,7 +66,7 @@ enum Lineage {
         return event
     }
 
-    /// A new plant that inherits species, setting and location from `template`.
+    /// A new plant that inherits species, setting, location and light from `template`.
     private static func makeChild(
         of template: Plant, nickname: String?, date: Date, household: Household,
         context: NSManagedObjectContext, persistence: Persistence
@@ -78,6 +80,7 @@ enum Lineage {
         plant.catalogID = template.catalogID
         plant.setting = template.setting
         plant.location = template.location
+        plant.lightSource = template.lightSource
         let trimmed = nickname?.trimmingCharacters(in: .whitespaces) ?? ""
         plant.nickname = trimmed.isEmpty ? nil : trimmed
         plant.statusValue = .active

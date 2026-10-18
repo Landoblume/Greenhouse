@@ -160,6 +160,7 @@ final class Persistence {
 
     static let schemaStatusKey = "cloudKitSchemaStatus"
     static let shareTypeKey = "cloudKitShareTypeCreated"
+    static let schemaFingerprintKey = "cloudKitSchemaFingerprint"
 
     /// TestFlight builds talk to CloudKit's Production environment, which only
     /// knows record types that were deployed from Development. This pushes the
@@ -169,7 +170,9 @@ final class Persistence {
         #if DEBUG
         guard let cloudKit else { return }
         let defaults = UserDefaults.standard
-        if !force, defaults.string(forKey: Self.schemaStatusKey)?.hasPrefix("Ready") == true { return }
+        let fingerprint = GreenhouseModel.fingerprint
+        let uploaded = defaults.string(forKey: Self.schemaFingerprintKey) == fingerprint
+        if !force, uploaded, defaults.string(forKey: Self.schemaStatusKey)?.hasPrefix("Ready") == true { return }
         defaults.set("Uploading model…", forKey: Self.schemaStatusKey)
         Task.detached(priority: .utility) { [self] in
             do {
@@ -180,6 +183,7 @@ final class Persistence {
                     try await createShareRecordType(cloudKit)
                     defaults.set(true, forKey: Self.shareTypeKey)
                 }
+                defaults.set(fingerprint, forKey: Self.schemaFingerprintKey)
                 defaults.set("Ready (\(Date.now.formatted(date: .abbreviated, time: .shortened)))", forKey: Self.schemaStatusKey)
             } catch {
                 // localizedDescription is just "A Core Data error occurred";

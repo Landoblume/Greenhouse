@@ -12,6 +12,17 @@ enum GreenhouseModel {
     /// that create several in-memory stores.
     static let shared: NSManagedObjectModel = build()
 
+    /// Changes whenever an entity, attribute or relationship does. The debug
+    /// build re-uploads the CloudKit schema when this differs from the last
+    /// upload, so a model change is never left out of Production by accident.
+    static var fingerprint: String {
+        shared.entityVersionHashesByName
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key):\($0.value.base64EncodedString())" }
+            .joined(separator: ",")
+            .hashValueStable
+    }
+
     private static func build() -> NSManagedObjectModel {
         let household = entity(Household.self, [
             attr("uuid", .uuid),
@@ -29,6 +40,9 @@ enum GreenhouseModel {
             attr("acquiredDate", .date),
             attr("location", .string),
             attr("lightSource", .string),
+            /// The photo shown on the tile and at the top of the plant's page;
+            /// nil means the newest one.
+            attr("coverPhotoID", .uuid),
             attr("setting", .string, default: PlantSetting.indoor.rawValue),
             attr("status", .string, default: PlantStatus.active.rawValue),
             attr("createdAt", .date),
@@ -36,6 +50,7 @@ enum GreenhouseModel {
         let photo = entity(Photo.self, [
             attr("uuid", .uuid),
             attr("takenAt", .date),
+            attr("caption", .string),
             // Stored beside the database rather than in it, and synced as a
             // CloudKit asset rather than inline record data.
             attr("imageData", .binaryData, external: true),
@@ -61,6 +76,30 @@ enum GreenhouseModel {
             attr("doneBy", .string),
         ])
 
+        let collection = entity(PlantCollection.self, [
+            attr("uuid", .uuid),
+            attr("name", .string),
+            attr("createdAt", .date),
+        ])
+        let wish = entity(WishlistItem.self, [
+            attr("uuid", .uuid),
+            attr("scientificName", .string),
+            attr("commonName", .string),
+            attr("catalogID", .string),
+            attr("notes", .string),
+            attr("addedBy", .string),
+            attr("createdAt", .date),
+        ])
+        let project = entity(Project.self, [
+            attr("uuid", .uuid),
+            attr("title", .string),
+            attr("notes", .string),
+            attr("targetDate", .date),
+            attr("isDone", .boolean, default: NSNumber(value: false)),
+            attr("doneAt", .date),
+            attr("createdAt", .date),
+        ])
+
         relate(household, "plants", many: true, plant, "household", many: false)
         relate(household, "tasks", many: true, task, "household", many: false)
         relate(household, "lineageEvents", many: true, event, "household", many: false)
@@ -69,9 +108,16 @@ enum GreenhouseModel {
         relate(plant, "producedBy", many: false, event, "outputs", many: true)
         relate(plant, "consumedBy", many: false, event, "inputs", many: true)
         relate(task, "logs", many: true, log, "task", many: false, deleteRule: .cascadeDeleteRule)
+        relate(household, "collections", many: true, collection, "household", many: false)
+        relate(household, "wishlist", many: true, wish, "household", many: false)
+        relate(household, "projects", many: true, project, "household", many: false)
+        relate(collection, "plants", many: true, plant, "collections", many: true)
+        relate(collection, "wishlist", many: true, wish, "collection", many: false)
+        relate(collection, "projects", many: true, project, "collection", many: false)
+        relate(project, "plants", many: true, plant, "projects", many: true)
 
         let model = NSManagedObjectModel()
-        model.entities = [household, plant, photo, event, task, log]
+        model.entities = [household, plant, photo, event, task, log, collection, wish, project]
         return model
     }
 
@@ -124,5 +170,17 @@ enum GreenhouseModel {
         inverse.inverseRelationship = forward
         a.properties.append(forward)
         b.properties.append(inverse)
+    }
+}
+
+private extension String {
+    /// FNV-1a, because Swift's own hashValue changes on every launch.
+    var hashValueStable: String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x100000001b3
+        }
+        return String(hash, radix: 16)
     }
 }

@@ -77,6 +77,13 @@ final class Household: NSManagedObject {
     @NSManaged var plants: Set<Plant>?
     @NSManaged var tasks: Set<CareTask>?
     @NSManaged var lineageEvents: Set<LineageEvent>?
+    @NSManaged var collections: Set<PlantCollection>?
+    @NSManaged var wishlist: Set<WishlistItem>?
+    @NSManaged var projects: Set<Project>?
+
+    var sortedCollections: [PlantCollection] {
+        (collections ?? []).sorted { ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast) }
+    }
 
     /// Name of the throwaway household the debug schema step shares and then
     /// deletes. Filtered out everywhere, so a leftover one never shows up.
@@ -101,6 +108,7 @@ final class Plant: NSManagedObject {
     @NSManaged var acquiredDate: Date?
     @NSManaged var location: String?
     @NSManaged var lightSource: String?
+    @NSManaged var coverPhotoID: UUID?
     @NSManaged var setting: String?
     @NSManaged var status: String?
     @NSManaged var createdAt: Date?
@@ -111,6 +119,8 @@ final class Plant: NSManagedObject {
     @NSManaged var producedBy: LineageEvent?
     /// The staple or split that retired this plant, if any.
     @NSManaged var consumedBy: LineageEvent?
+    @NSManaged var collections: Set<PlantCollection>?
+    @NSManaged var projects: Set<Project>?
 
     var displayName: String {
         if let nickname, !nickname.trimmingCharacters(in: .whitespaces).isEmpty { return nickname }
@@ -151,6 +161,7 @@ final class Plant: NSManagedObject {
 final class Photo: NSManagedObject {
     @NSManaged var uuid: UUID?
     @NSManaged var takenAt: Date?
+    @NSManaged var caption: String?
     @NSManaged var imageData: Data?
     @NSManaged var plant: Plant?
 }
@@ -216,6 +227,52 @@ final class CareLog: NSManagedObject {
     @NSManaged var task: CareTask?
 }
 
+/// A named group of plants, like "Succulents" or "Outdoor greenhouse". A plant
+/// can be in several. Wishlist items and projects can belong to one, so each
+/// collection has its own plans.
+@objc(PlantCollection)
+final class PlantCollection: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var name: String?
+    @NSManaged var createdAt: Date?
+    @NSManaged var household: Household?
+    @NSManaged var plants: Set<Plant>?
+    @NSManaged var wishlist: Set<WishlistItem>?
+    @NSManaged var projects: Set<Project>?
+}
+
+/// A plant you'd like to get.
+@objc(WishlistItem)
+final class WishlistItem: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var scientificName: String?
+    @NSManaged var commonName: String?
+    @NSManaged var catalogID: String?
+    @NSManaged var notes: String?
+    @NSManaged var addedBy: String?
+    @NSManaged var createdAt: Date?
+    @NSManaged var household: Household?
+    @NSManaged var collection: PlantCollection?
+
+    var species: Species? { SpeciesCatalog.shared.species(id: catalogID) }
+    var displayName: String { commonName ?? scientificName ?? "Unnamed plant" }
+}
+
+/// Something to build or do for the plants, like "spray paint a new greenhouse".
+@objc(Project)
+final class Project: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var title: String?
+    @NSManaged var notes: String?
+    @NSManaged var targetDate: Date?
+    @NSManaged var isDone: Bool
+    @NSManaged var doneAt: Date?
+    @NSManaged var createdAt: Date?
+    @NSManaged var household: Household?
+    @NSManaged var collection: PlantCollection?
+    @NSManaged var plants: Set<Plant>?
+}
+
 // Classes get `Identifiable` for free from their object identity, which is what
 // SwiftUI lists and sheets need.
 extension Household: Identifiable {}
@@ -224,3 +281,6 @@ extension Photo: Identifiable {}
 extension LineageEvent: Identifiable {}
 extension CareTask: Identifiable {}
 extension CareLog: Identifiable {}
+extension PlantCollection: Identifiable {}
+extension WishlistItem: Identifiable {}
+extension Project: Identifiable {}

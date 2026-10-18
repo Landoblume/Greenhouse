@@ -5,7 +5,7 @@ import CoreData
 /// Accepting an invite never deletes anything, but the app switches to the
 /// shared household, which would leave plants you'd already added out of
 /// sight. This brings them along: plants, photos, care reminders with their
-/// history, and staple/split links.
+/// history, staple/split links, collections, the wishlist and projects.
 ///
 /// Objects can't move between Core Data stores (your own household lives in
 /// the private store, a joined one in the shared store), so everything is
@@ -73,6 +73,33 @@ enum HouseholdMerge {
             }
         }
 
+        var collectionCopies: [NSManagedObjectID: PlantCollection] = [:]
+        let collections = Array(source.collections ?? [])
+        for collection in collections {
+            let copy = persistence.insert(PlantCollection.self, alongside: target, in: context)
+            copyAttributes(of: collection, to: copy)
+            copy.household = target
+            copy.mutableSetValue(forKey: "plants").addObjects(from: (collection.plants ?? []).compactMap { copies[$0.objectID] })
+            collectionCopies[collection.objectID] = copy
+        }
+
+        let wishes = Array(source.wishlist ?? [])
+        for item in wishes {
+            let copy = persistence.insert(WishlistItem.self, alongside: target, in: context)
+            copyAttributes(of: item, to: copy)
+            copy.household = target
+            copy.collection = item.collection.flatMap { collectionCopies[$0.objectID] }
+        }
+
+        let projects = Array(source.projects ?? [])
+        for project in projects {
+            let copy = persistence.insert(Project.self, alongside: target, in: context)
+            copyAttributes(of: project, to: copy)
+            copy.household = target
+            copy.collection = project.collection.flatMap { collectionCopies[$0.objectID] }
+            copy.mutableSetValue(forKey: "plants").addObjects(from: (project.plants ?? []).compactMap { copies[$0.objectID] })
+        }
+
         if target.hardinessZone == nil, let zone = source.hardinessZone {
             target.hardinessZone = zone
             target.zip = source.zip
@@ -81,6 +108,9 @@ enum HouseholdMerge {
         // Tasks and plants cascade to their logs and photos.
         tasks.forEach(context.delete)
         events.forEach(context.delete)
+        collections.forEach(context.delete)
+        wishes.forEach(context.delete)
+        projects.forEach(context.delete)
         plants.forEach(context.delete)
         context.delete(source)
 

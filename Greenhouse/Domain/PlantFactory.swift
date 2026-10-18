@@ -15,6 +15,8 @@ enum PlantFactory {
         lightSource: LightSource? = nil,
         waterEvery days: Int,
         photo: Data?,
+        photoTakenAt: Date? = nil,
+        collections: [PlantCollection] = [],
         now: Date = .now,
         household: Household,
         context: NSManagedObjectContext,
@@ -33,13 +35,14 @@ enum PlantFactory {
         plant.lightSourceValue = lightSource
         plant.statusValue = .active
         plant.household = household
+        plant.mutableSetValue(forKey: "collections").addObjects(from: collections)
 
         let firstDue = CareSchedule.addInterval(days, .day, to: Calendar.current.startOfDay(for: now))
         CareSchedule.makeTask(name: "Water", count: days, unit: .day, firstDue: firstDue, isWatering: true,
                               plants: [plant], household: household, context: context, persistence: persistence)
 
         if let photo {
-            addPhoto(photo, takenAt: now, to: plant, household: household, context: context, persistence: persistence)
+            addPhoto(photo, takenAt: photoTakenAt ?? now, to: plant, household: household, context: context, persistence: persistence)
         }
         return plant
     }
@@ -48,6 +51,7 @@ enum PlantFactory {
     static func addPhoto(
         _ data: Data,
         takenAt: Date,
+        caption: String? = nil,
         to plant: Plant,
         household: Household,
         context: NSManagedObjectContext,
@@ -56,6 +60,7 @@ enum PlantFactory {
         let photo = persistence.insert(Photo.self, alongside: household, in: context)
         photo.uuid = UUID()
         photo.takenAt = takenAt
+        photo.caption = nonEmpty(caption)
         photo.imageData = data
         photo.plant = plant
         return photo
