@@ -1,0 +1,1198 @@
+{
+  "source": "Drafted from general horticulture references; not yet checked entry by entry",
+  "species": [
+    {
+      "id": "aloe-vera",
+      "latin": "Aloe vera",
+      "common": [
+        "Aloe vera",
+        "Aloe",
+        "Medicinal aloe"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, direct or indirect",
+      "waterDays": 21,
+      "frost": "tender"
+    },
+    {
+      "id": "epipremnum-aureum",
+      "latin": "Epipremnum aureum",
+      "common": [
+        "Pothos",
+        "Golden pothos",
+        "Devil's ivy"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "dracaena-trifasciata",
+      "latin": "Dracaena trifasciata",
+      "common": [
+        "Snake plant",
+        "Mother-in-law's tongue",
+        "Sansevieria"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender"
+    },
+    {
+      "id": "zamioculcas-zamiifolia",
+      "latin": "Zamioculcas zamiifolia",
+      "common": [
+        "ZZ plant",
+        "Zanzibar gem"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender"
+    },
+    {
+      "id": "monstera-deliciosa",
+      "latin": "Monstera deliciosa",
+      "common": [
+        "Monstera",
+        "Swiss cheese plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "philodendron-hederaceum",
+      "latin": "Philodendron hederaceum",
+      "common": [
+        "Heartleaf philodendron",
+        "Philodendron"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "spathiphyllum-wallisii",
+      "latin": "Spathiphyllum wallisii",
+      "common": [
+        "Peace lily"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Low to medium, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "chlorophytum-comosum",
+      "latin": "Chlorophytum comosum",
+      "common": [
+        "Spider plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "ficus-lyrata",
+      "latin": "Ficus lyrata",
+      "common": [
+        "Fiddle-leaf fig"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "ficus-elastica",
+      "latin": "Ficus elastica",
+      "common": [
+        "Rubber plant",
+        "Rubber tree"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender"
+    },
+    {
+      "id": "ficus-benjamina",
+      "latin": "Ficus benjamina",
+      "common": [
+        "Weeping fig"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "dracaena-marginata",
+      "latin": "Dracaena marginata",
+      "common": [
+        "Dragon tree",
+        "Madagascar dragon tree"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender"
+    },
+    {
+      "id": "dracaena-fragrans",
+      "latin": "Dracaena fragrans",
+      "common": [
+        "Corn plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender"
+    },
+    {
+      "id": "aglaonema-commutatum",
+      "latin": "Aglaonema commutatum",
+      "common": [
+        "Chinese evergreen"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to medium, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "goeppertia-orbifolia",
+      "latin": "Goeppertia orbifolia",
+      "common": [
+        "Calathea orbifolia",
+        "Calathea"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender"
+    },
+    {
+      "id": "maranta-leuconeura",
+      "latin": "Maranta leuconeura",
+      "common": [
+        "Prayer plant"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender"
+    },
+    {
+      "id": "hoya-carnosa",
+      "latin": "Hoya carnosa",
+      "common": [
+        "Wax plant",
+        "Hoya"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender"
+    },
+    {
+      "id": "peperomia-obtusifolia",
+      "latin": "Peperomia obtusifolia",
+      "common": [
+        "Baby rubber plant",
+        "Peperomia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender"
+    },
+    {
+      "id": "pilea-peperomioides",
+      "latin": "Pilea peperomioides",
+      "common": [
+        "Chinese money plant",
+        "Pancake plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "strelitzia-reginae",
+      "latin": "Strelitzia reginae",
+      "common": [
+        "Bird of paradise"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "crassula-ovata",
+      "latin": "Crassula ovata",
+      "common": [
+        "Jade plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "tender"
+    },
+    {
+      "id": "schlumbergera-x-buckleyi",
+      "latin": "Schlumbergera × buckleyi",
+      "common": [
+        "Christmas cactus",
+        "Holiday cactus"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender"
+    },
+    {
+      "id": "haworthiopsis-attenuata",
+      "latin": "Haworthiopsis attenuata",
+      "common": [
+        "Zebra haworthia",
+        "Zebra plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 21,
+      "frost": "tender"
+    },
+    {
+      "id": "echeveria-elegans",
+      "latin": "Echeveria elegans",
+      "common": [
+        "Mexican snowball",
+        "Echeveria"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "tender"
+    },
+    {
+      "id": "nephrolepis-exaltata",
+      "latin": "Nephrolepis exaltata",
+      "common": [
+        "Boston fern"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 4,
+      "frost": "tender"
+    },
+    {
+      "id": "adiantum-raddianum",
+      "latin": "Adiantum raddianum",
+      "common": [
+        "Maidenhair fern"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 3,
+      "frost": "tender"
+    },
+    {
+      "id": "asplenium-nidus",
+      "latin": "Asplenium nidus",
+      "common": [
+        "Bird's nest fern"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "begonia-rex",
+      "latin": "Begonia rex",
+      "common": [
+        "Rex begonia",
+        "Painted-leaf begonia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "phalaenopsis",
+      "latin": "Phalaenopsis",
+      "common": [
+        "Moth orchid",
+        "Orchid"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "anthurium-andraeanum",
+      "latin": "Anthurium andraeanum",
+      "common": [
+        "Anthurium",
+        "Flamingo flower"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "dieffenbachia-seguine",
+      "latin": "Dieffenbachia seguine",
+      "common": [
+        "Dumb cane",
+        "Dieffenbachia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "syngonium-podophyllum",
+      "latin": "Syngonium podophyllum",
+      "common": [
+        "Arrowhead plant",
+        "Syngonium"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "tradescantia-zebrina",
+      "latin": "Tradescantia zebrina",
+      "common": [
+        "Inch plant",
+        "Wandering dude"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "curio-rowleyanus",
+      "latin": "Curio rowleyanus",
+      "common": [
+        "String of pearls"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 14,
+      "frost": "tender"
+    },
+    {
+      "id": "ceropegia-woodii",
+      "latin": "Ceropegia woodii",
+      "common": [
+        "String of hearts",
+        "Rosary vine"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 14,
+      "frost": "tender"
+    },
+    {
+      "id": "chamaedorea-elegans",
+      "latin": "Chamaedorea elegans",
+      "common": [
+        "Parlor palm"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to medium, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "dypsis-lutescens",
+      "latin": "Dypsis lutescens",
+      "common": [
+        "Areca palm",
+        "Butterfly palm"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "beaucarnea-recurvata",
+      "latin": "Beaucarnea recurvata",
+      "common": [
+        "Ponytail palm"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 21,
+      "frost": "tender"
+    },
+    {
+      "id": "alocasia-x-amazonica",
+      "latin": "Alocasia × amazonica",
+      "common": [
+        "Alocasia",
+        "African mask plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "oxalis-triangularis",
+      "latin": "Oxalis triangularis",
+      "common": [
+        "Purple shamrock",
+        "False shamrock"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "saintpaulia-ionantha",
+      "latin": "Saintpaulia ionantha",
+      "common": [
+        "African violet"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "kalanchoe-blossfeldiana",
+      "latin": "Kalanchoe blossfeldiana",
+      "common": [
+        "Kalanchoe",
+        "Flaming Katy"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "tender"
+    },
+    {
+      "id": "tillandsia",
+      "latin": "Tillandsia",
+      "common": [
+        "Air plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "opuntia-microdasys",
+      "latin": "Opuntia microdasys",
+      "common": [
+        "Bunny ears cactus"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "tender"
+    },
+    {
+      "id": "hedera-helix",
+      "latin": "Hedera helix",
+      "common": [
+        "English ivy",
+        "Ivy"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 9,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "ocimum-basilicum",
+      "latin": "Ocimum basilicum",
+      "common": [
+        "Basil",
+        "Sweet basil"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 2,
+      "frost": "tender"
+    },
+    {
+      "id": "mentha-spicata",
+      "latin": "Mentha spicata",
+      "common": [
+        "Spearmint",
+        "Mint"
+      ],
+      "zoneMin": 4,
+      "zoneMax": 9,
+      "light": "Part sun to part shade",
+      "waterDays": 3,
+      "frost": "hardy"
+    },
+    {
+      "id": "salvia-rosmarinus",
+      "latin": "Salvia rosmarinus",
+      "common": [
+        "Rosemary"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 10,
+      "light": "Full sun",
+      "waterDays": 10,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "lavandula-angustifolia",
+      "latin": "Lavandula angustifolia",
+      "common": [
+        "English lavender",
+        "Lavender"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 10,
+      "frost": "hardy"
+    },
+    {
+      "id": "thymus-vulgaris",
+      "latin": "Thymus vulgaris",
+      "common": [
+        "Thyme",
+        "Common thyme"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 10,
+      "frost": "hardy"
+    },
+    {
+      "id": "petroselinum-crispum",
+      "latin": "Petroselinum crispum",
+      "common": [
+        "Parsley"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 9,
+      "light": "Part sun to part shade",
+      "waterDays": 3,
+      "frost": "hardy"
+    },
+    {
+      "id": "salvia-officinalis",
+      "latin": "Salvia officinalis",
+      "common": [
+        "Sage",
+        "Garden sage"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "allium-schoenoprasum",
+      "latin": "Allium schoenoprasum",
+      "common": [
+        "Chives"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "hardy"
+    },
+    {
+      "id": "solanum-lycopersicum",
+      "latin": "Solanum lycopersicum",
+      "common": [
+        "Tomato"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 2,
+      "frost": "tender"
+    },
+    {
+      "id": "capsicum-annuum",
+      "latin": "Capsicum annuum",
+      "common": [
+        "Pepper",
+        "Bell pepper",
+        "Chili pepper"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 3,
+      "frost": "tender"
+    },
+    {
+      "id": "fragaria-x-ananassa",
+      "latin": "Fragaria × ananassa",
+      "common": [
+        "Strawberry",
+        "Garden strawberry"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 3,
+      "frost": "hardy"
+    },
+    {
+      "id": "citrus-x-meyeri",
+      "latin": "Citrus × meyeri",
+      "common": [
+        "Meyer lemon",
+        "Lemon tree"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "ficus-carica",
+      "latin": "Ficus carica",
+      "common": [
+        "Fig",
+        "Common fig"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 10,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "olea-europaea",
+      "latin": "Olea europaea",
+      "common": [
+        "Olive tree",
+        "Olive"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 10,
+      "light": "Full sun",
+      "waterDays": 10,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "hosta",
+      "latin": "Hosta",
+      "common": [
+        "Hosta",
+        "Plantain lily"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 8,
+      "light": "Shade to part shade",
+      "waterDays": 4,
+      "frost": "hardy"
+    },
+    {
+      "id": "rosa",
+      "latin": "Rosa",
+      "common": [
+        "Rose",
+        "Hybrid tea rose"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "hardy"
+    },
+    {
+      "id": "hydrangea-macrophylla",
+      "latin": "Hydrangea macrophylla",
+      "common": [
+        "Bigleaf hydrangea",
+        "Hydrangea"
+      ],
+      "zoneMin": 6,
+      "zoneMax": 9,
+      "light": "Part sun to part shade",
+      "waterDays": 3,
+      "frost": "hardy"
+    },
+    {
+      "id": "hemerocallis",
+      "latin": "Hemerocallis",
+      "common": [
+        "Daylily"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "echinacea-purpurea",
+      "latin": "Echinacea purpurea",
+      "common": [
+        "Purple coneflower",
+        "Coneflower",
+        "Echinacea"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "rudbeckia-hirta",
+      "latin": "Rudbeckia hirta",
+      "common": [
+        "Black-eyed Susan"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 7,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "paeonia-lactiflora",
+      "latin": "Paeonia lactiflora",
+      "common": [
+        "Peony",
+        "Chinese peony"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "syringa-vulgaris",
+      "latin": "Syringa vulgaris",
+      "common": [
+        "Lilac",
+        "Common lilac"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 7,
+      "light": "Full sun",
+      "waterDays": 10,
+      "frost": "hardy"
+    },
+    {
+      "id": "buxus-sempervirens",
+      "latin": "Buxus sempervirens",
+      "common": [
+        "Boxwood",
+        "Common box"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 8,
+      "light": "Part sun to part shade",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "acer-palmatum",
+      "latin": "Acer palmatum",
+      "common": [
+        "Japanese maple"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 8,
+      "light": "Part sun to part shade",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "chrysanthemum-x-morifolium",
+      "latin": "Chrysanthemum × morifolium",
+      "common": [
+        "Garden mum",
+        "Chrysanthemum",
+        "Mum"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "hardy"
+    },
+    {
+      "id": "pelargonium-x-hortorum",
+      "latin": "Pelargonium × hortorum",
+      "common": [
+        "Geranium",
+        "Zonal geranium"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "tender"
+    },
+    {
+      "id": "agave-americana",
+      "latin": "Agave americana",
+      "common": [
+        "Century plant",
+        "Agave"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "yucca-filamentosa",
+      "latin": "Yucca filamentosa",
+      "common": [
+        "Adam's needle",
+        "Yucca"
+      ],
+      "zoneMin": 4,
+      "zoneMax": 10,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "hardy"
+    },
+    {
+      "id": "hylotelephium-spectabile",
+      "latin": "Hylotelephium spectabile",
+      "common": [
+        "Showy stonecrop",
+        "Sedum"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "hardy"
+    },
+    {
+      "id": "sempervivum-tectorum",
+      "latin": "Sempervivum tectorum",
+      "common": [
+        "Hens and chicks",
+        "Houseleek"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "hardy"
+    },
+    {
+      "id": "opuntia-humifusa",
+      "latin": "Opuntia humifusa",
+      "common": [
+        "Eastern prickly pear",
+        "Prickly pear"
+      ],
+      "zoneMin": 4,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "hardy"
+    },
+    {
+      "id": "gardenia-jasminoides",
+      "latin": "Gardenia jasminoides",
+      "common": [
+        "Gardenia"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 5,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "hibiscus-rosa-sinensis",
+      "latin": "Hibiscus rosa-sinensis",
+      "common": [
+        "Tropical hibiscus",
+        "Hibiscus"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "tender"
+    },
+    {
+      "id": "mandevilla-sanderi",
+      "latin": "Mandevilla sanderi",
+      "common": [
+        "Mandevilla",
+        "Brazilian jasmine"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 5,
+      "frost": "tender"
+    },
+    {
+      "id": "bougainvillea-glabra",
+      "latin": "Bougainvillea glabra",
+      "common": [
+        "Bougainvillea"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "tender"
+    },
+    {
+      "id": "clematis",
+      "latin": "Clematis",
+      "common": [
+        "Clematis"
+      ],
+      "zoneMin": 4,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "lonicera-sempervirens",
+      "latin": "Lonicera sempervirens",
+      "common": [
+        "Coral honeysuckle",
+        "Trumpet honeysuckle"
+      ],
+      "zoneMin": 4,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "coleus-scutellarioides",
+      "latin": "Coleus scutellarioides",
+      "common": [
+        "Coleus"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 3,
+      "frost": "tender"
+    },
+    {
+      "id": "caladium-bicolor",
+      "latin": "Caladium bicolor",
+      "common": [
+        "Caladium",
+        "Angel wings"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 10,
+      "light": "Part sun to part shade",
+      "waterDays": 4,
+      "frost": "tender"
+    },
+    {
+      "id": "colocasia-esculenta",
+      "latin": "Colocasia esculenta",
+      "common": [
+        "Elephant ear",
+        "Taro"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 3,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "begonia-semperflorens",
+      "latin": "Begonia semperflorens",
+      "common": [
+        "Wax begonia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 4,
+      "frost": "tender"
+    },
+    {
+      "id": "impatiens-walleriana",
+      "latin": "Impatiens walleriana",
+      "common": [
+        "Impatiens",
+        "Busy Lizzie"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Shade to part shade",
+      "waterDays": 3,
+      "frost": "tender"
+    },
+    {
+      "id": "dahlia",
+      "latin": "Dahlia",
+      "common": [
+        "Dahlia"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "canna-x-generalis",
+      "latin": "Canna × generalis",
+      "common": [
+        "Canna lily",
+        "Canna"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "gladiolus",
+      "latin": "Gladiolus",
+      "common": [
+        "Gladiolus",
+        "Sword lily"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 10,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "semi-hardy"
+    },
+    {
+      "id": "tulipa",
+      "latin": "Tulipa",
+      "common": [
+        "Tulip"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "narcissus",
+      "latin": "Narcissus",
+      "common": [
+        "Daffodil"
+      ],
+      "zoneMin": 3,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "lilium",
+      "latin": "Lilium",
+      "common": [
+        "Lily"
+      ],
+      "zoneMin": 4,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy"
+    },
+    {
+      "id": "lavandula-stoechas",
+      "latin": "Lavandula stoechas",
+      "common": [
+        "Spanish lavender"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 10,
+      "frost": "semi-hardy"
+    }
+  ]
+}

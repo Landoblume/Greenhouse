@@ -1,0 +1,192 @@
+import CoreData
+
+// Hand-written NSManagedObject subclasses for the entities in GreenhouseModel.
+// `@objc(Name)` pins the Objective-C class name so the model can find the class.
+//
+// The identifier attribute is `uuid`, not `id`: NSManagedObject already has an
+// `id` (from Identifiable) that SwiftUI lists rely on.
+
+enum PlantSetting: String, CaseIterable, Identifiable {
+    case indoor, outdoor, seasonal
+
+    var id: Self { self }
+
+    var label: String {
+        switch self {
+        case .indoor: "Indoor"
+        case .outdoor: "Outdoor"
+        case .seasonal: "Moves seasonally"
+        }
+    }
+}
+
+enum PlantStatus: String {
+    /// On the home screen.
+    case active
+    /// Combined into another plant; kept for history.
+    case stapled
+    /// Divided into new plants; kept for history.
+    case split
+}
+
+enum LineageKind: String {
+    case staple, split
+}
+
+enum IntervalUnit: String, CaseIterable, Identifiable {
+    case day, week, month
+
+    var id: Self { self }
+
+    func label(count: Int) -> String {
+        count == 1 ? rawValue : rawValue + "s"
+    }
+}
+
+@objc(Household)
+final class Household: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var name: String?
+    @NSManaged var createdAt: Date?
+    @NSManaged var zip: String?
+    /// USDA hardiness zone, e.g. "7b". Not `zone`: NSObject already has a `zone` method that hides it.
+    @NSManaged var hardinessZone: String?
+    @NSManaged var plants: Set<Plant>?
+    @NSManaged var tasks: Set<CareTask>?
+    @NSManaged var lineageEvents: Set<LineageEvent>?
+
+    static func all() -> NSFetchRequest<Household> {
+        let request = NSFetchRequest<Household>(entityName: "Household")
+        request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
+        return request
+    }
+}
+
+@objc(Plant)
+final class Plant: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var scientificName: String?
+    @NSManaged var commonName: String?
+    @NSManaged var nickname: String?
+    /// The SpeciesCatalog entry this plant was picked from; nil for a typed-in name.
+    @NSManaged var catalogID: String?
+    @NSManaged var acquiredDate: Date?
+    @NSManaged var location: String?
+    @NSManaged var setting: String?
+    @NSManaged var status: String?
+    @NSManaged var createdAt: Date?
+    @NSManaged var household: Household?
+    @NSManaged var photos: Set<Photo>?
+    @NSManaged var tasks: Set<CareTask>?
+    /// The staple or split that created this plant, if any.
+    @NSManaged var producedBy: LineageEvent?
+    /// The staple or split that retired this plant, if any.
+    @NSManaged var consumedBy: LineageEvent?
+
+    var displayName: String {
+        if let nickname, !nickname.trimmingCharacters(in: .whitespaces).isEmpty { return nickname }
+        return commonName ?? scientificName ?? "Unnamed plant"
+    }
+
+    var settingValue: PlantSetting {
+        get { PlantSetting(rawValue: setting ?? "") ?? .indoor }
+        set { setting = newValue.rawValue }
+    }
+
+    var statusValue: PlantStatus {
+        get { PlantStatus(rawValue: status ?? "") ?? .active }
+        set { status = newValue.rawValue }
+    }
+
+    var isActive: Bool { statusValue == .active }
+
+    var species: Species? { SpeciesCatalog.shared.species(id: catalogID) }
+
+    /// Live care tasks, watering first.
+    var activeTasks: [CareTask] {
+        (tasks ?? []).filter { !$0.isArchived }.sorted {
+            if $0.isWatering != $1.isWatering { return $0.isWatering }
+            return ($0.name ?? "") < ($1.name ?? "")
+        }
+    }
+
+    var wateringTask: CareTask? { activeTasks.first { $0.isWatering } }
+}
+
+@objc(Photo)
+final class Photo: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var takenAt: Date?
+    @NSManaged var imageData: Data?
+    @NSManaged var plant: Plant?
+}
+
+@objc(LineageEvent)
+final class LineageEvent: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var kind: String?
+    @NSManaged var date: Date?
+    @NSManaged var inputs: Set<Plant>?
+    @NSManaged var outputs: Set<Plant>?
+    @NSManaged var household: Household?
+
+    var kindValue: LineageKind { LineageKind(rawValue: kind ?? "") ?? .staple }
+}
+
+@objc(CareTask)
+final class CareTask: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var name: String?
+    @NSManaged var intervalCount: Int64
+    @NSManaged var intervalUnit: String?
+    /// Due date until the first time it's done; after that, the last log decides.
+    @NSManaged var firstDue: Date?
+    @NSManaged var isWatering: Bool
+    /// Retired by a staple or split; kept so its logs stay in history.
+    @NSManaged var isArchived: Bool
+    @NSManaged var createdAt: Date?
+    /// Empty means a household-wide task, like "clean the grow lights".
+    @NSManaged var plants: Set<Plant>?
+    @NSManaged var logs: Set<CareLog>?
+    @NSManaged var household: Household?
+
+    var unit: IntervalUnit {
+        get { IntervalUnit(rawValue: intervalUnit ?? "") ?? .day }
+        set { intervalUnit = newValue.rawValue }
+    }
+
+    var lastLog: CareLog? { (logs ?? []).max { ($0.doneAt ?? .distantPast) < ($1.doneAt ?? .distantPast) } }
+
+    /// Plants still on the home screen, sorted by name.
+    var activePlants: [Plant] {
+        (plants ?? []).filter(\.isActive).sorted { $0.displayName < $1.displayName }
+    }
+
+    /// False once every plant it was for has been stapled or split away.
+    var isRelevant: Bool { (plants ?? []).isEmpty || !activePlants.isEmpty }
+
+    var title: String {
+        if isWatering {
+            let names = activePlants.map(\.displayName)
+            return names.isEmpty ? "Water" : "Water " + names.joined(separator: ", ")
+        }
+        return name ?? "Care task"
+    }
+}
+
+@objc(CareLog)
+final class CareLog: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var doneAt: Date?
+    @NSManaged var doneBy: String?
+    @NSManaged var task: CareTask?
+}
+
+// Classes get `Identifiable` for free from their object identity, which is what
+// SwiftUI lists and sheets need.
+extension Household: Identifiable {}
+extension Plant: Identifiable {}
+extension Photo: Identifiable {}
+extension LineageEvent: Identifiable {}
+extension CareTask: Identifiable {}
+extension CareLog: Identifiable {}
