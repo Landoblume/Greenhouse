@@ -46,10 +46,11 @@ struct PlantFilter: Equatable {
         }
     }
 
-    /// Case- and accent-insensitive match on any of the plant's names or where
-    /// it lives, so "aloe", "Aloe vera" and "kitchen" all find the kitchen aloe.
+    /// Case- and accent-insensitive match on any of the plant's names, where
+    /// it lives or its notes, so "aloe", "Aloe vera" and "kitchen" all find
+    /// the kitchen aloe.
     static func matches(_ plant: Plant, _ word: String) -> Bool {
-        [plant.nickname, plant.commonName, plant.scientificName, plant.location]
+        [plant.nickname, plant.commonName, plant.scientificName, plant.location, plant.notes]
             .compactMap { $0 }
             .contains { $0.range(of: word, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
     }

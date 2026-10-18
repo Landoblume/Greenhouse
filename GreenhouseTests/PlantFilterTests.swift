@@ -18,6 +18,11 @@ final class PlantFilterTests: XCTestCase {
         XCTAssertEqual(search("aloe kitchen"), [aloe], "every word has to match")
         XCTAssertEqual(search(""), plants)
         XCTAssertEqual(search("fern"), [])
+
+        pothos.notes = PlantFactory.cleanNotes("  Cutting from Grandma's plant \n")
+        XCTAssertEqual(pothos.notes, "Cutting from Grandma's plant")
+        XCTAssertEqual(search("grandma"), [pothos], "search covers notes")
+        XCTAssertNil(PlantFactory.cleanNotes(" \n "))
     }
 
     func testFilterBySettingAndNeedsWater() {

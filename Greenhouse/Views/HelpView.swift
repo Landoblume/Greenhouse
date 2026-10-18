@@ -19,6 +19,8 @@ struct HelpView: View {
 
             Tap a photo, then the ••• button, to fix its date, add a caption, crop it, make it the main photo on the plant's tile, or delete it. You can also crop a photo right after taking it.
 
+            Each plant's page has a Notes box anyone in the household can write in.
+
             Under History, Add milestone writes down things like a new pot, a repot or a first bloom, with the date and a note. Tap one to change or delete it. The quick picks (New pot, Combined, …) are yours to change in Settings → Milestone quick picks. When adding a photo (or editing one), pick a milestone to link them, or start a new milestone that takes the photo's date.
             """)
             topic("Collections", "square.stack", """
@@ -26,7 +28,7 @@ struct HelpView: View {
 
             Picking a collection filters the Plants, Care and Plans tabs together, so each one has its own reminders, wishlist and projects. Press and hold a collection to rename or delete it; deleting never removes plants.
 
-            Looking for one plant? Tap the magnifying glass at the top of the Plants tab and type a name, species or where it lives. The filter button next to it shows only indoor, outdoor or seasonal plants, or the ones that need water now, and changes the order.
+            Looking for one plant? Tap the magnifying glass at the top of the Plants tab and type a name, species, where it lives or something from its notes. The filter button next to it shows only indoor, outdoor or seasonal plants, or the ones that need water now, and changes the order.
             """)
             topic("Plans: wishlist and projects", "list.star", """
             The wishlist holds plants you'd like, with notes like where you saw one. It shows the light each one likes and whether it survives winter in your zone. When you bring one home, tap Got it: it becomes a plant and leaves the list.
