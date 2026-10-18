@@ -203,6 +203,7 @@ struct PhotoInput: View {
     @Binding var image: UIImage?
     var onCaptureDate: (Date?) -> Void = { _ in }
     @State private var showingCamera = false
+    @State private var showingCrop = false
     @State private var libraryItem: PhotosPickerItem?
 
     var body: some View {
@@ -213,6 +214,12 @@ struct PhotoInput: View {
                 .frame(height: 200)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+            Button { showingCrop = true } label: {
+                Label("Crop", systemImage: "crop")
+            }
+            .fullScreenCover(isPresented: $showingCrop) {
+                CropView(image: image) { self.image = $0 }
+            }
         }
         if UIImagePickerController.isSourceTypeAvailable(.camera) {
             Button { showingCamera = true } label: {
