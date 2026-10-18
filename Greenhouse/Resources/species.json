@@ -16,24 +16,90 @@
       "verified": false
     },
     {
+      "id": "adenium-obesum",
+      "latin": "Adenium obesum",
+      "common": [
+        "Desert rose",
+        "Impala lily",
+        "Mock azalea"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/adenium-obesum/",
+      "verified": true
+    },
+    {
       "id": "adiantum-raddianum",
       "latin": "Adiantum raddianum",
       "common": [
-        "Maidenhair fern"
+        "Maidenhair fern",
+        "Delta maidenhair fern"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 10,
+      "light": "Medium, indirect",
+      "waterDays": 3,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/adiantum-raddianum/",
+      "verified": true
+    },
+    {
+      "id": "aechmea-fasciata",
+      "latin": "Aechmea fasciata",
+      "common": [
+        "Urn plant",
+        "Silver vase plant",
+        "Aechmea"
       ],
       "zoneMin": 10,
       "zoneMax": 11,
-      "light": "Medium, indirect",
-      "waterDays": 3,
+      "light": "Bright, indirect",
+      "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/aechmea-fasciata/",
+      "verified": true
+    },
+    {
+      "id": "aeonium-arboreum-zwartkop",
+      "latin": "Aeonium arboreum 'Zwartkop'",
+      "common": [
+        "Black rose aeonium",
+        "Aeonium Zwartkop",
+        "Black tree aeonium"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/aeonium/",
+      "verified": true
+    },
+    {
+      "id": "aeschynanthus-radicans",
+      "latin": "Aeschynanthus radicans",
+      "common": [
+        "Lipstick plant",
+        "Lipstick vine",
+        "Basket vine"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/aeschynanthus-radicans/",
+      "verified": true
     },
     {
       "id": "agave-americana",
       "latin": "Agave americana",
       "common": [
         "Century plant",
+        "American aloe",
         "Agave"
       ],
       "zoneMin": 8,
@@ -41,51 +107,298 @@
       "light": "Full sun",
       "waterDays": 21,
       "frost": "semi-hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/agave-americana/",
+      "verified": true
+    },
+    {
+      "id": "agave-attenuata",
+      "latin": "Agave attenuata",
+      "common": [
+        "Foxtail agave",
+        "Lion's tail agave",
+        "Swan's neck agave"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=275859",
+      "verified": true
+    },
+    {
+      "id": "aglaonema-emerald-beauty",
+      "latin": "Aglaonema 'Emerald Beauty'",
+      "common": [
+        "Emerald Beauty Chinese evergreen"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/aglaonema/",
+      "verified": true
+    },
+    {
+      "id": "aglaonema-maria",
+      "latin": "Aglaonema 'Maria'",
+      "common": [
+        "Maria Chinese evergreen",
+        "Aglaonema Maria"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/aglaonema/",
+      "verified": true
+    },
+    {
+      "id": "aglaonema-red-valentine",
+      "latin": "Aglaonema 'Red Valentine'",
+      "common": [
+        "Red Valentine aglaonema",
+        "Pink aglaonema"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/aglaonema/",
+      "verified": true
+    },
+    {
+      "id": "aglaonema-siam-aurora",
+      "latin": "Aglaonema 'Siam Aurora'",
+      "common": [
+        "Siam Aurora Chinese evergreen",
+        "Red aglaonema",
+        "Aglaonema Siam Red"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/aglaonema/",
+      "verified": true
+    },
+    {
+      "id": "aglaonema-silver-bay",
+      "latin": "Aglaonema 'Silver Bay'",
+      "common": [
+        "Silver Bay Chinese evergreen"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/aglaonema/",
+      "verified": true
+    },
+    {
+      "id": "aglaonema-silver-queen",
+      "latin": "Aglaonema 'Silver Queen'",
+      "common": [
+        "Silver Queen Chinese evergreen"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/aglaonema/",
+      "verified": true
     },
     {
       "id": "aglaonema-commutatum",
       "latin": "Aglaonema commutatum",
       "common": [
-        "Chinese evergreen"
+        "Chinese evergreen",
+        "Aglaonema"
       ],
       "zoneMin": 10,
-      "zoneMax": 12,
+      "zoneMax": 11,
       "light": "Low to medium, indirect",
-      "waterDays": 7,
+      "waterDays": 10,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/aglaonema/",
+      "verified": true
     },
     {
       "id": "allium-schoenoprasum",
       "latin": "Allium schoenoprasum",
       "common": [
-        "Chives"
+        "Chives",
+        "Chive"
       ],
-      "zoneMin": 3,
-      "zoneMax": 9,
+      "zoneMin": 4,
+      "zoneMax": 8,
       "light": "Full sun",
       "waterDays": 4,
       "frost": "hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/allium-schoenoprasum/",
+      "verified": true
     },
     {
-      "id": "alocasia-x-amazonica",
-      "latin": "Alocasia × amazonica",
+      "id": "alocasia-regal-shield",
+      "latin": "Alocasia 'Regal Shield'",
       "common": [
-        "Alocasia",
-        "African mask plant"
+        "Alocasia Regal Shield",
+        "Regal Shield elephant ear"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/alocasia/",
+      "verified": true
+    },
+    {
+      "id": "alocasia-baginda-dragon-scale",
+      "latin": "Alocasia baginda 'Dragon Scale'",
+      "common": [
+        "Alocasia Dragon Scale",
+        "Dragon scale alocasia"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/alocasia/",
+      "verified": true
+    },
+    {
+      "id": "alocasia-baginda-silver-dragon",
+      "latin": "Alocasia baginda 'Silver Dragon'",
+      "common": [
+        "Alocasia Silver Dragon",
+        "Silver dragon alocasia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/alocasia/",
+      "verified": true
+    },
+    {
+      "id": "alocasia-cuprea",
+      "latin": "Alocasia cuprea",
+      "common": [
+        "Alocasia Red Secret",
+        "Mirror plant",
+        "Jewel alocasia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/alocasia/",
+      "verified": true
+    },
+    {
+      "id": "alocasia-macrorrhizos",
+      "latin": "Alocasia macrorrhizos",
+      "common": [
+        "Giant taro",
+        "Upright elephant ear",
+        "Giant elephant ear"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276573",
+      "verified": true
+    },
+    {
+      "id": "alocasia-micholitziana-frydek",
+      "latin": "Alocasia micholitziana 'Frydek'",
+      "common": [
+        "Alocasia Frydek",
+        "Green velvet alocasia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/alocasia/",
+      "verified": true
+    },
+    {
+      "id": "alocasia-reginula",
+      "latin": "Alocasia reginula",
+      "common": [
+        "Alocasia Black Velvet",
+        "Black velvet elephant ear"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/alocasia/",
+      "verified": true
+    },
+    {
+      "id": "alocasia-zebrina",
+      "latin": "Alocasia zebrina",
+      "common": [
+        "Alocasia zebrina",
+        "Zebra alocasia",
+        "Tiger alocasia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/alocasia/",
+      "verified": true
+    },
+    {
+      "id": "alocasia-x-amazonica",
+      "latin": "Alocasia × amazonica",
+      "common": [
+        "African mask plant",
+        "Elephant ear",
+        "Alocasia amazonica",
+        "Amazonian elephant's ear"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/alocasia-x-amazonica/",
+      "verified": true
+    },
+    {
+      "id": "alocasia-x-amazonica-polly",
+      "latin": "Alocasia × amazonica 'Polly'",
+      "common": [
+        "Alocasia Polly",
+        "African mask Polly",
+        "Dwarf African mask"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=250070",
+      "verified": true
     },
     {
       "id": "aloe-vera",
@@ -93,73 +406,356 @@
       "common": [
         "Aloe vera",
         "Aloe",
-        "Medicinal aloe"
+        "Medicinal aloe",
+        "Burn plant"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
-      "light": "Bright, direct or indirect",
+      "light": "Bright, some direct sun",
       "waterDays": 21,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/aloe-vera/",
+      "verified": true
+    },
+    {
+      "id": "ananas-comosus",
+      "latin": "Ananas comosus",
+      "common": [
+        "Pineapple plant",
+        "Pineapple"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/ananas-comosus/",
+      "verified": true
     },
     {
       "id": "anthurium-andraeanum",
       "latin": "Anthurium andraeanum",
       "common": [
         "Anthurium",
-        "Flamingo flower"
+        "Flamingo flower",
+        "Laceleaf",
+        "Painter's palette"
       ],
       "zoneMin": 11,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/anthurium-andraeanum/",
+      "verified": true
+    },
+    {
+      "id": "anthurium-clarinervium",
+      "latin": "Anthurium clarinervium",
+      "common": [
+        "Velvet cardboard anthurium",
+        "Anthurium clarinervium"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/anthurium/",
+      "verified": true
+    },
+    {
+      "id": "anthurium-crystallinum",
+      "latin": "Anthurium crystallinum",
+      "common": [
+        "Crystal anthurium",
+        "Anthurium crystallinum"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/anthurium/",
+      "verified": true
+    },
+    {
+      "id": "anthurium-scherzerianum",
+      "latin": "Anthurium scherzerianum",
+      "common": [
+        "Pigtail anthurium",
+        "Flamingo lily"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/anthurium-scherzerianum/",
+      "verified": true
+    },
+    {
+      "id": "aphelandra-squarrosa",
+      "latin": "Aphelandra squarrosa",
+      "common": [
+        "Zebra plant",
+        "Saffron spike",
+        "Aphelandra"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/aphelandra-squarrosa/",
+      "verified": true
+    },
+    {
+      "id": "araucaria-heterophylla",
+      "latin": "Araucaria heterophylla",
+      "common": [
+        "Norfolk Island pine",
+        "Norfolk pine",
+        "Living Christmas tree"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/araucaria-heterophylla/",
+      "verified": true
+    },
+    {
+      "id": "aristaloe-aristata",
+      "latin": "Aristaloe aristata",
+      "common": [
+        "Lace aloe",
+        "Torch plant",
+        "Aloe aristata"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 10,
+      "light": "Bright, some direct sun",
+      "waterDays": 21,
+      "frost": "hardy",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=371193",
+      "verified": true
+    },
+    {
+      "id": "asparagus-densiflorus-myersii",
+      "latin": "Asparagus densiflorus 'Myersii'",
+      "common": [
+        "Foxtail fern",
+        "Myers asparagus fern"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/asparagus-densiflorus-sprengeri-group/",
+      "verified": true
+    },
+    {
+      "id": "asparagus-densiflorus-sprengeri",
+      "latin": "Asparagus densiflorus 'Sprengeri'",
+      "common": [
+        "Sprengeri asparagus fern",
+        "Emerald fern",
+        "Asparagus aethiopicus"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/asparagus-densiflorus-sprengeri-group/",
+      "verified": true
+    },
+    {
+      "id": "asparagus-setaceus",
+      "latin": "Asparagus setaceus",
+      "common": [
+        "Asparagus fern",
+        "Lace fern",
+        "Asparagus plumosus"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/asparagus-setaceus/",
+      "verified": true
+    },
+    {
+      "id": "aspidistra-elatior",
+      "latin": "Aspidistra elatior",
+      "common": [
+        "Cast iron plant",
+        "Bar-room plant"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/aspidistra-elatior/",
+      "verified": true
     },
     {
       "id": "asplenium-nidus",
       "latin": "Asplenium nidus",
       "common": [
-        "Bird's nest fern"
+        "Bird's nest fern",
+        "Nest fern"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/asplenium-nidus/",
+      "verified": true
+    },
+    {
+      "id": "asplenium-nidus-crispy-wave",
+      "latin": "Asplenium nidus 'Crispy Wave'",
+      "common": [
+        "Crispy Wave fern",
+        "Crispy Wave bird's nest fern",
+        "Asplenium antiquum Osaka"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/asplenium-nidus/",
+      "verified": true
+    },
+    {
+      "id": "astrophytum-myriostigma",
+      "latin": "Astrophytum myriostigma",
+      "common": [
+        "Bishop's cap cactus",
+        "Bishop's hat"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/astrophytum/",
+      "verified": true
+    },
+    {
+      "id": "beaucarnea-recurvata",
+      "latin": "Beaucarnea recurvata",
+      "common": [
+        "Ponytail palm",
+        "Elephant's foot",
+        "Nolina recurvata"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/beaucarnea-recurvata/",
+      "verified": true
+    },
+    {
+      "id": "begonia-dragon-wing",
+      "latin": "Begonia 'Dragon Wing'",
+      "common": [
+        "Dragon Wing begonia",
+        "Angel wing begonia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/begonia-cane-types/",
+      "verified": true
+    },
+    {
+      "id": "begonia-coccinea",
+      "latin": "Begonia coccinea",
+      "common": [
+        "Angel wing begonia",
+        "Cane begonia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/begonia-cane-types/",
+      "verified": true
+    },
+    {
+      "id": "begonia-maculata",
+      "latin": "Begonia maculata",
+      "common": [
+        "Polka dot begonia",
+        "Spotted begonia",
+        "Begonia maculata Wightii"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/begonia-cane-types/",
+      "verified": true
+    },
+    {
+      "id": "begonia-masoniana",
+      "latin": "Begonia masoniana",
+      "common": [
+        "Iron cross begonia"
       ],
       "zoneMin": 11,
       "zoneMax": 12,
       "light": "Medium, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
-    },
-    {
-      "id": "beaucarnea-recurvata",
-      "latin": "Beaucarnea recurvata",
-      "common": [
-        "Ponytail palm"
-      ],
-      "zoneMin": 9,
-      "zoneMax": 11,
-      "light": "Bright, some direct sun",
-      "waterDays": 21,
-      "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/begonia-masoniana/",
+      "verified": true
     },
     {
       "id": "begonia-rex",
       "latin": "Begonia rex",
       "common": [
         "Rex begonia",
-        "Painted-leaf begonia"
+        "Painted-leaf begonia",
+        "Fancy-leaf begonia"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Medium, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/begonia-rex-types/",
+      "verified": true
+    },
+    {
+      "id": "begonia-rex-escargot",
+      "latin": "Begonia rex 'Escargot'",
+      "common": [
+        "Escargot begonia",
+        "Snail begonia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/begonia-rex-types/",
+      "verified": true
     },
     {
       "id": "begonia-semperflorens",
@@ -174,6 +770,36 @@
       "frost": "tender",
       "source": null,
       "verified": false
+    },
+    {
+      "id": "begonia-x-semperflorens-cultorum",
+      "latin": "Begonia × semperflorens-cultorum",
+      "common": [
+        "Wax begonia",
+        "Bedding begonia",
+        "Fibrous begonia"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/begonia-wax-types/",
+      "verified": true
+    },
+    {
+      "id": "begonia-x-tuberhybrida",
+      "latin": "Begonia × tuberhybrida",
+      "common": [
+        "Tuberous begonia"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/begonia-tuberous-types/",
+      "verified": true
     },
     {
       "id": "bougainvillea-glabra",
@@ -209,15 +835,33 @@
       "latin": "Caladium bicolor",
       "common": [
         "Caladium",
-        "Angel wings"
+        "Angel wings",
+        "Heart of Jesus",
+        "Caladium x hortulanum"
       ],
       "zoneMin": 9,
       "zoneMax": 10,
-      "light": "Part sun to part shade",
-      "waterDays": 4,
-      "frost": "tender",
-      "source": null,
-      "verified": false
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/caladium-bicolor/",
+      "verified": true
+    },
+    {
+      "id": "callisia-repens",
+      "latin": "Callisia repens",
+      "common": [
+        "Turtle vine",
+        "Creeping inch plant",
+        "Callisia Pink Lady"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/callisia-repens/",
+      "verified": true
     },
     {
       "id": "canna-x-generalis",
@@ -251,63 +895,225 @@
       "verified": false
     },
     {
+      "id": "cattleya",
+      "latin": "Cattleya",
+      "common": [
+        "Cattleya orchid",
+        "Corsage orchid"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/cattleya/",
+      "verified": true
+    },
+    {
+      "id": "cephalocereus-senilis",
+      "latin": "Cephalocereus senilis",
+      "common": [
+        "Old man cactus",
+        "Old man of Mexico"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/cephalocereus-senilis/",
+      "verified": true
+    },
+    {
       "id": "ceropegia-woodii",
       "latin": "Ceropegia woodii",
       "common": [
         "String of hearts",
-        "Rosary vine"
+        "Rosary vine",
+        "Chain of hearts"
       ],
       "zoneMin": 10,
-      "zoneMax": 11,
-      "light": "Bright, indirect",
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
       "waterDays": 14,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/ceropegia-woodii/",
+      "verified": true
+    },
+    {
+      "id": "ceropegia-woodii-variegata",
+      "latin": "Ceropegia woodii 'Variegata'",
+      "common": [
+        "Variegated string of hearts",
+        "Pink string of hearts"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/ceropegia-woodii/",
+      "verified": true
     },
     {
       "id": "chamaedorea-elegans",
       "latin": "Chamaedorea elegans",
       "common": [
-        "Parlor palm"
+        "Parlor palm",
+        "Neanthe bella palm",
+        "Good luck palm"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Low to medium, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/chamaedorea-elegans/",
+      "verified": true
+    },
+    {
+      "id": "chamaedorea-seifrizii",
+      "latin": "Chamaedorea seifrizii",
+      "common": [
+        "Bamboo palm",
+        "Reed palm"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/chamaedorea-seifrizii/",
+      "verified": true
+    },
+    {
+      "id": "chlorophytum-amaniense-fire-flash",
+      "latin": "Chlorophytum amaniense 'Fire Flash'",
+      "common": [
+        "Fire Flash spider plant",
+        "Mandarin plant",
+        "Orange spider plant",
+        "Chlorophytum orchidastrum"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/chlorophytum-orchidastrum/",
+      "verified": true
     },
     {
       "id": "chlorophytum-comosum",
       "latin": "Chlorophytum comosum",
       "common": [
-        "Spider plant"
+        "Spider plant",
+        "Airplane plant",
+        "Ribbon plant"
       ],
       "zoneMin": 9,
       "zoneMax": 11,
-      "light": "Bright, indirect",
+      "light": "Medium, indirect",
       "waterDays": 7,
-      "frost": "tender",
-      "source": null,
-      "verified": false
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/chlorophytum-comosum/",
+      "verified": true
+    },
+    {
+      "id": "chlorophytum-comosum-bonnie",
+      "latin": "Chlorophytum comosum 'Bonnie'",
+      "common": [
+        "Bonnie spider plant",
+        "Curly spider plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/chlorophytum-comosum/",
+      "verified": true
+    },
+    {
+      "id": "chlorophytum-comosum-variegatum",
+      "latin": "Chlorophytum comosum 'Variegatum'",
+      "common": [
+        "Reverse variegated spider plant",
+        "Variegatum spider plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/chlorophytum-comosum/",
+      "verified": true
+    },
+    {
+      "id": "chlorophytum-comosum-vittatum",
+      "latin": "Chlorophytum comosum 'Vittatum'",
+      "common": [
+        "Variegated spider plant",
+        "Vittatum spider plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/chlorophytum-comosum/",
+      "verified": true
     },
     {
       "id": "chrysanthemum-x-morifolium",
       "latin": "Chrysanthemum × morifolium",
       "common": [
-        "Garden mum",
+        "Florist's mum",
         "Chrysanthemum",
+        "Garden mum",
         "Mum"
       ],
       "zoneMin": 5,
       "zoneMax": 9,
-      "light": "Full sun",
+      "light": "Bright, some direct sun",
       "waterDays": 4,
       "frost": "hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/chrysanthemum-x-morifolium/",
+      "verified": true
+    },
+    {
+      "id": "cissus-alata",
+      "latin": "Cissus alata",
+      "common": [
+        "Grape ivy",
+        "Oakleaf ivy",
+        "Venezuela treebine",
+        "Cissus rhombifolia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/cissus-rhombifolia/",
+      "verified": true
+    },
+    {
+      "id": "citrus-x-limon-meyer",
+      "latin": "Citrus × limon 'Meyer'",
+      "common": [
+        "Meyer lemon",
+        "Improved Meyer lemon",
+        "Lemon tree",
+        "Citrus x meyeri"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=269587",
+      "verified": true
     },
     {
       "id": "citrus-x-meyeri",
@@ -339,61 +1145,352 @@
       "verified": false
     },
     {
+      "id": "clivia-miniata",
+      "latin": "Clivia miniata",
+      "common": [
+        "Clivia",
+        "Bush lily",
+        "Kaffir lily",
+        "Fire lily"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/clivia-miniata/",
+      "verified": true
+    },
+    {
+      "id": "codiaeum-variegatum",
+      "latin": "Codiaeum variegatum",
+      "common": [
+        "Croton",
+        "Garden croton",
+        "Joseph's coat"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/codiaeum-variegatum/",
+      "verified": true
+    },
+    {
+      "id": "codiaeum-variegatum-mammy",
+      "latin": "Codiaeum variegatum 'Mammy'",
+      "common": [
+        "Mammy croton",
+        "Croton Mammy"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/codiaeum-variegatum/",
+      "verified": true
+    },
+    {
+      "id": "codiaeum-variegatum-petra",
+      "latin": "Codiaeum variegatum 'Petra'",
+      "common": [
+        "Petra croton",
+        "Croton Petra"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/codiaeum-variegatum/",
+      "verified": true
+    },
+    {
+      "id": "coffea-arabica",
+      "latin": "Coffea arabica",
+      "common": [
+        "Coffee plant",
+        "Arabian coffee",
+        "Coffee tree"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/coffea-arabica/",
+      "verified": true
+    },
+    {
       "id": "coleus-scutellarioides",
       "latin": "Coleus scutellarioides",
       "common": [
-        "Coleus"
+        "Coleus",
+        "Painted nettle",
+        "Solenostemon scutellarioides",
+        "Plectranthus scutellarioides"
       ],
       "zoneMin": 10,
       "zoneMax": 11,
       "light": "Part sun to part shade",
-      "waterDays": 3,
+      "waterDays": 4,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/coleus-scutellarioides/",
+      "verified": true
     },
     {
       "id": "colocasia-esculenta",
       "latin": "Colocasia esculenta",
       "common": [
         "Elephant ear",
-        "Taro"
+        "Taro",
+        "Dasheen"
       ],
       "zoneMin": 8,
       "zoneMax": 11,
       "light": "Part sun to part shade",
-      "waterDays": 3,
+      "waterDays": 4,
       "frost": "semi-hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/colocasia-esculenta/",
+      "verified": true
+    },
+    {
+      "id": "colocasia-esculenta-black-magic",
+      "latin": "Colocasia esculenta 'Black Magic'",
+      "common": [
+        "Black Magic elephant ear",
+        "Black taro"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 4,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/colocasia-esculenta/",
+      "verified": true
+    },
+    {
+      "id": "cordyline-fruticosa",
+      "latin": "Cordyline fruticosa",
+      "common": [
+        "Ti plant",
+        "Hawaiian ti",
+        "Good luck plant",
+        "Cordyline terminalis"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/cordyline-fruticosa/",
+      "verified": true
+    },
+    {
+      "id": "cordyline-fruticosa-red-sister",
+      "latin": "Cordyline fruticosa 'Red Sister'",
+      "common": [
+        "Red Sister ti plant",
+        "Red Sister cordyline"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/cordyline-fruticosa/",
+      "verified": true
+    },
+    {
+      "id": "coriandrum-sativum",
+      "latin": "Coriandrum sativum",
+      "common": [
+        "Cilantro",
+        "Coriander",
+        "Chinese parsley"
+      ],
+      "zoneMin": 2,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 4,
+      "frost": "semi-hardy",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=275984",
+      "verified": true
     },
     {
       "id": "crassula-ovata",
       "latin": "Crassula ovata",
       "common": [
-        "Jade plant"
+        "Jade plant",
+        "Money tree",
+        "Friendship tree",
+        "Lucky plant"
       ],
-      "zoneMin": 10,
+      "zoneMin": 11,
       "zoneMax": 12,
       "light": "Bright, some direct sun",
       "waterDays": 14,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/crassula-ovata/",
+      "verified": true
+    },
+    {
+      "id": "crassula-ovata-gollum",
+      "latin": "Crassula ovata 'Gollum'",
+      "common": [
+        "Gollum jade",
+        "Shrek's ears",
+        "Finger jade"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/crassula-ovata/",
+      "verified": true
+    },
+    {
+      "id": "crassula-ovata-hobbit",
+      "latin": "Crassula ovata 'Hobbit'",
+      "common": [
+        "Hobbit jade",
+        "Hobbit crassula"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/crassula-ovata/",
+      "verified": true
+    },
+    {
+      "id": "crassula-perforata",
+      "latin": "Crassula perforata",
+      "common": [
+        "String of buttons",
+        "Necklace vine"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/crassula-perforata/",
+      "verified": true
+    },
+    {
+      "id": "cryptanthus-bivittatus",
+      "latin": "Cryptanthus bivittatus",
+      "common": [
+        "Earth star",
+        "Starfish plant",
+        "Cryptanthus"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/cryptanthus-bivittatus/",
+      "verified": true
+    },
+    {
+      "id": "curio-radicans",
+      "latin": "Curio radicans",
+      "common": [
+        "String of bananas",
+        "Senecio radicans",
+        "Fishhooks senecio"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/curio-radicans/",
+      "verified": true
     },
     {
       "id": "curio-rowleyanus",
       "latin": "Curio rowleyanus",
       "common": [
-        "String of pearls"
+        "String of pearls",
+        "Senecio rowleyanus",
+        "String of beads"
       ],
       "zoneMin": 9,
       "zoneMax": 12,
-      "light": "Bright, indirect",
+      "light": "Bright, some direct sun",
       "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/curio-rowleyanus/",
+      "verified": true
+    },
+    {
+      "id": "cycas-revoluta",
+      "latin": "Cycas revoluta",
+      "common": [
+        "Sago palm",
+        "King sago",
+        "Japanese sago palm"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/cycas-revoluta/",
+      "verified": true
+    },
+    {
+      "id": "cyclamen-persicum",
+      "latin": "Cyclamen persicum",
+      "common": [
+        "Florist's cyclamen",
+        "Cyclamen",
+        "Persian cyclamen"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/cyclamen-persicum/",
+      "verified": true
+    },
+    {
+      "id": "cymbidium",
+      "latin": "Cymbidium",
+      "common": [
+        "Cymbidium orchid",
+        "Boat orchid"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/cymbidium/",
+      "verified": true
+    },
+    {
+      "id": "cyrtomium-falcatum",
+      "latin": "Cyrtomium falcatum",
+      "common": [
+        "Japanese holly fern",
+        "Holly fern"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 10,
+      "light": "Shade to part shade",
+      "waterDays": 5,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/cyrtomium-falcatum/",
+      "verified": true
     },
     {
       "id": "dahlia",
@@ -410,48 +1507,316 @@
       "verified": false
     },
     {
-      "id": "dieffenbachia-seguine",
-      "latin": "Dieffenbachia seguine",
+      "id": "davallia-fejeensis",
+      "latin": "Davallia fejeensis",
       "common": [
-        "Dumb cane",
-        "Dieffenbachia"
+        "Rabbit's foot fern",
+        "Fiji davallia",
+        "Davallia solida var. fejeensis"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/davallia-fejeensis/",
+      "verified": true
+    },
+    {
+      "id": "dendrobium",
+      "latin": "Dendrobium",
+      "common": [
+        "Dendrobium orchid",
+        "Cane orchid"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/dendrobium/",
+      "verified": true
+    },
+    {
+      "id": "dieffenbachia-seguine",
+      "latin": "Dieffenbachia seguine",
+      "common": [
+        "Dumb cane",
+        "Dieffenbachia",
+        "Leopard lily",
+        "Dieffenbachia maculata"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/dieffenbachia-seguine/",
+      "verified": true
+    },
+    {
+      "id": "dieffenbachia-seguine-camille",
+      "latin": "Dieffenbachia seguine 'Camille'",
+      "common": [
+        "Camille dumb cane",
+        "Dieffenbachia Camille"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dieffenbachia-seguine/",
+      "verified": true
+    },
+    {
+      "id": "dieffenbachia-seguine-tropic-snow",
+      "latin": "Dieffenbachia seguine 'Tropic Snow'",
+      "common": [
+        "Tropic Snow dumb cane",
+        "Dieffenbachia Tropic Snow"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dieffenbachia-seguine/",
+      "verified": true
+    },
+    {
+      "id": "dionaea-muscipula",
+      "latin": "Dionaea muscipula",
+      "common": [
+        "Venus flytrap",
+        "Flytrap"
+      ],
+      "zoneMin": 6,
+      "zoneMax": 10,
+      "light": "Full sun",
+      "waterDays": 3,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/dionaea-muscipula/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-angolensis",
+      "latin": "Dracaena angolensis",
+      "common": [
+        "Cylindrical snake plant",
+        "Sansevieria cylindrica",
+        "African spear"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=458088",
+      "verified": true
+    },
+    {
+      "id": "dracaena-angolensis-boncel",
+      "latin": "Dracaena angolensis 'Boncel'",
+      "common": [
+        "Starfish snake plant",
+        "Sansevieria Boncel",
+        "Sansevieria cylindrica Boncel"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=458088",
+      "verified": true
     },
     {
       "id": "dracaena-fragrans",
       "latin": "Dracaena fragrans",
       "common": [
-        "Corn plant"
+        "Corn plant",
+        "Dracaena",
+        "Dracaena deremensis"
       ],
       "zoneMin": 10,
-      "zoneMax": 12,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-fragrans/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-fragrans-janet-craig",
+      "latin": "Dracaena fragrans 'Janet Craig'",
+      "common": [
+        "Janet Craig dracaena",
+        "Dracaena Janet Craig"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-fragrans/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-fragrans-lemon-lime",
+      "latin": "Dracaena fragrans 'Lemon Lime'",
+      "common": [
+        "Lemon Lime dracaena",
+        "Dracaena Lemon Lime"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
       "light": "Medium, indirect",
       "waterDays": 10,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-fragrans/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-fragrans-limelight",
+      "latin": "Dracaena fragrans 'Limelight'",
+      "common": [
+        "Limelight dracaena"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-fragrans/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-fragrans-massangeana",
+      "latin": "Dracaena fragrans 'Massangeana'",
+      "common": [
+        "Mass cane",
+        "Corn plant",
+        "Dracaena Massangeana"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-fragrans/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-fragrans-warneckii",
+      "latin": "Dracaena fragrans 'Warneckii'",
+      "common": [
+        "Warneckii dracaena",
+        "Striped dracaena"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-fragrans/",
+      "verified": true
     },
     {
       "id": "dracaena-marginata",
       "latin": "Dracaena marginata",
       "common": [
         "Dragon tree",
-        "Madagascar dragon tree"
+        "Madagascar dragon tree",
+        "Red-edged dracaena",
+        "Dracaena reflexa var. angustifolia"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Medium, indirect",
       "waterDays": 10,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-marginata/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-marginata-tricolor",
+      "latin": "Dracaena marginata 'Tricolor'",
+      "common": [
+        "Tricolor dragon tree",
+        "Tricolor dracaena"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-marginata/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-masoniana",
+      "latin": "Dracaena masoniana",
+      "common": [
+        "Whale fin snake plant",
+        "Sansevieria masoniana",
+        "Shark fin sansevieria"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-masoniana/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-reflexa-song-of-india",
+      "latin": "Dracaena reflexa 'Song of India'",
+      "common": [
+        "Song of India",
+        "Pleomele",
+        "Variegated Dracaena reflexa"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-reflexa-var-reflexa/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-sanderiana",
+      "latin": "Dracaena sanderiana",
+      "common": [
+        "Lucky bamboo",
+        "Ribbon dracaena",
+        "Dracaena braunii"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 10,
+      "light": "Low to medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-sanderiana/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-surculosa",
+      "latin": "Dracaena surculosa",
+      "common": [
+        "Gold dust dracaena",
+        "Spotted dracaena",
+        "Dracaena godseffiana"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-surculosa/",
+      "verified": true
     },
     {
       "id": "dracaena-trifasciata",
@@ -459,6 +1824,7 @@
       "common": [
         "Snake plant",
         "Mother-in-law's tongue",
+        "Sansevieria trifasciata",
         "Sansevieria"
       ],
       "zoneMin": 10,
@@ -466,22 +1832,143 @@
       "light": "Low to bright, indirect",
       "waterDays": 21,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-trifasciata/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-trifasciata-black-gold",
+      "latin": "Dracaena trifasciata 'Black Gold'",
+      "common": [
+        "Black Gold snake plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-trifasciata/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-trifasciata-hahnii",
+      "latin": "Dracaena trifasciata 'Hahnii'",
+      "common": [
+        "Bird's nest snake plant",
+        "Dwarf snake plant",
+        "Sansevieria Hahnii"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-trifasciata/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-trifasciata-laurentii",
+      "latin": "Dracaena trifasciata 'Laurentii'",
+      "common": [
+        "Laurentii snake plant",
+        "Variegated snake plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-trifasciata/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-trifasciata-moonshine",
+      "latin": "Dracaena trifasciata 'Moonshine'",
+      "common": [
+        "Moonshine snake plant",
+        "Silver snake plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-trifasciata/",
+      "verified": true
+    },
+    {
+      "id": "dracaena-trifasciata-twisted-sister",
+      "latin": "Dracaena trifasciata 'Twisted Sister'",
+      "common": [
+        "Twisted Sister snake plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/dracaena-trifasciata/",
+      "verified": true
+    },
+    {
+      "id": "drosera-capensis",
+      "latin": "Drosera capensis",
+      "common": [
+        "Cape sundew",
+        "Sundew"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 3,
+      "frost": "semi-hardy",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=279902",
+      "verified": true
     },
     {
       "id": "dypsis-lutescens",
       "latin": "Dypsis lutescens",
       "common": [
         "Areca palm",
-        "Butterfly palm"
+        "Butterfly palm",
+        "Golden cane palm",
+        "Chrysalidocarpus lutescens"
       ],
       "zoneMin": 10,
       "zoneMax": 11,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
+      "source": "https://plants.ces.ncsu.edu/plants/dypsis-lutescens/",
+      "verified": true
+    },
+    {
+      "id": "echeveria-lola",
+      "latin": "Echeveria 'Lola'",
+      "common": [
+        "Echeveria Lola",
+        "Lola echeveria"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/echeveria/",
+      "verified": false
+    },
+    {
+      "id": "echeveria-perle-von-nurnberg",
+      "latin": "Echeveria 'Perle von Nurnberg'",
+      "common": [
+        "Perle von Nurnberg echeveria",
+        "Purple echeveria"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/echeveria/",
       "verified": false
     },
     {
@@ -489,15 +1976,17 @@
       "latin": "Echeveria elegans",
       "common": [
         "Mexican snowball",
-        "Echeveria"
+        "Echeveria",
+        "Hens and chicks",
+        "White Mexican rose"
       ],
       "zoneMin": 9,
       "zoneMax": 11,
       "light": "Full sun",
       "waterDays": 14,
-      "frost": "tender",
-      "source": null,
-      "verified": false
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/echeveria-elegans/",
+      "verified": true
     },
     {
       "id": "echinacea-purpurea",
@@ -516,34 +2005,297 @@
       "verified": false
     },
     {
+      "id": "epiphyllum-oxypetalum",
+      "latin": "Epiphyllum oxypetalum",
+      "common": [
+        "Queen of the night",
+        "Orchid cactus",
+        "Night-blooming cereus"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/epiphyllum-oxypetalum/",
+      "verified": true
+    },
+    {
       "id": "epipremnum-aureum",
       "latin": "Epipremnum aureum",
       "common": [
-        "Pothos",
         "Golden pothos",
-        "Devil's ivy"
+        "Pothos",
+        "Devil's ivy",
+        "Scindapsus aureus"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Low to bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
     },
     {
-      "id": "ficus-benjamina",
-      "latin": "Ficus benjamina",
+      "id": "epipremnum-aureum-global-green",
+      "latin": "Epipremnum aureum 'Global Green'",
       "common": [
-        "Weeping fig"
+        "Global Green pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-aureum-jade",
+      "latin": "Epipremnum aureum 'Jade'",
+      "common": [
+        "Jade pothos",
+        "Green pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-aureum-manjula",
+      "latin": "Epipremnum aureum 'Manjula'",
+      "common": [
+        "Manjula pothos",
+        "Happy Leaf pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-aureum-marble-queen",
+      "latin": "Epipremnum aureum 'Marble Queen'",
+      "common": [
+        "Marble Queen pothos",
+        "Variegated pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-aureum-n-joy",
+      "latin": "Epipremnum aureum 'N'Joy'",
+      "common": [
+        "N'Joy pothos",
+        "NJoy pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-aureum-neon",
+      "latin": "Epipremnum aureum 'Neon'",
+      "common": [
+        "Neon pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-aureum-pearls-and-jade",
+      "latin": "Epipremnum aureum 'Pearls and Jade'",
+      "common": [
+        "Pearls and Jade pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-aureum-snow-queen",
+      "latin": "Epipremnum aureum 'Snow Queen'",
+      "common": [
+        "Snow Queen pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276360",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-pinnatum",
+      "latin": "Epipremnum pinnatum",
+      "common": [
+        "Dragon tail plant",
+        "Centipede tongavine",
+        "Epipremnum pinnatum"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/epipremnum-pinnatum/",
+      "verified": true
+    },
+    {
+      "id": "epipremnum-pinnatum-cebu-blue",
+      "latin": "Epipremnum pinnatum 'Cebu Blue'",
+      "common": [
+        "Cebu Blue pothos",
+        "Blue pothos"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/epipremnum-pinnatum/",
+      "verified": true
+    },
+    {
+      "id": "euphorbia-milii",
+      "latin": "Euphorbia milii",
+      "common": [
+        "Crown of thorns",
+        "Christ plant",
+        "Christ thorn"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/euphorbia-milii/",
+      "verified": true
+    },
+    {
+      "id": "euphorbia-pulcherrima",
+      "latin": "Euphorbia pulcherrima",
+      "common": [
+        "Poinsettia",
+        "Christmas star",
+        "Christmas flower"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/euphorbia-pulcherrima/",
+      "verified": true
+    },
+    {
+      "id": "euphorbia-tirucalli-sticks-on-fire",
+      "latin": "Euphorbia tirucalli 'Sticks on Fire'",
+      "common": [
+        "Firesticks",
+        "Fire sticks",
+        "Pencil cactus",
+        "Sticks on Fire"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/euphorbia-tirucalli/",
+      "verified": true
+    },
+    {
+      "id": "euphorbia-trigona",
+      "latin": "Euphorbia trigona",
+      "common": [
+        "African milk tree",
+        "Cathedral cactus",
+        "Abyssinian euphorbia"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/euphorbia-trigona/",
+      "verified": true
+    },
+    {
+      "id": "fatsia-japonica",
+      "latin": "Fatsia japonica",
+      "common": [
+        "Japanese aralia",
+        "Fatsia",
+        "Paperplant"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 10,
+      "light": "Shade to part shade",
+      "waterDays": 7,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/fatsia-japonica/",
+      "verified": true
+    },
+    {
+      "id": "ficus-benghalensis-audrey",
+      "latin": "Ficus benghalensis 'Audrey'",
+      "common": [
+        "Ficus Audrey",
+        "Banyan fig",
+        "Bengal fig"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-benghalensis/",
+      "verified": true
+    },
+    {
+      "id": "ficus-benjamina",
+      "latin": "Ficus benjamina",
+      "common": [
+        "Weeping fig",
+        "Ficus tree",
+        "Benjamin fig"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-benjamina/",
+      "verified": true
     },
     {
       "id": "ficus-carica",
@@ -565,29 +2317,186 @@
       "latin": "Ficus elastica",
       "common": [
         "Rubber plant",
-        "Rubber tree"
+        "Rubber tree",
+        "Rubber fig"
       ],
-      "zoneMin": 10,
+      "zoneMin": 9,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 10,
-      "frost": "tender",
-      "source": null,
-      "verified": false
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-elastica/",
+      "verified": true
+    },
+    {
+      "id": "ficus-elastica-burgundy",
+      "latin": "Ficus elastica 'Burgundy'",
+      "common": [
+        "Burgundy rubber plant",
+        "Black Prince rubber plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-elastica/",
+      "verified": true
+    },
+    {
+      "id": "ficus-elastica-robusta",
+      "latin": "Ficus elastica 'Robusta'",
+      "common": [
+        "Robusta rubber plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-elastica/",
+      "verified": true
+    },
+    {
+      "id": "ficus-elastica-ruby",
+      "latin": "Ficus elastica 'Ruby'",
+      "common": [
+        "Ruby rubber plant",
+        "Pink rubber plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-elastica/",
+      "verified": true
+    },
+    {
+      "id": "ficus-elastica-tineke",
+      "latin": "Ficus elastica 'Tineke'",
+      "common": [
+        "Tineke rubber plant",
+        "Variegated rubber plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-elastica/",
+      "verified": true
     },
     {
       "id": "ficus-lyrata",
       "latin": "Ficus lyrata",
       "common": [
-        "Fiddle-leaf fig"
+        "Fiddle-leaf fig",
+        "Fiddle leaf fig"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-lyrata/",
+      "verified": true
+    },
+    {
+      "id": "ficus-lyrata-bambino",
+      "latin": "Ficus lyrata 'Bambino'",
+      "common": [
+        "Bambino fiddle-leaf fig",
+        "Dwarf fiddle leaf fig"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-lyrata/",
+      "verified": true
+    },
+    {
+      "id": "ficus-maclellandii-alii",
+      "latin": "Ficus maclellandii 'Alii'",
+      "common": [
+        "Ficus Alii",
+        "Narrow-leaf fig",
+        "Banana-leaf fig",
+        "Ficus binnendijkii Alii"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 11,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-maclellandii/",
+      "verified": true
+    },
+    {
+      "id": "ficus-microcarpa",
+      "latin": "Ficus microcarpa",
+      "common": [
+        "Indian laurel fig",
+        "Chinese banyan",
+        "Ficus retusa",
+        "Ficus nitida"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-microcarpa/",
+      "verified": true
+    },
+    {
+      "id": "ficus-microcarpa-ginseng",
+      "latin": "Ficus microcarpa 'Ginseng'",
+      "common": [
+        "Ginseng ficus",
+        "Ficus ginseng bonsai"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-microcarpa/",
+      "verified": true
+    },
+    {
+      "id": "ficus-pumila",
+      "latin": "Ficus pumila",
+      "common": [
+        "Creeping fig",
+        "Climbing fig"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/ficus-pumila/",
+      "verified": true
+    },
+    {
+      "id": "fittonia-albivenis",
+      "latin": "Fittonia albivenis",
+      "common": [
+        "Nerve plant",
+        "Mosaic plant",
+        "Fittonia",
+        "Fittonia verschaffeltii"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 4,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/fittonia-albivenis/",
+      "verified": true
     },
     {
       "id": "fragaria-x-ananassa",
@@ -608,15 +2517,32 @@
       "id": "gardenia-jasminoides",
       "latin": "Gardenia jasminoides",
       "common": [
-        "Gardenia"
+        "Gardenia",
+        "Cape jasmine"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 5,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/gardenia-jasminoides/",
+      "verified": true
+    },
+    {
+      "id": "gerbera-jamesonii",
+      "latin": "Gerbera jamesonii",
+      "common": [
+        "Gerbera daisy",
+        "Transvaal daisy",
+        "Barberton daisy"
       ],
       "zoneMin": 8,
-      "zoneMax": 11,
-      "light": "Part sun to part shade",
+      "zoneMax": 10,
+      "light": "Bright, some direct sun",
       "waterDays": 5,
       "frost": "semi-hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/gerbera-jamesonii/",
+      "verified": true
     },
     {
       "id": "gladiolus",
@@ -634,49 +2560,284 @@
       "verified": false
     },
     {
-      "id": "goeppertia-orbifolia",
-      "latin": "Goeppertia orbifolia",
+      "id": "goeppertia-white-fusion",
+      "latin": "Goeppertia 'White Fusion'",
       "common": [
-        "Calathea orbifolia",
-        "Calathea"
+        "Calathea White Fusion",
+        "White Fusion calathea"
       ],
       "zoneMin": 11,
       "zoneMax": 12,
       "light": "Medium, indirect",
       "waterDays": 5,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-insignis",
+      "latin": "Goeppertia insignis",
+      "common": [
+        "Rattlesnake plant",
+        "Calathea lancifolia",
+        "Goeppertia lancifolia"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-insignis/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-kegeljanii-network",
+      "latin": "Goeppertia kegeljanii 'Network'",
+      "common": [
+        "Calathea Network",
+        "Calathea musaica",
+        "Network calathea"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-kegeljanii/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-makoyana",
+      "latin": "Goeppertia makoyana",
+      "common": [
+        "Peacock plant",
+        "Calathea makoyana",
+        "Cathedral windows"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-makoyana/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-orbifolia",
+      "latin": "Goeppertia orbifolia",
+      "common": [
+        "Calathea orbifolia",
+        "Round-leaf calathea"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-orbifolia/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-ornata",
+      "latin": "Goeppertia ornata",
+      "common": [
+        "Pinstripe calathea",
+        "Calathea ornata"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-ornata/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-ornata-beauty-star",
+      "latin": "Goeppertia ornata 'Beauty Star'",
+      "common": [
+        "Calathea Beauty Star",
+        "Beauty Star calathea"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-ornata/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-roseopicta-dottie",
+      "latin": "Goeppertia roseopicta 'Dottie'",
+      "common": [
+        "Calathea Dottie",
+        "Dottie calathea"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-roseopicta/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-roseopicta-medallion",
+      "latin": "Goeppertia roseopicta 'Medallion'",
+      "common": [
+        "Calathea Medallion",
+        "Medallion calathea"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-roseopicta/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-rufibarba",
+      "latin": "Goeppertia rufibarba",
+      "common": [
+        "Velvet calathea",
+        "Furry feather calathea",
+        "Calathea rufibarba"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-rufibarba/",
+      "verified": true
+    },
+    {
+      "id": "goeppertia-zebrina",
+      "latin": "Goeppertia zebrina",
+      "common": [
+        "Zebra plant",
+        "Calathea zebrina",
+        "Zebra calathea"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/goeppertia-zebrina/",
+      "verified": true
+    },
+    {
+      "id": "graptopetalum-paraguayense",
+      "latin": "Graptopetalum paraguayense",
+      "common": [
+        "Ghost plant",
+        "Mother-of-pearl plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/graptopetalum-paraguayense/",
+      "verified": true
+    },
+    {
+      "id": "guzmania-lingulata",
+      "latin": "Guzmania lingulata",
+      "common": [
+        "Guzmania",
+        "Scarlet star",
+        "Tufted airplant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/guzmania-lingulata/",
+      "verified": true
+    },
+    {
+      "id": "gymnocalycium-mihanovichii",
+      "latin": "Gymnocalycium mihanovichii",
+      "common": [
+        "Moon cactus",
+        "Ruby ball cactus",
+        "Grafted cactus"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/gymnocalycium-mihanovichii/",
+      "verified": true
+    },
+    {
+      "id": "haworthia-cooperi",
+      "latin": "Haworthia cooperi",
+      "common": [
+        "Window haworthia",
+        "Cooper's haworthia",
+        "Haworthia obtusa"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/haworthia/",
+      "verified": true
     },
     {
       "id": "haworthiopsis-attenuata",
       "latin": "Haworthiopsis attenuata",
       "common": [
         "Zebra haworthia",
-        "Zebra plant"
+        "Zebra plant",
+        "Haworthia attenuata"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/haworthiopsis-attenuata/",
+      "verified": true
+    },
+    {
+      "id": "haworthiopsis-fasciata",
+      "latin": "Haworthiopsis fasciata",
+      "common": [
+        "Zebra haworthia",
+        "Haworthia fasciata"
       ],
       "zoneMin": 10,
       "zoneMax": 11,
       "light": "Bright, indirect",
-      "waterDays": 21,
+      "waterDays": 14,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/haworthiopsis-fasciata/",
+      "verified": true
     },
     {
       "id": "hedera-helix",
       "latin": "Hedera helix",
       "common": [
         "English ivy",
+        "Common ivy",
         "Ivy"
       ],
-      "zoneMin": 5,
-      "zoneMax": 9,
+      "zoneMin": 4,
+      "zoneMax": 13,
       "light": "Medium, indirect",
       "waterDays": 7,
       "frost": "hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/hedera-helix/",
+      "verified": true
     },
     {
       "id": "hemerocallis",
@@ -693,19 +2854,101 @@
       "verified": false
     },
     {
+      "id": "hemionitis-rotundifolia",
+      "latin": "Hemionitis rotundifolia",
+      "common": [
+        "Button fern",
+        "New Zealand cliff brake",
+        "Pellaea rotundifolia"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/pellaea-rotundifolia/",
+      "verified": true
+    },
+    {
+      "id": "heptapleurum-actinophyllum",
+      "latin": "Heptapleurum actinophyllum",
+      "common": [
+        "Umbrella tree",
+        "Octopus tree",
+        "Schefflera actinophylla",
+        "Queensland umbrella tree"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/heptapleurum-actinophyllum/",
+      "verified": true
+    },
+    {
+      "id": "heptapleurum-arboricola",
+      "latin": "Heptapleurum arboricola",
+      "common": [
+        "Umbrella tree",
+        "Dwarf umbrella tree",
+        "Schefflera arboricola",
+        "Schefflera"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/heptapleurum-arboricola/",
+      "verified": true
+    },
+    {
+      "id": "heptapleurum-arboricola-gold-capella",
+      "latin": "Heptapleurum arboricola 'Gold Capella'",
+      "common": [
+        "Variegated schefflera",
+        "Gold Capella schefflera",
+        "Schefflera Gold Capella"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/heptapleurum-arboricola/",
+      "verified": true
+    },
+    {
       "id": "hibiscus-rosa-sinensis",
       "latin": "Hibiscus rosa-sinensis",
       "common": [
         "Tropical hibiscus",
-        "Hibiscus"
+        "Chinese hibiscus",
+        "Hawaiian hibiscus"
       ],
       "zoneMin": 9,
       "zoneMax": 11,
       "light": "Full sun",
-      "waterDays": 4,
-      "frost": "tender",
-      "source": null,
-      "verified": false
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/hibiscus-rosa-sinensis/",
+      "verified": true
+    },
+    {
+      "id": "hippeastrum",
+      "latin": "Hippeastrum",
+      "common": [
+        "Amaryllis",
+        "Hippeastrum"
+      ],
+      "zoneMin": 7,
+      "zoneMax": 10,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/hippeastrum/",
+      "verified": true
     },
     {
       "id": "hosta",
@@ -723,19 +2966,158 @@
       "verified": false
     },
     {
+      "id": "howea-forsteriana",
+      "latin": "Howea forsteriana",
+      "common": [
+        "Kentia palm",
+        "Paradise palm",
+        "Thatch palm"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 10,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/howea-forsteriana/",
+      "verified": true
+    },
+    {
+      "id": "hoya-australis",
+      "latin": "Hoya australis",
+      "common": [
+        "Hoya australis",
+        "Australian wax plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/hoya-australis/",
+      "verified": true
+    },
+    {
       "id": "hoya-carnosa",
       "latin": "Hoya carnosa",
       "common": [
         "Wax plant",
-        "Hoya"
+        "Hoya",
+        "Porcelain flower"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 10,
       "frost": "tender",
-      "source": null,
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276833",
+      "verified": true
+    },
+    {
+      "id": "hoya-carnosa-compacta",
+      "latin": "Hoya carnosa 'Compacta'",
+      "common": [
+        "Hindu rope plant",
+        "Krinkle Kurl hoya",
+        "Hoya compacta"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276833",
+      "verified": true
+    },
+    {
+      "id": "hoya-carnosa-krimson-princess",
+      "latin": "Hoya carnosa 'Krimson Princess'",
+      "common": [
+        "Krimson Princess hoya",
+        "Hoya Rubra"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276833",
+      "verified": true
+    },
+    {
+      "id": "hoya-carnosa-krimson-queen",
+      "latin": "Hoya carnosa 'Krimson Queen'",
+      "common": [
+        "Krimson Queen hoya",
+        "Hoya Tricolor",
+        "Variegated wax plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276833",
+      "verified": true
+    },
+    {
+      "id": "hoya-kerrii",
+      "latin": "Hoya kerrii",
+      "common": [
+        "Sweetheart hoya",
+        "Valentine hoya",
+        "Heart-leaf hoya"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/hoya-kerrii/",
       "verified": false
+    },
+    {
+      "id": "hoya-kerrii-variegata",
+      "latin": "Hoya kerrii 'Variegata'",
+      "common": [
+        "Variegated sweetheart hoya"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/hoya-kerrii/",
+      "verified": false
+    },
+    {
+      "id": "hoya-lanceolata-subsp-bella",
+      "latin": "Hoya lanceolata subsp. bella",
+      "common": [
+        "Hoya bella",
+        "Miniature wax plant"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/hoya-bella/",
+      "verified": true
+    },
+    {
+      "id": "hoya-pubicalyx",
+      "latin": "Hoya pubicalyx",
+      "common": [
+        "Hoya pubicalyx",
+        "Hoya Splash"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/hoya-pubicalyx/",
+      "verified": true
     },
     {
       "id": "hydrangea-macrophylla",
@@ -768,6 +3150,22 @@
       "verified": false
     },
     {
+      "id": "hypoestes-phyllostachya",
+      "latin": "Hypoestes phyllostachya",
+      "common": [
+        "Polka dot plant",
+        "Freckle face",
+        "Flamingo plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/hypoestes-phyllostachya/",
+      "verified": true
+    },
+    {
       "id": "impatiens-walleriana",
       "latin": "Impatiens walleriana",
       "common": [
@@ -787,30 +3185,114 @@
       "latin": "Kalanchoe blossfeldiana",
       "common": [
         "Kalanchoe",
-        "Flaming Katy"
+        "Flaming Katy",
+        "Florist kalanchoe",
+        "Christmas kalanchoe"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Bright, some direct sun",
       "waterDays": 14,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/kalanchoe-blossfeldiana/",
+      "verified": true
+    },
+    {
+      "id": "kalanchoe-daigremontiana",
+      "latin": "Kalanchoe daigremontiana",
+      "common": [
+        "Mother of thousands",
+        "Alligator plant",
+        "Devil's backbone",
+        "Bryophyllum daigremontianum"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/kalanchoe-daigremontiana/",
+      "verified": true
+    },
+    {
+      "id": "kalanchoe-luciae",
+      "latin": "Kalanchoe luciae",
+      "common": [
+        "Paddle plant",
+        "Flapjack plant",
+        "Kalanchoe thyrsiflora"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Full sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/kalanchoe/",
+      "verified": true
+    },
+    {
+      "id": "kalanchoe-tomentosa",
+      "latin": "Kalanchoe tomentosa",
+      "common": [
+        "Panda plant",
+        "Pussy ears",
+        "Chocolate soldier"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/kalanchoe-tomentosa/",
+      "verified": true
+    },
+    {
+      "id": "kroenleinia-grusonii",
+      "latin": "Kroenleinia grusonii",
+      "common": [
+        "Golden barrel cactus",
+        "Echinocactus grusonii",
+        "Mother-in-law's cushion"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/echinocactus/",
+      "verified": true
+    },
+    {
+      "id": "laurus-nobilis",
+      "latin": "Laurus nobilis",
+      "common": [
+        "Bay laurel",
+        "Sweet bay",
+        "Bay leaf tree"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 10,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/laurus-nobilis/",
+      "verified": true
     },
     {
       "id": "lavandula-angustifolia",
       "latin": "Lavandula angustifolia",
       "common": [
         "English lavender",
-        "Lavender"
+        "Lavender",
+        "True lavender"
       ],
       "zoneMin": 5,
-      "zoneMax": 8,
+      "zoneMax": 9,
       "light": "Full sun",
       "waterDays": 10,
       "frost": "hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/lavandula-angustifolia/",
+      "verified": true
     },
     {
       "id": "lavandula-stoechas",
@@ -841,6 +3323,37 @@
       "verified": false
     },
     {
+      "id": "lithops",
+      "latin": "Lithops",
+      "common": [
+        "Living stones",
+        "Pebble plants",
+        "Lithops"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 30,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/lithops/",
+      "verified": true
+    },
+    {
+      "id": "livistona-chinensis",
+      "latin": "Livistona chinensis",
+      "common": [
+        "Chinese fan palm",
+        "Fountain palm"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://ask.ifas.ufl.edu/publication/ST365",
+      "verified": true
+    },
+    {
       "id": "lonicera-sempervirens",
       "latin": "Lonicera sempervirens",
       "common": [
@@ -854,6 +3367,53 @@
       "frost": "hardy",
       "source": null,
       "verified": false
+    },
+    {
+      "id": "ludisia-discolor",
+      "latin": "Ludisia discolor",
+      "common": [
+        "Jewel orchid",
+        "Ludisia"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/ludisia-discolor/",
+      "verified": true
+    },
+    {
+      "id": "lutheria-splendens",
+      "latin": "Lutheria splendens",
+      "common": [
+        "Flaming sword",
+        "Vriesea",
+        "Painted feather",
+        "Vriesea splendens"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/vriesea-splendens/",
+      "verified": true
+    },
+    {
+      "id": "mammillaria-elongata",
+      "latin": "Mammillaria elongata",
+      "common": [
+        "Ladyfinger cactus",
+        "Gold lace cactus"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Full sun",
+      "waterDays": 21,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/mammillaria/",
+      "verified": true
     },
     {
       "id": "mandevilla-sanderi",
@@ -874,45 +3434,188 @@
       "id": "maranta-leuconeura",
       "latin": "Maranta leuconeura",
       "common": [
-        "Prayer plant"
+        "Prayer plant",
+        "Maranta"
       ],
       "zoneMin": 11,
-      "zoneMax": 12,
+      "zoneMax": 11,
       "light": "Medium, indirect",
       "waterDays": 5,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/maranta-leuconeura/",
+      "verified": true
+    },
+    {
+      "id": "maranta-leuconeura-lemon-lime",
+      "latin": "Maranta leuconeura 'Lemon Lime'",
+      "common": [
+        "Lemon Lime prayer plant",
+        "Lemon Lime maranta"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/maranta-leuconeura/",
+      "verified": true
+    },
+    {
+      "id": "maranta-leuconeura-var-erythroneura",
+      "latin": "Maranta leuconeura var. erythroneura",
+      "common": [
+        "Red prayer plant",
+        "Herringbone plant",
+        "Maranta Fascinator"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/maranta-leuconeura/",
+      "verified": true
+    },
+    {
+      "id": "maranta-leuconeura-var-kerchoveana",
+      "latin": "Maranta leuconeura var. kerchoveana",
+      "common": [
+        "Green prayer plant",
+        "Rabbit's tracks",
+        "Rabbit's foot maranta"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/maranta-leuconeura/",
+      "verified": true
     },
     {
       "id": "mentha-spicata",
       "latin": "Mentha spicata",
       "common": [
         "Spearmint",
-        "Mint"
+        "Mint",
+        "Garden mint"
       ],
       "zoneMin": 4,
       "zoneMax": 9,
       "light": "Part sun to part shade",
       "waterDays": 3,
       "frost": "hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/mentha-spicata/",
+      "verified": true
     },
     {
-      "id": "monstera-deliciosa",
-      "latin": "Monstera deliciosa",
+      "id": "mentha-x-piperita",
+      "latin": "Mentha × piperita",
       "common": [
-        "Monstera",
-        "Swiss cheese plant"
+        "Peppermint",
+        "Mint"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 9,
+      "light": "Part sun to part shade",
+      "waterDays": 3,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/mentha-x-piperita/",
+      "verified": true
+    },
+    {
+      "id": "mimosa-pudica",
+      "latin": "Mimosa pudica",
+      "common": [
+        "Sensitive plant",
+        "Touch-me-not",
+        "Shy plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=280512",
+      "verified": true
+    },
+    {
+      "id": "monstera-adansonii",
+      "latin": "Monstera adansonii",
+      "common": [
+        "Swiss cheese vine",
+        "Monkey mask monstera",
+        "Adanson's monstera"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/monstera-adansonii/",
+      "verified": true
+    },
+    {
+      "id": "monstera-deliciosa",
+      "latin": "Monstera deliciosa",
+      "common": [
+        "Monstera",
+        "Swiss cheese plant",
+        "Split-leaf philodendron"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/monstera-deliciosa/",
+      "verified": true
+    },
+    {
+      "id": "monstera-deliciosa-albo-variegata",
+      "latin": "Monstera deliciosa 'Albo Variegata'",
+      "common": [
+        "Albo monstera",
+        "Variegated monstera",
+        "Monstera albo"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=443344",
+      "verified": true
+    },
+    {
+      "id": "monstera-deliciosa-thai-constellation",
+      "latin": "Monstera deliciosa 'Thai Constellation'",
+      "common": [
+        "Thai Constellation monstera"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/monstera-deliciosa/",
+      "verified": true
+    },
+    {
+      "id": "musa-acuminata-dwarf-cavendish",
+      "latin": "Musa acuminata 'Dwarf Cavendish'",
+      "common": [
+        "Dwarf banana",
+        "Dwarf Cavendish banana",
+        "Banana plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/musa-acuminata/",
+      "verified": true
     },
     {
       "id": "narcissus",
@@ -929,33 +3632,115 @@
       "verified": false
     },
     {
+      "id": "nematanthus-gregarius",
+      "latin": "Nematanthus gregarius",
+      "common": [
+        "Goldfish plant",
+        "Clog plant",
+        "Guppy plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/nematanthus-gregarius/",
+      "verified": true
+    },
+    {
+      "id": "neoregelia-carolinae",
+      "latin": "Neoregelia carolinae",
+      "common": [
+        "Blushing bromeliad",
+        "Neoregelia",
+        "Heart of flame"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/neoregelia/",
+      "verified": true
+    },
+    {
+      "id": "nepenthes",
+      "latin": "Nepenthes",
+      "common": [
+        "Pitcher plant",
+        "Tropical pitcher plant",
+        "Monkey cups",
+        "Nepenthes"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 13,
+      "light": "Bright, indirect",
+      "waterDays": 4,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/nepenthes/",
+      "verified": true
+    },
+    {
       "id": "nephrolepis-exaltata",
       "latin": "Nephrolepis exaltata",
       "common": [
-        "Boston fern"
+        "Sword fern",
+        "Boston fern",
+        "Ladder fern"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 13,
+      "light": "Medium, indirect",
+      "waterDays": 3,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/nephrolepis-exaltata/",
+      "verified": true
+    },
+    {
+      "id": "nephrolepis-exaltata-bostoniensis",
+      "latin": "Nephrolepis exaltata 'Bostoniensis'",
+      "common": [
+        "Boston fern",
+        "Bostoniensis fern"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Medium, indirect",
-      "waterDays": 4,
+      "waterDays": 3,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=250750",
+      "verified": true
+    },
+    {
+      "id": "nephrolepis-obliterata",
+      "latin": "Nephrolepis obliterata",
+      "common": [
+        "Kimberly Queen fern",
+        "Australian sword fern"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Part sun to part shade",
+      "waterDays": 4,
+      "frost": "semi-hardy",
+      "source": "https://hgic.clemson.edu/how-to-grow-and-care-for-porch-ferns/",
+      "verified": true
     },
     {
       "id": "ocimum-basilicum",
       "latin": "Ocimum basilicum",
       "common": [
         "Basil",
-        "Sweet basil"
+        "Sweet basil",
+        "Genovese basil"
       ],
       "zoneMin": 10,
-      "zoneMax": 11,
+      "zoneMax": 10,
       "light": "Full sun",
-      "waterDays": 2,
+      "waterDays": 3,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/ocimum-basilicum/",
+      "verified": true
     },
     {
       "id": "olea-europaea",
@@ -971,6 +3756,22 @@
       "frost": "semi-hardy",
       "source": null,
       "verified": false
+    },
+    {
+      "id": "oncidium",
+      "latin": "Oncidium",
+      "common": [
+        "Dancing lady orchid",
+        "Oncidium orchid",
+        "Sharry Baby orchid"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/oncidium/",
+      "verified": true
     },
     {
       "id": "opuntia-humifusa",
@@ -991,30 +3792,66 @@
       "id": "opuntia-microdasys",
       "latin": "Opuntia microdasys",
       "common": [
-        "Bunny ears cactus"
+        "Bunny ears cactus",
+        "Angel's wings",
+        "Polka-dot cactus"
       ],
       "zoneMin": 9,
       "zoneMax": 11,
       "light": "Full sun",
       "waterDays": 21,
-      "frost": "tender",
-      "source": null,
-      "verified": false
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/opuntia-microdasys/",
+      "verified": true
+    },
+    {
+      "id": "origanum-vulgare",
+      "latin": "Origanum vulgare",
+      "common": [
+        "Oregano",
+        "Wild marjoram"
+      ],
+      "zoneMin": 4,
+      "zoneMax": 8,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/origanum-vulgare/",
+      "verified": true
     },
     {
       "id": "oxalis-triangularis",
       "latin": "Oxalis triangularis",
       "common": [
         "Purple shamrock",
-        "False shamrock"
+        "False shamrock",
+        "Love plant",
+        "Purple oxalis"
       ],
       "zoneMin": 8,
       "zoneMax": 11,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "semi-hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/oxalis-triangularis/",
+      "verified": true
+    },
+    {
+      "id": "pachira-aquatica",
+      "latin": "Pachira aquatica",
+      "common": [
+        "Money tree",
+        "Guiana chestnut",
+        "Pachira",
+        "Malabar chestnut"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/pachira-aquatica/",
+      "verified": true
     },
     {
       "id": "paeonia-lactiflora",
@@ -1032,6 +3869,22 @@
       "verified": false
     },
     {
+      "id": "paphiopedilum",
+      "latin": "Paphiopedilum",
+      "common": [
+        "Lady slipper orchid",
+        "Slipper orchid",
+        "Paph"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=264606",
+      "verified": true
+    },
+    {
       "id": "pelargonium-x-hortorum",
       "latin": "Pelargonium × hortorum",
       "common": [
@@ -1047,78 +3900,609 @@
       "verified": false
     },
     {
-      "id": "peperomia-obtusifolia",
-      "latin": "Peperomia obtusifolia",
+      "id": "peperomia-argyreia",
+      "latin": "Peperomia argyreia",
       "common": [
-        "Baby rubber plant",
-        "Peperomia"
+        "Watermelon peperomia",
+        "Watermelon begonia"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Medium, indirect",
       "waterDays": 10,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-argyreia/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-caperata",
+      "latin": "Peperomia caperata",
+      "common": [
+        "Ripple peperomia",
+        "Emerald ripple peperomia"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-caperata/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-caperata-rosso",
+      "latin": "Peperomia caperata 'Rosso'",
+      "common": [
+        "Peperomia Rosso",
+        "Rosso peperomia"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-caperata/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-clusiifolia-ginny",
+      "latin": "Peperomia clusiifolia 'Ginny'",
+      "common": [
+        "Peperomia Ginny",
+        "Rainbow peperomia",
+        "Tricolor peperomia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-clusiifolia/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-obtusifolia",
+      "latin": "Peperomia obtusifolia",
+      "common": [
+        "Baby rubber plant",
+        "Peperomia",
+        "American rubber plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-obtusifolia/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-obtusifolia-variegata",
+      "latin": "Peperomia obtusifolia 'Variegata'",
+      "common": [
+        "Variegated baby rubber plant",
+        "Variegated peperomia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-obtusifolia/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-polybotrya",
+      "latin": "Peperomia polybotrya",
+      "common": [
+        "Raindrop peperomia",
+        "Coin-leaf peperomia"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-prostrata",
+      "latin": "Peperomia prostrata",
+      "common": [
+        "String of turtles",
+        "Peperomia prostrata"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-prostrata/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-rotundifolia",
+      "latin": "Peperomia rotundifolia",
+      "common": [
+        "Trailing jade",
+        "Round-leaf peperomia",
+        "Jade necklace"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-rotundifolia/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-serpens-variegata",
+      "latin": "Peperomia serpens 'Variegata'",
+      "common": [
+        "Cupid peperomia",
+        "Variegated trailing peperomia",
+        "Peperomia scandens"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/peperomia-scandens/",
+      "verified": true
+    },
+    {
+      "id": "peperomia-tetraphylla-hope",
+      "latin": "Peperomia tetraphylla 'Hope'",
+      "common": [
+        "Peperomia Hope",
+        "Hope peperomia"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=445390",
+      "verified": true
     },
     {
       "id": "petroselinum-crispum",
       "latin": "Petroselinum crispum",
       "common": [
-        "Parsley"
+        "Parsley",
+        "Curly parsley",
+        "Italian parsley"
       ],
-      "zoneMin": 5,
-      "zoneMax": 9,
+      "zoneMin": 2,
+      "zoneMax": 11,
       "light": "Part sun to part shade",
-      "waterDays": 3,
+      "waterDays": 4,
       "frost": "hardy",
-      "source": null,
-      "verified": false
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=276060",
+      "verified": true
     },
     {
       "id": "phalaenopsis",
       "latin": "Phalaenopsis",
       "common": [
         "Moth orchid",
+        "Phalaenopsis orchid",
         "Orchid"
-      ],
-      "zoneMin": 10,
-      "zoneMax": 12,
-      "light": "Bright, indirect",
-      "waterDays": 7,
-      "frost": "tender",
-      "source": null,
-      "verified": false
-    },
-    {
-      "id": "philodendron-hederaceum",
-      "latin": "Philodendron hederaceum",
-      "common": [
-        "Heartleaf philodendron",
-        "Philodendron"
-      ],
-      "zoneMin": 10,
-      "zoneMax": 12,
-      "light": "Medium, indirect",
-      "waterDays": 7,
-      "frost": "tender",
-      "source": null,
-      "verified": false
-    },
-    {
-      "id": "pilea-peperomioides",
-      "latin": "Pilea peperomioides",
-      "common": [
-        "Chinese money plant",
-        "Pancake plant"
       ],
       "zoneMin": 10,
       "zoneMax": 11,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/phalaenopsis/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-birkin",
+      "latin": "Philodendron 'Birkin'",
+      "common": [
+        "Philodendron Birkin",
+        "Birkin philodendron"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-birkin/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-congo-rojo",
+      "latin": "Philodendron 'Congo Rojo'",
+      "common": [
+        "Rojo Congo philodendron",
+        "Philodendron Congo Red"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-erubescens/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-moonlight",
+      "latin": "Philodendron 'Moonlight'",
+      "common": [
+        "Moonlight philodendron"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-erubescens/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-prince-of-orange",
+      "latin": "Philodendron 'Prince of Orange'",
+      "common": [
+        "Prince of Orange philodendron"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-erubescens/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-erubescens",
+      "latin": "Philodendron erubescens",
+      "common": [
+        "Blushing philodendron",
+        "Red-leaf philodendron"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-erubescens/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-erubescens-pink-princess",
+      "latin": "Philodendron erubescens 'Pink Princess'",
+      "common": [
+        "Pink Princess philodendron",
+        "Philodendron Pink Princess"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=269192",
+      "verified": true
+    },
+    {
+      "id": "philodendron-hederaceum",
+      "latin": "Philodendron hederaceum",
+      "common": [
+        "Heartleaf philodendron",
+        "Sweetheart plant",
+        "Philodendron cordatum",
+        "Philodendron scandens"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-hederaceum/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-hederaceum-brasil",
+      "latin": "Philodendron hederaceum 'Brasil'",
+      "common": [
+        "Philodendron Brasil",
+        "Brasil philodendron"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Low to bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-hederaceum/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-hederaceum-lemon-lime",
+      "latin": "Philodendron hederaceum 'Lemon Lime'",
+      "common": [
+        "Lemon Lime philodendron",
+        "Neon philodendron"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-hederaceum/",
+      "verified": true
+    },
+    {
+      "id": "philodendron-hederaceum-micans",
+      "latin": "Philodendron hederaceum 'Micans'",
+      "common": [
+        "Philodendron micans",
+        "Velvet leaf philodendron"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/philodendron-hederaceum/",
+      "verified": true
+    },
+    {
+      "id": "phlebodium-aureum",
+      "latin": "Phlebodium aureum",
+      "common": [
+        "Blue star fern",
+        "Golden polypody",
+        "Rabbit's foot fern"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 13,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/phlebodium-aureum/",
+      "verified": true
+    },
+    {
+      "id": "phoenix-roebelenii",
+      "latin": "Phoenix roebelenii",
+      "common": [
+        "Pygmy date palm",
+        "Dwarf date palm",
+        "Robellini palm"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/phoenix-roebelenii/",
+      "verified": true
+    },
+    {
+      "id": "pilea-cadierei",
+      "latin": "Pilea cadierei",
+      "common": [
+        "Aluminum plant",
+        "Watermelon pilea"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/pilea-cadierei/",
+      "verified": true
+    },
+    {
+      "id": "pilea-involucrata-moon-valley",
+      "latin": "Pilea involucrata 'Moon Valley'",
+      "common": [
+        "Pilea Moon Valley",
+        "Moon Valley friendship plant",
+        "Friendship plant"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/pilea-involucrata/",
+      "verified": true
+    },
+    {
+      "id": "pilea-peperomioides",
+      "latin": "Pilea peperomioides",
+      "common": [
+        "Chinese money plant",
+        "Pancake plant",
+        "UFO plant",
+        "Pilea"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/pilea-peperomioides/",
+      "verified": true
+    },
+    {
+      "id": "platycerium-bifurcatum",
+      "latin": "Platycerium bifurcatum",
+      "common": [
+        "Staghorn fern",
+        "Elkhorn fern"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 13,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/platycerium-bifurcatum/",
+      "verified": true
+    },
+    {
+      "id": "plectranthus-verticillatus",
+      "latin": "Plectranthus verticillatus",
+      "common": [
+        "Swedish ivy",
+        "Swedish begonia",
+        "Whorled plectranthus",
+        "Plectranthus australis"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=290671",
+      "verified": true
+    },
+    {
+      "id": "polyscias-fruticosa",
+      "latin": "Polyscias fruticosa",
+      "common": [
+        "Ming aralia",
+        "Polyscias"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/polyscias-fruticosa/",
+      "verified": true
+    },
+    {
+      "id": "portulacaria-afra",
+      "latin": "Portulacaria afra",
+      "common": [
+        "Elephant bush",
+        "Dwarf jade",
+        "Elephant food",
+        "Spekboom"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://hort.extension.wisc.edu/articles/elephant-bush-portulacaria-afra/",
+      "verified": true
+    },
+    {
+      "id": "portulacaria-afra-variegata",
+      "latin": "Portulacaria afra 'Variegata'",
+      "common": [
+        "Variegated elephant bush",
+        "Rainbow bush"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "semi-hardy",
+      "source": "https://hort.extension.wisc.edu/articles/elephant-bush-portulacaria-afra/",
+      "verified": true
+    },
+    {
+      "id": "pteris-cretica",
+      "latin": "Pteris cretica",
+      "common": [
+        "Cretan brake fern",
+        "Table fern",
+        "Ribbon fern"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 4,
+      "frost": "semi-hardy",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=285685",
+      "verified": true
+    },
+    {
+      "id": "radermachera-sinica",
+      "latin": "Radermachera sinica",
+      "common": [
+        "China doll",
+        "Serpent tree",
+        "Emerald tree"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=277931",
+      "verified": true
+    },
+    {
+      "id": "ravenea-rivularis",
+      "latin": "Ravenea rivularis",
+      "common": [
+        "Majesty palm",
+        "Majestic palm"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/ravenea-rivularis/",
+      "verified": true
+    },
+    {
+      "id": "rhaphidophora-tetrasperma",
+      "latin": "Rhaphidophora tetrasperma",
+      "common": [
+        "Mini monstera",
+        "Monstera minima",
+        "Philodendron Ginny"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/rhaphidophora-tetrasperma/",
+      "verified": true
+    },
+    {
+      "id": "rhapis-excelsa",
+      "latin": "Rhapis excelsa",
+      "common": [
+        "Lady palm",
+        "Bamboo palm",
+        "Broadleaf lady palm"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Low to medium, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/rhapis-excelsa/",
+      "verified": true
+    },
+    {
+      "id": "rhipsalis-baccifera",
+      "latin": "Rhipsalis baccifera",
+      "common": [
+        "Mistletoe cactus",
+        "Rhipsalis",
+        "Spaghetti cactus"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/rhipsalis-baccifera/",
+      "verified": true
     },
     {
       "id": "rosa",
@@ -1153,74 +4537,175 @@
       "id": "saintpaulia-ionantha",
       "latin": "Saintpaulia ionantha",
       "common": [
-        "African violet"
+        "African violet",
+        "Saintpaulia",
+        "Streptocarpus ionanthus"
       ],
       "zoneMin": 11,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/saintpaulia-ionantha/",
+      "verified": true
     },
     {
       "id": "salvia-officinalis",
       "latin": "Salvia officinalis",
       "common": [
         "Sage",
-        "Garden sage"
+        "Garden sage",
+        "Common sage"
       ],
-      "zoneMin": 5,
+      "zoneMin": 4,
       "zoneMax": 8,
       "light": "Full sun",
       "waterDays": 7,
       "frost": "hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/salvia-officinalis/",
+      "verified": true
     },
     {
       "id": "salvia-rosmarinus",
       "latin": "Salvia rosmarinus",
       "common": [
-        "Rosemary"
+        "Rosemary",
+        "Rosmarinus officinalis"
       ],
       "zoneMin": 8,
       "zoneMax": 10,
       "light": "Full sun",
-      "waterDays": 10,
+      "waterDays": 7,
       "frost": "semi-hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/salvia-rosmarinus/",
+      "verified": true
     },
     {
-      "id": "schlumbergera-x-buckleyi",
-      "latin": "Schlumbergera × buckleyi",
+      "id": "schlumbergera-gaertneri",
+      "latin": "Schlumbergera gaertneri",
       "common": [
-        "Christmas cactus",
-        "Holiday cactus"
+        "Easter cactus",
+        "Hatiora gaertneri",
+        "Rhipsalidopsis gaertneri"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 10,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/schlumbergera-gaertneri/",
+      "verified": true
+    },
+    {
+      "id": "schlumbergera-truncata",
+      "latin": "Schlumbergera truncata",
+      "common": [
+        "Thanksgiving cactus",
+        "Crab cactus",
+        "Holiday cactus",
+        "Zygocactus"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/schlumbergera-truncata/",
+      "verified": true
+    },
+    {
+      "id": "schlumbergera-x-buckleyi",
+      "latin": "Schlumbergera × buckleyi",
+      "common": [
+        "Christmas cactus",
+        "Holiday cactus",
+        "Schlumbergera bridgesii"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 10,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/schlumbergera-x-buckleyi/",
+      "verified": true
+    },
+    {
+      "id": "scindapsus-pictus-argyraeus",
+      "latin": "Scindapsus pictus 'Argyraeus'",
+      "common": [
+        "Satin pothos",
+        "Silver philodendron",
+        "Scindapsus argyraeus"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 9,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/scindapsus-pictus/",
+      "verified": true
+    },
+    {
+      "id": "scindapsus-pictus-exotica",
+      "latin": "Scindapsus pictus 'Exotica'",
+      "common": [
+        "Exotica satin pothos",
+        "Silver satin pothos"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 9,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/scindapsus-pictus/",
+      "verified": true
+    },
+    {
+      "id": "scindapsus-treubii-moonlight",
+      "latin": "Scindapsus treubii 'Moonlight'",
+      "common": [
+        "Moonlight scindapsus",
+        "Scindapsus Moonlight"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 9,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/scindapsus-treubii/",
+      "verified": true
+    },
+    {
+      "id": "sedum-morganianum",
+      "latin": "Sedum morganianum",
+      "common": [
+        "Burro's tail",
+        "Donkey's tail",
+        "Lamb's tail"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/sedum-morganianum/",
+      "verified": true
     },
     {
       "id": "sempervivum-tectorum",
       "latin": "Sempervivum tectorum",
       "common": [
         "Hens and chicks",
-        "Houseleek"
+        "Houseleek",
+        "Common houseleek"
       ],
       "zoneMin": 3,
       "zoneMax": 8,
       "light": "Full sun",
       "waterDays": 14,
       "frost": "hardy",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/sempervivum-tectorum/",
+      "verified": true
     },
     {
       "id": "solanum-lycopersicum",
@@ -1237,38 +4722,137 @@
       "verified": false
     },
     {
-      "id": "spathiphyllum-wallisii",
-      "latin": "Spathiphyllum wallisii",
+      "id": "soleirolia-soleirolii",
+      "latin": "Soleirolia soleirolii",
       "common": [
-        "Peace lily"
+        "Baby's tears",
+        "Mind-your-own-business",
+        "Angel's tears"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Medium, indirect",
+      "waterDays": 3,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/soleirolia-soleirolii/",
+      "verified": true
+    },
+    {
+      "id": "spathiphyllum-domino",
+      "latin": "Spathiphyllum 'Domino'",
+      "common": [
+        "Domino peace lily",
+        "Variegated peace lily"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/spathiphyllum/",
+      "verified": true
+    },
+    {
+      "id": "spathiphyllum-sensation",
+      "latin": "Spathiphyllum 'Sensation'",
+      "common": [
+        "Sensation peace lily",
+        "Giant peace lily"
       ],
       "zoneMin": 11,
       "zoneMax": 12,
       "light": "Low to medium, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/spathiphyllum/",
+      "verified": true
+    },
+    {
+      "id": "spathiphyllum-wallisii",
+      "latin": "Spathiphyllum wallisii",
+      "common": [
+        "Peace lily",
+        "Spathiphyllum",
+        "White sails"
+      ],
+      "zoneMin": 11,
+      "zoneMax": 12,
+      "light": "Low to medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/spathiphyllum/",
+      "verified": true
+    },
+    {
+      "id": "strelitzia-nicolai",
+      "latin": "Strelitzia nicolai",
+      "common": [
+        "White bird of paradise",
+        "Giant bird of paradise"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/strelitzia-nicolai/",
+      "verified": true
     },
     {
       "id": "strelitzia-reginae",
       "latin": "Strelitzia reginae",
       "common": [
-        "Bird of paradise"
+        "Bird of paradise",
+        "Crane flower",
+        "Orange bird of paradise"
       ],
       "zoneMin": 10,
       "zoneMax": 12,
       "light": "Bright, some direct sun",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/strelitzia-reginae/",
+      "verified": true
+    },
+    {
+      "id": "streptocarpus-x-hybridus",
+      "latin": "Streptocarpus × hybridus",
+      "common": [
+        "Cape primrose",
+        "Streptocarpus",
+        "Strep"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/streptocarpus/",
+      "verified": true
+    },
+    {
+      "id": "stromanthe-thalia-triostar",
+      "latin": "Stromanthe thalia 'Triostar'",
+      "common": [
+        "Stromanthe Triostar",
+        "Triostar stromanthe",
+        "Stromanthe sanguinea"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 5,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/stromanthe-thalia/",
+      "verified": true
     },
     {
       "id": "syngonium-podophyllum",
       "latin": "Syngonium podophyllum",
       "common": [
         "Arrowhead plant",
+        "Arrowhead vine",
+        "Goosefoot plant",
         "Syngonium"
       ],
       "zoneMin": 10,
@@ -1276,8 +4860,85 @@
       "light": "Medium, indirect",
       "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/syngonium-podophyllum/",
+      "verified": true
+    },
+    {
+      "id": "syngonium-podophyllum-albo-variegatum",
+      "latin": "Syngonium podophyllum 'Albo Variegatum'",
+      "common": [
+        "Syngonium Albo",
+        "Albo arrowhead plant",
+        "Variegated arrowhead"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/syngonium-podophyllum/",
+      "verified": true
+    },
+    {
+      "id": "syngonium-podophyllum-mojito",
+      "latin": "Syngonium podophyllum 'Mojito'",
+      "common": [
+        "Syngonium Mojito",
+        "Mojito arrowhead"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/syngonium-podophyllum/",
+      "verified": true
+    },
+    {
+      "id": "syngonium-podophyllum-neon-robusta",
+      "latin": "Syngonium podophyllum 'Neon Robusta'",
+      "common": [
+        "Pink syngonium",
+        "Neon Robusta arrowhead",
+        "Neon arrowhead plant"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/syngonium-podophyllum/",
+      "verified": true
+    },
+    {
+      "id": "syngonium-podophyllum-pink-allusion",
+      "latin": "Syngonium podophyllum 'Pink Allusion'",
+      "common": [
+        "Pink Allusion arrowhead",
+        "Pink Allusion syngonium"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/syngonium-podophyllum/",
+      "verified": true
+    },
+    {
+      "id": "syngonium-podophyllum-white-butterfly",
+      "latin": "Syngonium podophyllum 'White Butterfly'",
+      "common": [
+        "White Butterfly arrowhead",
+        "White Butterfly syngonium"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Medium, indirect",
+      "waterDays": 7,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/syngonium-podophyllum/",
+      "verified": true
     },
     {
       "id": "syringa-vulgaris",
@@ -1295,48 +4956,197 @@
       "verified": false
     },
     {
-      "id": "thymus-vulgaris",
-      "latin": "Thymus vulgaris",
+      "id": "thaumatophyllum-xanadu",
+      "latin": "Thaumatophyllum 'Xanadu'",
       "common": [
-        "Thyme",
-        "Common thyme"
-      ],
-      "zoneMin": 5,
-      "zoneMax": 9,
-      "light": "Full sun",
-      "waterDays": 10,
-      "frost": "hardy",
-      "source": null,
-      "verified": false
-    },
-    {
-      "id": "tillandsia",
-      "latin": "Tillandsia",
-      "common": [
-        "Air plant"
+        "Philodendron Xanadu",
+        "Xanadu philodendron",
+        "Winterbourn philodendron"
       ],
       "zoneMin": 9,
       "zoneMax": 11,
       "light": "Bright, indirect",
       "waterDays": 7,
-      "frost": "tender",
-      "source": null,
+      "frost": "semi-hardy",
+      "source": "https://www.missouribotanicalgarden.org/PlantFinder/PlantFinderDetails.aspx?taxonid=262656",
+      "verified": true
+    },
+    {
+      "id": "thaumatophyllum-bipinnatifidum",
+      "latin": "Thaumatophyllum bipinnatifidum",
+      "common": [
+        "Split-leaf philodendron",
+        "Philodendron selloum",
+        "Philodendron Hope",
+        "Tree philodendron"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/thaumatophyllum-bipinnatifidum/",
+      "verified": true
+    },
+    {
+      "id": "thymus-vulgaris",
+      "latin": "Thymus vulgaris",
+      "common": [
+        "Thyme",
+        "Common thyme",
+        "Garden thyme"
+      ],
+      "zoneMin": 5,
+      "zoneMax": 9,
+      "light": "Full sun",
+      "waterDays": 7,
+      "frost": "hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/thymus-vulgaris/",
+      "verified": true
+    },
+    {
+      "id": "tillandsia",
+      "latin": "Tillandsia",
+      "common": [
+        "Air plant",
+        "Tillandsia"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://hgic.clemson.edu/factsheet/air-plants/",
       "verified": false
     },
     {
-      "id": "tradescantia-zebrina",
-      "latin": "Tradescantia zebrina",
+      "id": "tillandsia-usneoides",
+      "latin": "Tillandsia usneoides",
       "common": [
-        "Inch plant",
-        "Wandering dude"
+        "Spanish moss",
+        "Old man's beard"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/tillandsia-usneoides/",
+      "verified": true
+    },
+    {
+      "id": "tillandsia-xerographica",
+      "latin": "Tillandsia xerographica",
+      "common": [
+        "Xerographica air plant",
+        "King of air plants"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/tillandsia-xerographica/",
+      "verified": true
+    },
+    {
+      "id": "tradescantia-fluminensis",
+      "latin": "Tradescantia fluminensis",
+      "common": [
+        "Small-leaf spiderwort",
+        "Wandering Willie",
+        "Green inch plant"
       ],
       "zoneMin": 9,
       "zoneMax": 12,
       "light": "Bright, indirect",
       "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/tradescantia-fluminensis/",
+      "verified": true
+    },
+    {
+      "id": "tradescantia-fluminensis-nanouk",
+      "latin": "Tradescantia fluminensis 'Nanouk'",
+      "common": [
+        "Tradescantia Nanouk",
+        "Fantasy Venice",
+        "Pink tradescantia",
+        "Tradescantia albiflora Nanouk"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/tradescantia-albiflora/",
+      "verified": true
+    },
+    {
+      "id": "tradescantia-fluminensis-tricolor",
+      "latin": "Tradescantia fluminensis 'Tricolor'",
+      "common": [
+        "Tricolor inch plant",
+        "Tradescantia Tricolor"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 12,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/tradescantia-fluminensis/",
+      "verified": true
+    },
+    {
+      "id": "tradescantia-pallida-purpurea",
+      "latin": "Tradescantia pallida 'Purpurea'",
+      "common": [
+        "Purple heart",
+        "Purple queen",
+        "Purple secretia",
+        "Setcreasea pallida"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 11,
+      "light": "Bright, some direct sun",
+      "waterDays": 7,
       "frost": "tender",
-      "source": null,
-      "verified": false
+      "source": "https://plants.ces.ncsu.edu/plants/tradescantia-pallida/",
+      "verified": true
+    },
+    {
+      "id": "tradescantia-spathacea",
+      "latin": "Tradescantia spathacea",
+      "common": [
+        "Moses-in-the-cradle",
+        "Oyster plant",
+        "Boat lily",
+        "Rhoeo discolor"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/tradescantia-spathacea/",
+      "verified": true
+    },
+    {
+      "id": "tradescantia-zebrina",
+      "latin": "Tradescantia zebrina",
+      "common": [
+        "Wandering dude",
+        "Inch plant",
+        "Wandering Jew",
+        "Silver inch plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 11,
+      "light": "Bright, indirect",
+      "waterDays": 7,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/tradescantia-zebrina/",
+      "verified": true
     },
     {
       "id": "tulipa",
@@ -1368,19 +5178,82 @@
       "verified": false
     },
     {
+      "id": "yucca-gigantea",
+      "latin": "Yucca gigantea",
+      "common": [
+        "Spineless yucca",
+        "Yucca cane",
+        "Yucca elephantipes"
+      ],
+      "zoneMin": 10,
+      "zoneMax": 12,
+      "light": "Bright, some direct sun",
+      "waterDays": 14,
+      "frost": "tender",
+      "source": "https://plants.ces.ncsu.edu/plants/yucca-gigantea/",
+      "verified": true
+    },
+    {
       "id": "zamioculcas-zamiifolia",
       "latin": "Zamioculcas zamiifolia",
       "common": [
         "ZZ plant",
-        "Zanzibar gem"
+        "Zanzibar gem",
+        "Eternity plant"
       ],
-      "zoneMin": 10,
-      "zoneMax": 12,
+      "zoneMin": 9,
+      "zoneMax": 10,
       "light": "Low to bright, indirect",
       "waterDays": 21,
-      "frost": "tender",
-      "source": null,
-      "verified": false
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/zamioculcas-zamiifolia/",
+      "verified": true
+    },
+    {
+      "id": "zamioculcas-zamiifolia-raven",
+      "latin": "Zamioculcas zamiifolia 'Raven'",
+      "common": [
+        "Raven ZZ plant",
+        "Black ZZ plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 10,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/zamioculcas-zamiifolia/",
+      "verified": true
+    },
+    {
+      "id": "zamioculcas-zamiifolia-zenzi",
+      "latin": "Zamioculcas zamiifolia 'Zenzi'",
+      "common": [
+        "Zenzi ZZ plant",
+        "Dwarf ZZ plant"
+      ],
+      "zoneMin": 9,
+      "zoneMax": 10,
+      "light": "Low to bright, indirect",
+      "waterDays": 21,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/zamioculcas-zamiifolia/",
+      "verified": true
+    },
+    {
+      "id": "zantedeschia-aethiopica",
+      "latin": "Zantedeschia aethiopica",
+      "common": [
+        "Calla lily",
+        "Arum lily",
+        "Calla"
+      ],
+      "zoneMin": 8,
+      "zoneMax": 10,
+      "light": "Bright, some direct sun",
+      "waterDays": 5,
+      "frost": "semi-hardy",
+      "source": "https://plants.ces.ncsu.edu/plants/zantedeschia-aethiopica/",
+      "verified": true
     }
   ]
 }

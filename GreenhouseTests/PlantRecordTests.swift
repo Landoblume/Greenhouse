@@ -13,6 +13,14 @@ final class PlantRecordTests: XCTestCase {
         XCTAssertEqual(SpeciesCatalog.shared.search("pothos").first?.latin, "Epipremnum aureum")
     }
 
+    func testCultivarsAreSearchable() {
+        let results = SpeciesCatalog.shared.search("marble queen")
+        XCTAssertEqual(results.first?.latin, "Epipremnum aureum 'Marble Queen'")
+        // A plain "pothos" search lists it too.
+        let pothos = SpeciesCatalog.shared.search("pothos").map(\.latin)
+        XCTAssertTrue(pothos.contains("Epipremnum aureum 'Marble Queen'"))
+    }
+
     func testCatalogEntriesAreSane() {
         let all = SpeciesCatalog.shared.species
         XCTAssertGreaterThan(all.count, 80)
