@@ -352,6 +352,7 @@ struct EditPlantView: View {
     @State private var setting: PlantSetting
     @State private var light: LightSource?
     @State private var collections: Set<PlantCollection>
+    @State private var projects: Set<Project>
 
     // See EditPhotoSheet: start from the plant's values so the date picker
     // never shows a stale date.
@@ -363,6 +364,7 @@ struct EditPlantView: View {
         _setting = State(initialValue: plant.settingValue)
         _light = State(initialValue: plant.lightSourceValue)
         _collections = State(initialValue: plant.collections ?? [])
+        _projects = State(initialValue: plant.projects ?? [])
     }
 
     var body: some View {
@@ -379,6 +381,28 @@ struct EditPlantView: View {
                 }
                 if let household = plant.household {
                     CollectionToggles(household: household, selection: $collections)
+                    let choices = Plans.projectChoices(for: plant, in: household)
+                    if !choices.isEmpty {
+                        Section {
+                            ForEach(choices) { project in
+                                Toggle(isOn: Binding(
+                                    get: { projects.contains(project) },
+                                    set: { on in
+                                        if on { projects.insert(project) } else { projects.remove(project) }
+                                    }
+                                )) {
+                                    VStack(alignment: .leading) {
+                                        Text(project.title ?? "Untitled project")
+                                        if Plans.state(of: project) != .planned {
+                                            Text(Plans.state(of: project).label).font(.caption).foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                        } header: {
+                            Text("Projects")
+                        }
+                    }
                 }
             }
             .navigationTitle("Edit")
@@ -395,6 +419,7 @@ struct EditPlantView: View {
                         plant.settingValue = setting
                         plant.lightSourceValue = light
                         Collections.setMembership(of: plant, to: collections)
+                        Plans.setProjects(of: plant, to: projects)
                         Persistence.shared.save(context)
                         NotificationPlanner.reschedule()
                         dismiss()

@@ -252,7 +252,7 @@ struct PlantTile: View {
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             if Plans.isInActiveProject(plant) {
-                RoundedRectangle(cornerRadius: 16).strokeBorder(Color.orange, lineWidth: 3)
+                RoundedRectangle(cornerRadius: 16).strokeBorder(Color.green, lineWidth: 3)
             }
         }
         .overlay(alignment: .topLeading) {
@@ -261,7 +261,7 @@ struct PlantTile: View {
                     .font(.caption)
                     .foregroundStyle(.white)
                     .padding(6)
-                    .background(Color.orange, in: Circle())
+                    .background(Color.green, in: Circle())
                     .padding(14)
                     .accessibilityLabel("Part of a project in progress")
             }

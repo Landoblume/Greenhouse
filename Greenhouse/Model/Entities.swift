@@ -74,6 +74,7 @@ final class Household: NSManagedObject {
     @NSManaged var zip: String?
     /// USDA hardiness zone, e.g. "7b". Not `zone`: NSObject already has a `zone` method that hides it.
     @NSManaged var hardinessZone: String?
+    @NSManaged var milestoneSuggestions: String?
     @NSManaged var plants: Set<Plant>?
     @NSManaged var tasks: Set<CareTask>?
     @NSManaged var lineageEvents: Set<LineageEvent>?
@@ -286,10 +287,38 @@ final class Project: NSManagedObject {
     @NSManaged var doneAt: Date?
     /// When it went from planned to in progress.
     @NSManaged var startedAt: Date?
+    /// 0 means no budget set.
+    @NSManaged var budget: Double
+    /// Where it's happening ("back patio").
+    @NSManaged var place: String?
+    /// An inspiration post, a product page, a how-to.
+    @NSManaged var link: String?
+    @NSManaged var items: Set<ProjectItem>?
     @NSManaged var createdAt: Date?
     @NSManaged var household: Household?
     @NSManaged var collection: PlantCollection?
     @NSManaged var plants: Set<Plant>?
+}
+
+enum ProjectItemKind: String {
+    /// A to-do on the project's checklist.
+    case step
+    /// Something to buy, with a cost; done means bought.
+    case supply
+}
+
+/// One line on a project: a step to do or a supply to buy.
+@objc(ProjectItem)
+final class ProjectItem: NSManagedObject {
+    @NSManaged var uuid: UUID?
+    @NSManaged var kind: String?
+    @NSManaged var title: String?
+    @NSManaged var isDone: Bool
+    @NSManaged var cost: Double
+    @NSManaged var createdAt: Date?
+    @NSManaged var project: Project?
+
+    var kindValue: ProjectItemKind { ProjectItemKind(rawValue: kind ?? "") ?? .step }
 }
 
 // Classes get `Identifiable` for free from their object identity, which is what
@@ -304,3 +333,4 @@ extension CareLog: Identifiable {}
 extension PlantCollection: Identifiable {}
 extension WishlistItem: Identifiable {}
 extension Project: Identifiable {}
+extension ProjectItem: Identifiable {}

@@ -12,7 +12,6 @@ struct PlansView: View {
     @State private var editingWish: WishlistItem?
     @State private var buying: WishlistItem?
     @State private var addingProject = false
-    @State private var editingProject: Project?
 
     enum Tab: String, CaseIterable, Identifiable {
         case wishlist, projects
@@ -57,7 +56,7 @@ struct PlansView: View {
                     }
                 case .projects:
                     ForEach(shownProjects) { project in
-                        ProjectRow(project: project) { editingProject = project }
+                        ProjectRow(project: project, household: household)
                     }
                 }
             }
@@ -73,7 +72,7 @@ struct PlansView: View {
             .sheet(item: $editingWish) { WishEditorView(household: household, item: $0) }
             .sheet(item: $buying) { AddPlantView(household: household, wish: $0) }
             .sheet(isPresented: $addingProject) { ProjectEditorView(household: household, project: nil) }
-            .sheet(item: $editingProject) { ProjectEditorView(household: household, project: $0) }
+            .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
         }
     }
 
@@ -147,7 +146,7 @@ struct WishRow: View {
 
 struct ProjectRow: View {
     @ObservedObject var project: Project
-    let onEdit: () -> Void
+    let household: Household
     @Environment(\.managedObjectContext) private var context
 
     var body: some View {
@@ -162,7 +161,9 @@ struct ProjectRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(project.isDone ? "Mark not done" : "Mark done")
-            Button(action: onEdit) {
+            NavigationLink {
+                ProjectDetailView(project: project, household: household)
+            } label: {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(project.title ?? "Untitled project")
                         .strikethrough(project.isDone)
@@ -170,7 +171,7 @@ struct ProjectRow: View {
                     if let started = project.startedAt, !project.isDone {
                         Label("In progress since \(Lineage.format(started))", systemImage: "hammer.fill")
                             .font(.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.green)
                     }
                     if let target = project.targetDate, !project.isDone {
                         Label("By \(Lineage.format(target))", systemImage: "calendar")
@@ -184,13 +185,15 @@ struct ProjectRow: View {
                     if !names.isEmpty {
                         Text(names.joined(separator: ", ")).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
+                    ProjectSummary(project: project)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     if let notes = project.notes {
                         Text(notes).font(.caption).lineLimit(2)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
         }
     }
 }
@@ -310,6 +313,9 @@ struct ProjectEditorView: View {
     @AppStorage(Collections.selectedKey) private var selectedCollection = ""
     @State private var title = ""
     @State private var notes = ""
+    @State private var place = ""
+    @State private var link = ""
+    @State private var budget: Double?
     @State private var state: ProjectState = .planned
     @State private var hasTarget = false
     @State private var target = Date()
@@ -331,7 +337,19 @@ struct ProjectEditorView: View {
                     }
                     .pickerStyle(.segmented)
                 } footer: {
-                    Text("While a project is in progress, its plants get an orange edge on the Plants tab.")
+                    Text("While a project is in progress, its plants get a green edge on the Plants tab.")
+                }
+                Section {
+                    TextField("Where (e.g. back patio)", text: $place)
+                    TextField("Link (inspiration, how-to, product)", text: $link)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    LabeledContent("Budget") {
+                        TextField("None", value: $budget, format: .currency(code: Plans.currencyCode))
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
                 Section {
                     Toggle("Target date", isOn: $hasTarget)
@@ -390,6 +408,9 @@ struct ProjectEditorView: View {
             title = project.title ?? ""
             notes = project.notes ?? ""
             state = Plans.state(of: project)
+            place = project.place ?? ""
+            link = project.link ?? ""
+            budget = project.budget > 0 ? project.budget : nil
             hasTarget = project.targetDate != nil
             target = project.targetDate ?? Date()
             plantIDs = Set((project.plants ?? []).map(\.objectID))
@@ -405,10 +426,12 @@ struct ProjectEditorView: View {
             Plans.update(project, title: title, notes: notes, targetDate: hasTarget ? target : nil, plants: plants)
             project.collection = collection
             Plans.setState(project, state)
+            Plans.updateDetails(project, budget: budget ?? 0, place: place, link: link)
         } else {
             let project = Plans.addProject(title: title, notes: notes, targetDate: hasTarget ? target : nil, plants: plants,
                                            collection: collection, household: household, context: context)
             Plans.setState(project, state)
+            Plans.updateDetails(project, budget: budget ?? 0, place: place, link: link)
         }
         Persistence.shared.save(context)
         dismiss()

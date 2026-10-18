@@ -79,7 +79,7 @@ struct MilestoneEditorView: View {
                 Section {
                     TextField("What happened (e.g. New pot)", text: $title)
                     if milestone == nil {
-                        MilestoneSuggestions(title: $title)
+                        MilestoneSuggestions(title: $title, household: household)
                     }
                     DatePicker("Date", selection: $date, in: ...Date(), displayedComponents: .date)
                     TextField("Note (optional, e.g. where the pot's from)", text: $notes, axis: .vertical)
@@ -131,11 +131,12 @@ struct MilestoneEditorView: View {
 /// "New pot", "Repotted", … as tappable chips that fill in the title.
 struct MilestoneSuggestions: View {
     @Binding var title: String
+    let household: Household?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(Milestones.suggestions, id: \.self) { suggestion in
+                ForEach(Milestones.suggestions(for: household), id: \.self) { suggestion in
                     Button(suggestion) { title = suggestion }
                         .font(.subheadline)
                         .padding(.horizontal, 12)
@@ -187,12 +188,86 @@ struct MilestonePicker: View {
             }
             if selection == .new {
                 TextField("What happened (e.g. First bloom)", text: $newTitle)
-                MilestoneSuggestions(title: $newTitle)
+                MilestoneSuggestions(title: $newTitle, household: plant.household)
             }
         } footer: {
             if selection == .new {
                 Text("The new milestone gets the photo's date.")
             }
         }
+    }
+}
+
+/// Settings → Milestone quick picks: the household's list of titles offered
+/// when adding a milestone. Shared by both phones; editing it never changes
+/// milestones already saved.
+struct MilestoneOptionsView: View {
+    @ObservedObject var household: Household
+    @Environment(\.managedObjectContext) private var context
+    @State private var newOption = ""
+    @State private var renaming: Int?
+    @State private var draft = ""
+
+    private var options: [String] { Milestones.suggestions(for: household) }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(Array(options.enumerated()), id: \.offset) { index, option in
+                    Button(option) {
+                        draft = option
+                        renaming = index
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .onDelete { offsets in
+                    var list = options
+                    list.remove(atOffsets: offsets)
+                    save(list)
+                }
+                .onMove { from, to in
+                    var list = options
+                    list.move(fromOffsets: from, toOffset: to)
+                    save(list)
+                }
+                HStack {
+                    TextField("Add a quick pick", text: $newOption)
+                        .onSubmit(add)
+                    Button("Add", action: add)
+                        .disabled(newOption.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            } footer: {
+                Text("These fill in a milestone's title when you tap them. Changing the list only affects new milestones; saved ones keep their titles. Both phones share it.")
+            }
+            Section {
+                Button("Reset to the original list") { save(Milestones.defaultSuggestions) }
+                    .disabled(household.milestoneSuggestions == nil)
+            }
+        }
+        .navigationTitle("Milestone quick picks")
+        .toolbar { EditButton() }
+        .alert("Rename quick pick", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Title", text: $draft)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                if let renaming, options.indices.contains(renaming) {
+                    var list = options
+                    list[renaming] = draft
+                    save(list)
+                }
+            }
+        }
+    }
+
+    private func add() {
+        let trimmed = newOption.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        save(options + [trimmed])
+        newOption = ""
+    }
+
+    private func save(_ list: [String]) {
+        Milestones.setSuggestions(list, for: household)
+        Persistence.shared.save(context)
     }
 }

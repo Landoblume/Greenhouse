@@ -30,6 +30,8 @@ enum GreenhouseModel {
             attr("createdAt", .date),
             attr("zip", .string),
             attr("hardinessZone", .string),
+            /// The milestone quick picks, one per line; nil means the built-in list.
+            attr("milestoneSuggestions", .string),
         ])
         let plant = entity(Plant.self, [
             attr("uuid", .uuid),
@@ -84,6 +86,14 @@ enum GreenhouseModel {
             attr("doneBy", .string),
         ])
 
+        let projectItem = entity(ProjectItem.self, [
+            attr("uuid", .uuid),
+            attr("kind", .string, default: ProjectItemKind.step.rawValue),
+            attr("title", .string),
+            attr("isDone", .boolean, default: NSNumber(value: false)),
+            attr("cost", .double, default: NSNumber(value: 0)),
+            attr("createdAt", .date),
+        ])
         let collection = entity(PlantCollection.self, [
             attr("uuid", .uuid),
             attr("name", .string),
@@ -107,6 +117,10 @@ enum GreenhouseModel {
             attr("doneAt", .date),
             /// Set while the project is underway; nil means just planned.
             attr("startedAt", .date),
+            /// 0 means no budget set.
+            attr("budget", .double, default: NSNumber(value: 0)),
+            attr("place", .string),
+            attr("link", .string),
             attr("createdAt", .date),
         ])
 
@@ -127,9 +141,10 @@ enum GreenhouseModel {
         relate(collection, "wishlist", many: true, wish, "collection", many: false)
         relate(collection, "projects", many: true, project, "collection", many: false)
         relate(project, "plants", many: true, plant, "projects", many: true)
+        relate(project, "items", many: true, projectItem, "project", many: false, deleteRule: .cascadeDeleteRule)
 
         let model = NSManagedObjectModel()
-        model.entities = [household, plant, photo, milestone, event, task, log, collection, wish, project]
+        model.entities = [household, plant, photo, milestone, event, task, log, collection, wish, project, projectItem]
         return model
     }
 

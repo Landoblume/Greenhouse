@@ -42,6 +42,11 @@ enum DemoData {
                                      targetDate: Calendar.current.date(byAdding: .day, value: 10, to: .now), plants: [aloe],
                                      collection: nil, household: household, context: context)
         Plans.setState(paint, .inProgress)
+        Plans.updateDetails(paint, budget: 60, place: "Back patio", link: "https://example.com/greenhouse-paint")
+        Plans.addItem(.step, title: "Sand the frame", to: paint, household: household, context: context)?.isDone = true
+        Plans.addItem(.step, title: "Two coats of primer", to: paint, household: household, context: context)
+        Plans.addItem(.supply, title: "Matte black spray paint ×4", cost: 32, to: paint, household: household, context: context)?.isDone = true
+        Plans.addItem(.supply, title: "Drop cloth", cost: 12, to: paint, household: household, context: context)
         let done = Plans.addProject(title: "Repot the fern", notes: nil, targetDate: nil, plants: [pothos],
                                     collection: nil, household: household, context: context)
         Plans.setDone(done, true)

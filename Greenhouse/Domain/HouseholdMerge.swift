@@ -112,6 +112,11 @@ enum HouseholdMerge {
             copy.household = target
             copy.collection = project.collection.flatMap { collectionCopies[$0.objectID] }
             copy.mutableSetValue(forKey: "plants").addObjects(from: (project.plants ?? []).compactMap { copies[$0.objectID] })
+            for item in project.items ?? [] {
+                let itemCopy = persistence.insert(ProjectItem.self, alongside: target, in: context)
+                copyAttributes(of: item, to: itemCopy)
+                itemCopy.project = copy
+            }
         }
 
         if target.hardinessZone == nil, let zone = source.hardinessZone {
@@ -119,7 +124,8 @@ enum HouseholdMerge {
             target.zip = source.zip
         }
 
-        // Tasks and plants cascade to their logs, photos and milestones.
+        // Tasks, plants and projects cascade to their logs, photos, milestones
+        // and steps.
         tasks.forEach(context.delete)
         events.forEach(context.delete)
         collections.forEach(context.delete)

@@ -19,7 +19,7 @@ struct HelpView: View {
 
             Tap a photo, then the ••• button, to fix its date, add a caption, crop it, make it the main photo on the plant's tile, or delete it. You can also crop a photo right after taking it.
 
-            Under History, Add milestone writes down things like a new pot, a repot or a first bloom, with the date and a note. Tap one to change or delete it. When adding a photo (or editing one), pick a milestone to link them, or start a new milestone that takes the photo's date.
+            Under History, Add milestone writes down things like a new pot, a repot or a first bloom, with the date and a note. Tap one to change or delete it. The quick picks (New pot, Combined, …) are yours to change in Settings → Milestone quick picks. When adding a photo (or editing one), pick a milestone to link them, or start a new milestone that takes the photo's date.
             """)
             topic("Collections", "square.stack", """
             Group plants however you like: Indoor, Outdoor greenhouse, Succulents. Tap + Collection at the top of the Plants tab, then Choose plants, or tap New collection while adding or editing a plant. A plant can be in more than one.
@@ -31,7 +31,9 @@ struct HelpView: View {
             topic("Plans: wishlist and projects", "list.star", """
             The wishlist holds plants you'd like, with notes like where you saw one. It shows the light each one likes and whether it survives winter in your zone. When you bring one home, tap Got it: it becomes a plant and leaves the list.
 
-            Projects are things to build or do, like painting a new greenhouse, with an optional target date and the plants they're for. Set one to In progress and its plants get an orange edge on the Plants tab; tap the circle when it's done.
+            Projects are things to build or do, like painting a new greenhouse, with an optional target date and the plants they're for (pick them here, or from a plant's Edit screen). Set one to In progress and its plants get a green edge on the Plants tab; tap the circle when it's done.
+
+            Tap a project for its page: a checklist of steps, supplies with costs (tick them as you buy them) against an optional budget, where it's happening, a link, and notes.
             """)
             topic("Combining and splitting", "arrow.triangle.branch", """
             Potted two plants together? Open one and tap Combine with other plants (or press and hold it on the Plants tab), pick the others, and they become one tile. Took cuttings or divided a plant? Open it and tap Split.
