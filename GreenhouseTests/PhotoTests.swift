@@ -55,7 +55,7 @@ final class PhotoTests: XCTestCase {
         PlantPhotos.delete(test, context: store.context)
         store.save()
 
-        XCTAssertNil(plant.coverPhotoID)
+        XCTAssertEqual(plant.coverPhotoID, real.uuid, "the fallback is saved, not worked out each time")
         XCTAssertEqual(plant.photos?.count, 1)
         XCTAssertEqual(PlantPhotos.cover(for: plant), real)
     }
@@ -145,4 +145,63 @@ final class PhotoTests: XCTestCase {
         XCTAssertEqual(ImageCrop.rect(imageSize: image, window: window, zoom: 2, offset: CGSize(width: 9999, height: -9999)),
                        CGRect(x: 0, y: 1500, width: 2000, height: 1500))
     }
+
+    // MARK: Main photo stays put (v1.3.8)
+
+    func testOlderPlantsGetTheirMainPhotoSavedOnce() {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2026, 3, 1))
+        let early = PlantFactory.addPhoto(Data([1]), takenAt: day(2026, 4, 1), to: plant, household: store.household,
+                                          context: store.context, persistence: store.persistence)
+        plant.coverPhotoID = nil  // saved before v1.3.5
+        let picked = store.plant(acquired: day(2026, 3, 1))
+        let missing = UUID()
+        picked.coverPhotoID = missing  // picked on the other phone, photo not synced yet
+
+        XCTAssertEqual(PlantPhotos.saveMissingCovers(in: store.household), 1)
+        XCTAssertEqual(plant.coverPhotoID, early.uuid)
+        XCTAssertEqual(picked.coverPhotoID, missing, "a pick that hasn't synced yet is left alone")
+
+        // An older photo arriving later no longer takes over.
+        PlantFactory.addPhoto(Data([2]), takenAt: day(2026, 3, 2), to: plant, household: store.household,
+                              context: store.context, persistence: store.persistence)
+        XCTAssertEqual(PlantPhotos.cover(for: plant), early)
+        XCTAssertEqual(PlantPhotos.saveMissingCovers(in: store.household), 0)
+    }
+
+    func testPhotosWithTheSameDateAlwaysSortTheSameWay() {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2026, 3, 1))
+        let photos = (0..<6).map { index in
+            PlantFactory.addPhoto(Data([UInt8(index)]), takenAt: day(2026, 4, 1), to: plant, household: store.household,
+                                  context: store.context, persistence: store.persistence)
+        }
+        let expected = photos.sorted { $0.uuid!.uuidString < $1.uuid!.uuidString }
+        XCTAssertEqual(Lineage.timeline(for: plant).map(\.photo), expected)
+    }
+
+    func testCombinedPlantKeepsItsPictureWhenItGetsItsOwnFirstPhoto() {
+        let store = TestStore()
+        let a = store.plant(nickname: "A", acquired: day(2026, 3, 1), photo: true)
+        let b = store.plant(nickname: "B", acquired: day(2026, 2, 1), now: day(2026, 2, 1))
+        PlantFactory.addPhoto(Data([7]), takenAt: day(2026, 2, 1), to: b, household: store.household,
+                              context: store.context, persistence: store.persistence)
+        let aPhoto = PlantPhotos.cover(for: a)
+        let merged = Lineage.staple([a, b], nickname: nil, date: day(2026, 10, 1),
+                                    household: store.household, context: store.context, persistence: store.persistence)
+        XCTAssertEqual(PlantPhotos.cover(for: merged), aPhoto, "keeps the plant you combined from")
+
+        PlantFactory.addPhoto(Data([8]), takenAt: day(2026, 10, 2), to: merged, household: store.household,
+                              context: store.context, persistence: store.persistence)
+        XCTAssertEqual(PlantPhotos.cover(for: merged), aPhoto, "its first own photo doesn't take over")
+    }
+
+    func testSplitPlantsKeepTheParentsPicture() {
+        let store = TestStore()
+        let parent = store.plant(acquired: day(2026, 3, 1), photo: true)
+        let kids = Lineage.split(parent, names: ["A", "B"], date: day(2026, 10, 1),
+                                 household: store.household, context: store.context, persistence: store.persistence)
+        for kid in kids { XCTAssertEqual(PlantPhotos.cover(for: kid), PlantPhotos.cover(for: parent)) }
+    }
 }
+

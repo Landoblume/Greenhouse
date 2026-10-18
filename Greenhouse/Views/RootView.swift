@@ -48,6 +48,9 @@ struct MainTabView: View {
         .onAppear {
             NotificationPlanner.requestAuthorization()
             NotificationPlanner.reschedule()
+            if PlantPhotos.saveMissingCovers(in: household) > 0, let context = household.managedObjectContext {
+                Persistence.shared.save(context)
+            }
         }
     }
 }
