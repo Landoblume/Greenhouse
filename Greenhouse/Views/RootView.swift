@@ -24,15 +24,26 @@ struct RootView: View {
 
 struct MainTabView: View {
     @ObservedObject var household: Household
+    #if DEBUG
+    @State private var tab = DemoData.openTab
+    #else
+    @State private var tab = 0
+    #endif
 
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             PlantsView(household: household)
                 .tabItem { Label("Plants", systemImage: "leaf") }
+                .tag(0)
             CareView(household: household)
                 .tabItem { Label("Care", systemImage: "drop") }
+                .tag(1)
+            PlansView(household: household)
+                .tabItem { Label("Plans", systemImage: "list.star") }
+                .tag(2)
             SettingsView(household: household)
                 .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(3)
         }
         .onAppear {
             NotificationPlanner.requestAuthorization()

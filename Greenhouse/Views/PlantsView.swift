@@ -3,8 +3,9 @@ import SwiftUI
 
 /// Home screen: one tile per active plant, plus select-to-staple.
 struct PlantsView: View {
-    let household: Household
-    @FetchRequest private var plants: FetchedResults<Plant>
+    @ObservedObject var household: Household
+    @AppStorage(Collections.selectedKey) private var selectedCollection = ""
+    @FetchRequest private var allPlants: FetchedResults<Plant>
     @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
     @State private var selecting = false
     @State private var selection: Set<NSManagedObjectID> = []
@@ -16,8 +17,12 @@ struct PlantsView: View {
         let request = NSFetchRequest<Plant>(entityName: "Plant")
         request.predicate = NSPredicate(format: "household == %@ AND status == %@", household, PlantStatus.active.rawValue)
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
-        _plants = FetchRequest(fetchRequest: request)
+        _allPlants = FetchRequest(fetchRequest: request)
     }
+
+    private var collection: PlantCollection? { Collections.find(selectedCollection, in: household) }
+    private var plants: [Plant] { allPlants.filter { Collections.contains(collection, $0) } }
+    @State private var choosingPlants: PlantCollection?
 
     private var selectedPlants: [Plant] {
         plants.filter { selection.contains($0.objectID) }
@@ -26,6 +31,15 @@ struct PlantsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
+                CollectionBar(household: household)
+                    .padding(.top, 4)
+                if let collection {
+                    Button { choosingPlants = collection } label: {
+                        Label("Choose plants for \(collection.name ?? "this collection")", systemImage: "checklist")
+                            .font(.subheadline)
+                    }
+                    .padding(.top, 8)
+                }
                 ForEach(HouseholdMerge.candidates(for: household, in: Array(households))) { other in
                     MergeCard(source: other, target: household)
                         .padding([.horizontal, .top])
@@ -46,15 +60,19 @@ struct PlantsView: View {
                 .padding()
             }
             .overlay {
-                if plants.isEmpty {
+                if allPlants.isEmpty {
                     ContentUnavailableView("No plants yet", systemImage: "leaf", description: Text("Tap + to add your first plant."))
+                } else if plants.isEmpty, let collection {
+                    ContentUnavailableView("Nothing in \(collection.name ?? "this collection") yet", systemImage: "square.stack",
+                                           description: Text("Tap “Choose plants” above, or + to add a new plant here."))
+                        .allowsHitTesting(false)
                 }
             }
             .navigationTitle(household.name ?? "Plants")
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if plants.count >= 2 {
+                    if allPlants.count >= 2 {
                         Button(selecting ? "Cancel" : "Staple") {
                             selecting.toggle()
                             selection = []
@@ -81,6 +99,7 @@ struct PlantsView: View {
                 }
             }
             .sheet(isPresented: $showingAdd) { AddPlantView(household: household) }
+            .sheet(item: $choosingPlants) { CollectionPlantsSheet(collection: $0, household: household) }
             .sheet(isPresented: $showingStaple) {
                 StapleSheet(plants: selectedPlants, household: household) {
                     selecting = false
@@ -147,7 +166,7 @@ struct PlantTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            PlantPhotoView(photo: Lineage.timeline(for: plant).last?.photo, maxPixel: 400)
+            PlantPhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 400)
                 .frame(height: 150)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 12))

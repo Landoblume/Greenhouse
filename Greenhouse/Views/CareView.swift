@@ -3,7 +3,8 @@ import SwiftUI
 
 /// Every care task in the household, soonest first.
 struct CareView: View {
-    let household: Household
+    @ObservedObject var household: Household
+    @AppStorage(Collections.selectedKey) private var selectedCollection = ""
     @FetchRequest private var tasks: FetchedResults<CareTask>
     @State private var showingNew = false
     @State private var editing: CareTask?
@@ -17,7 +18,8 @@ struct CareView: View {
     }
 
     private var sorted: [CareTask] {
-        tasks.filter(\.isRelevant).sorted {
+        let collection = Collections.find(selectedCollection, in: household)
+        return tasks.filter { $0.isRelevant && Collections.contains(collection, $0) }.sorted {
             (CareSchedule.nextDue(for: $0) ?? .distantFuture) < (CareSchedule.nextDue(for: $1) ?? .distantFuture)
         }
     }
@@ -27,6 +29,10 @@ struct CareView: View {
             let due = sorted.filter { CareSchedule.status(of: $0)?.needsAttention == true }
             let later = sorted.filter { CareSchedule.status(of: $0)?.needsAttention != true }
             List {
+                CollectionBar(household: household)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
                 if !due.isEmpty {
                     Section("Due now") {
                         ForEach(due) { TaskRow(task: $0, household: household, onEdit: edit($0)) }

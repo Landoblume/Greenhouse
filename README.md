@@ -49,7 +49,9 @@ xcodebuild test -project Greenhouse.xcodeproj -scheme Greenhouse \
    3. In the [CloudKit Console](https://icloud.developer.apple.com/dashboard),
       open `iCloud.com.landenblume.greenhouse` → Schema → **Deploy Schema Changes…** → Deploy.
 
-   Do this again whenever the data model (`Model/GreenhouseModel.swift`) changes.
+   Do this again whenever the data model (`Model/GreenhouseModel.swift`) changes,
+   *before* the TestFlight build with that change goes out. The debug build
+   notices the model changed and re-uploads by itself.
 3. **Testers.** In App Store Connect: Greenhouse → TestFlight → Internal Testing → **+**,
    make a group, and add testers. A tester has to be a user on your App Store
    Connect team first (Users and Access → **+**, any role). Internal testers

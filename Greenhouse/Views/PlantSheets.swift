@@ -7,13 +7,25 @@ struct AddPhotoSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var image: UIImage?
     @State private var takenAt = Date()
+    @State private var dateFromPhoto = false
+    @State private var caption = ""
 
     var body: some View {
         NavigationStack {
             Form {
-                Section { PhotoInput(image: $image) }
+                Section {
+                    PhotoInput(image: $image) { date in
+                        takenAt = date ?? Date()
+                        dateFromPhoto = date != nil
+                    }
+                }
                 Section {
                     DatePicker("Taken on", selection: $takenAt, in: ...Date(), displayedComponents: .date)
+                    TextField("Caption (optional)", text: $caption)
+                } footer: {
+                    if dateFromPhoto {
+                        Text("Date read from the photo. Change it if it's wrong.")
+                    }
                 }
             }
             .navigationTitle("Add photo")
@@ -23,7 +35,7 @@ struct AddPhotoSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         if let data = image.flatMap({ ImageTools.preparedJPEG(from: $0) }) {
-                            PlantFactory.addPhoto(data, takenAt: takenAt, to: plant, household: household, context: context)
+                            PlantFactory.addPhoto(data, takenAt: takenAt, caption: caption, to: plant, household: household, context: context)
                             Persistence.shared.save(context)
                         }
                         dismiss()
@@ -180,6 +192,95 @@ struct SplitSheet: View {
     }
 }
 
+/// One photo full size, with edit, main-photo and delete.
+struct PhotoDetailView: View {
+    @ObservedObject var photo: Photo
+    let plant: Plant
+    @Environment(\.managedObjectContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    @State private var editing = false
+    @State private var confirmingDelete = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                PlantPhotoView(photo: photo, maxPixel: 2048)
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                if let caption = photo.caption {
+                    Text(caption).font(.body)
+                }
+                if PlantPhotos.isCover(photo, of: plant) {
+                    Label("Main photo", systemImage: "star.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding()
+        }
+        .navigationTitle(photo.takenAt.map(Lineage.format) ?? "Photo")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            Menu {
+                Button { editing = true } label: { Label("Edit date or caption", systemImage: "pencil") }
+                if !PlantPhotos.isCover(photo, of: plant) {
+                    Button {
+                        PlantPhotos.setCover(photo, of: plant)
+                        Persistence.shared.save(context)
+                    } label: { Label("Use as main photo", systemImage: "star") }
+                }
+                Button(role: .destructive) { confirmingDelete = true } label: { Label("Delete photo", systemImage: "trash") }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .accessibilityLabel("Photo options")
+        }
+        .sheet(isPresented: $editing) { EditPhotoSheet(photo: photo) }
+        .confirmationDialog("Delete this photo?", isPresented: $confirmingDelete, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                dismiss()
+                PlantPhotos.delete(photo, context: context)
+                Persistence.shared.save(context)
+            }
+        } message: {
+            Text("It's removed from both phones.")
+        }
+    }
+}
+
+struct EditPhotoSheet: View {
+    @ObservedObject var photo: Photo
+    @Environment(\.managedObjectContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    @State private var caption = ""
+    @State private var takenAt = Date()
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                DatePicker("Taken on", selection: $takenAt, in: ...Date(), displayedComponents: .date)
+                TextField("Caption", text: $caption, axis: .vertical)
+            }
+            .navigationTitle("Edit photo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        PlantPhotos.update(photo, caption: caption, takenAt: takenAt)
+                        Persistence.shared.save(context)
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                caption = photo.caption ?? ""
+                takenAt = photo.takenAt ?? Date()
+            }
+        }
+    }
+}
+
 struct EditPlantView: View {
     @ObservedObject var plant: Plant
     @Environment(\.managedObjectContext) private var context
@@ -189,17 +290,23 @@ struct EditPlantView: View {
     @State private var acquired = Date()
     @State private var setting: PlantSetting = .indoor
     @State private var light: LightSource?
+    @State private var collections: Set<PlantCollection> = []
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Nickname", text: $nickname)
-                TextField("Where it lives", text: $location)
-                DatePicker("Got it on", selection: $acquired, in: ...Date(), displayedComponents: .date)
-                Picker("Lives", selection: $setting) {
-                    ForEach(PlantSetting.allCases) { Text($0.label).tag($0) }
+                Section {
+                    TextField("Nickname", text: $nickname)
+                    TextField("Where it lives", text: $location)
+                    DatePicker("Got it on", selection: $acquired, in: ...Date(), displayedComponents: .date)
+                    Picker("Lives", selection: $setting) {
+                        ForEach(PlantSetting.allCases) { Text($0.label).tag($0) }
+                    }
+                    LightSourcePicker(selection: $light)
                 }
-                LightSourcePicker(selection: $light)
+                if let household = plant.household {
+                    CollectionToggles(household: household, selection: $collections)
+                }
             }
             .navigationTitle("Edit")
             .navigationBarTitleDisplayMode(.inline)
@@ -214,6 +321,7 @@ struct EditPlantView: View {
                         plant.acquiredDate = acquired
                         plant.settingValue = setting
                         plant.lightSourceValue = light
+                        Collections.setMembership(of: plant, to: collections)
                         Persistence.shared.save(context)
                         NotificationPlanner.reschedule()
                         dismiss()
@@ -226,6 +334,7 @@ struct EditPlantView: View {
                 acquired = plant.acquiredDate ?? Date()
                 setting = plant.settingValue
                 light = plant.lightSourceValue
+                collections = plant.collections ?? []
             }
         }
     }

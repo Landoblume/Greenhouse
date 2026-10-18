@@ -12,6 +12,9 @@ struct GreenhouseApp: App {
         guard !Persistence.isRunningTests else { return }
         RemoteChangeObserver.shared.start()
         persistence.initializeCloudKitSchemaIfNeeded()
+        #if DEBUG
+        DemoData.seedIfRequested()
+        #endif
     }
 
     var body: some Scene {

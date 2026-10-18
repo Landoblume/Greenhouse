@@ -16,7 +16,7 @@ struct PlantDetailView: View {
     var body: some View {
         List {
             Section {
-                PlantPhotoView(photo: timeline.last?.photo, maxPixel: 1200)
+                PlantPhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 1200)
                     .frame(height: 260)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -28,17 +28,25 @@ struct PlantDetailView: View {
                 if let location = plant.location {
                     LabeledContent("Where", value: location)
                 }
-                if plant.lightSourceValue != nil || plant.species != nil {
-                    LabeledContent("Light") {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(plant.lightSourceValue?.label ?? "Not set")
-                            if let species = plant.species {
-                                Text("Likes: \(species.light.lowercased())")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                LabeledContent("Light") {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(plant.lightSourceValue?.label ?? "Not set")
+                        if let species = plant.species {
+                            Text("Likes: \(species.light.lowercased())")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
+                }
+                if plant.isActive {
+                    NavigationLink {
+                        LightMeterView(plant: plant)
+                    } label: {
+                        Label("Measure the light here", systemImage: "light.max")
+                    }
+                }
+                if !(plant.collections ?? []).isEmpty {
+                    LabeledContent("Collections", value: (plant.collections ?? []).compactMap(\.name).sorted().joined(separator: ", "))
                 }
                 if let since = Lineage.effectiveAcquiredDate(of: plant) {
                     LabeledContent("Had since", value: "\(Lineage.format(since)) (\(Self.age(since: since)))")
@@ -78,16 +86,27 @@ struct PlantDetailView: View {
                 }
                 ForEach(timeline) { item in
                     NavigationLink {
-                        PlantPhotoView(photo: item.photo, maxPixel: 2048)
-                            .scaledToFit()
-                            .navigationTitle(item.photo.takenAt.map(Lineage.format) ?? "Photo")
+                        PhotoDetailView(photo: item.photo, plant: plant)
                     } label: {
                         HStack {
                             PlantPhotoView(photo: item.photo, maxPixel: 160)
                                 .frame(width: 56, height: 56)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                             VStack(alignment: .leading) {
-                                Text(item.photo.takenAt.map(Lineage.format) ?? "Unknown date")
+                                HStack(spacing: 4) {
+                                    Text(item.photo.takenAt.map(Lineage.format) ?? "Unknown date")
+                                    if PlantPhotos.isCover(item.photo, of: plant) {
+                                        Image(systemName: "star.fill")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                            .accessibilityLabel("Main photo")
+                                    }
+                                }
+                                if let caption = item.photo.caption {
+                                    Text(caption)
+                                        .font(.caption)
+                                        .lineLimit(2)
+                                }
                                 if item.source != plant {
                                     Text("From \(item.source.displayName) (acq. \(item.source.acquiredDate.map(Lineage.format) ?? "?"))")
                                         .font(.caption)

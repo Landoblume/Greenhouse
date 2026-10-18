@@ -3,11 +3,16 @@ import SwiftUI
 
 struct AddPlantView: View {
     let household: Household
+    /// Set when adding a plant you had on the wishlist; it comes off the list.
+    var wish: WishlistItem?
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(Collections.selectedKey) private var selectedCollection = ""
 
     @State private var species: Species?
     @State private var customLatin = ""
+    @State private var photoDate: Date?
+    @State private var collections: Set<PlantCollection> = []
     @State private var nickname = ""
     @State private var acquired = Date()
     @State private var location = ""
@@ -44,8 +49,14 @@ struct AddPlantView: View {
                     }
                 }
 
-                Section("Photo") {
-                    PhotoInput(image: $image)
+                Section {
+                    PhotoInput(image: $image) { photoDate = $0 }
+                } header: {
+                    Text("Photo")
+                } footer: {
+                    if image != nil, let photoDate {
+                        Text("Dated \(Lineage.format(photoDate)), when the photo was taken.")
+                    }
                 }
 
                 Section("About") {
@@ -58,6 +69,8 @@ struct AddPlantView: View {
                     LightSourcePicker(selection: $light)
                 }
 
+                CollectionToggles(household: household, selection: $collections)
+
                 Section {
                     Stepper("Water every \(waterEvery) day\(waterEvery == 1 ? "" : "s")", value: $waterEvery, in: 1...90)
                 } header: {
@@ -68,7 +81,7 @@ struct AddPlantView: View {
                     }
                 }
             }
-            .navigationTitle("New plant")
+            .navigationTitle(wish == nil ? "New plant" : "Got it!")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
@@ -87,11 +100,26 @@ struct AddPlantView: View {
                     customLatin = typed
                 }
             }
+            .onAppear(perform: prefill)
+        }
+    }
+
+    private func prefill() {
+        if let collection = Collections.find(selectedCollection, in: household) {
+            collections.insert(collection)
+        }
+        guard let wish else { return }
+        if let collection = wish.collection { collections.insert(collection) }
+        if let match = wish.species {
+            species = match
+            waterEvery = match.waterDays
+        } else {
+            customLatin = wish.scientificName ?? ""
         }
     }
 
     private func save() {
-        PlantFactory.create(
+        let plant = PlantFactory.create(
             scientificName: latinName,
             species: species,
             nickname: nickname,
@@ -101,9 +129,12 @@ struct AddPlantView: View {
             lightSource: light,
             waterEvery: waterEvery,
             photo: image.flatMap { ImageTools.preparedJPEG(from: $0) },
+            photoTakenAt: photoDate,
+            collections: Array(collections),
             household: household,
             context: context
         )
+        if let wish { Plans.fulfill(wish, with: plant, context: context) }
         Persistence.shared.save(context)
         NotificationPlanner.reschedule()
         dismiss()
@@ -166,8 +197,11 @@ struct LightSourcePicker: View {
 }
 
 /// Camera first (where there is one), photo library as the fallback.
+/// `onCaptureDate` gets the date stored in a library photo, or nil for a new
+/// camera shot (taken now) or a photo without one.
 struct PhotoInput: View {
     @Binding var image: UIImage?
+    var onCaptureDate: (Date?) -> Void = { _ in }
     @State private var showingCamera = false
     @State private var libraryItem: PhotosPickerItem?
 
@@ -187,6 +221,9 @@ struct PhotoInput: View {
             .fullScreenCover(isPresented: $showingCamera) {
                 CameraPicker(image: $image).ignoresSafeArea()
             }
+            .onChange(of: showingCamera) { _, showing in
+                if !showing { onCaptureDate(nil) }
+            }
         }
         PhotosPicker(selection: $libraryItem, matching: .images) {
             Label("Choose from library", systemImage: "photo.on.rectangle")
@@ -195,6 +232,7 @@ struct PhotoInput: View {
             Task {
                 if let data = try? await item?.loadTransferable(type: Data.self), let picked = UIImage(data: data) {
                     image = picked
+                    onCaptureDate(PlantPhotos.captureDate(from: data))
                 }
             }
         }

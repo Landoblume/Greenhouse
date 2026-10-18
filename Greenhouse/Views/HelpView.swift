@@ -15,7 +15,19 @@ struct HelpView: View {
             Add a nickname to tell look-alikes apart, take a photo, and pick where it lives and its light.
             """)
             topic("Photos", "camera", """
-            On a plant's page, Add photo starts its timeline. With two or more photos, Then vs now shows the first and latest side by side.
+            On a plant's page, Add photo starts its timeline. Photos from your library keep the date they were taken. With two or more photos, Then vs now shows the first and latest side by side.
+
+            Tap a photo, then the ••• button, to fix its date, add a caption, make it the main photo on the plant's tile, or delete it.
+            """)
+            topic("Collections", "square.stack", """
+            Group plants however you like: Indoor, Outdoor greenhouse, Succulents. Tap + Collection at the top of the Plants tab, then Choose plants. A plant can be in more than one.
+
+            Picking a collection filters the Plants, Care and Plans tabs together, so each one has its own reminders, wishlist and projects. Press and hold a collection to rename or delete it; deleting never removes plants.
+            """)
+            topic("Plans: wishlist and projects", "list.star", """
+            The wishlist holds plants you'd like, with notes like where you saw one. It shows the light each one likes and whether it survives winter in your zone. When you bring one home, tap Got it: it becomes a plant and leaves the list.
+
+            Projects are things to build or do, like painting a new greenhouse, with an optional target date and the plants they're for. Tap the circle when it's done.
             """)
             topic("Stapling and splitting", "arrow.triangle.branch", """
             Combined two pots? Tap Staple on the Plants tab, pick the plants, and they become one tile. Took cuttings or divided a plant? Open it and tap Split.
@@ -33,7 +45,7 @@ struct HelpView: View {
             topic("Grow zone and light", "thermometer.sun", """
             Set your ZIP in Settings to get your USDA hardiness zone. Outdoor and seasonal plants then say whether they survive winter outside where you live.
 
-            Each plant's page shows the light you picked next to what the species likes.
+            Each plant's page shows the light you picked next to what the species likes. Measure the light here uses the camera to estimate how bright the spot really is and says whether that suits the plant.
             """)
             topic("Syncing", "icloud", """
             Changes show up on the other phone within about a minute while the app is open. Both phones need to be signed in to iCloud.
