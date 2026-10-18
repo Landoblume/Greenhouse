@@ -28,6 +28,18 @@ struct PlantDetailView: View {
                 if let location = plant.location {
                     LabeledContent("Where", value: location)
                 }
+                if plant.lightSourceValue != nil || plant.species != nil {
+                    LabeledContent("Light") {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(plant.lightSourceValue?.label ?? "Not set")
+                            if let species = plant.species {
+                                Text("Likes: \(species.light.lowercased())")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
                 if let since = Lineage.effectiveAcquiredDate(of: plant) {
                     LabeledContent("Had since", value: "\(Lineage.format(since)) (\(Self.age(since: since)))")
                 }

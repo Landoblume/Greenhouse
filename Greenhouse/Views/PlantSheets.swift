@@ -188,6 +188,7 @@ struct EditPlantView: View {
     @State private var location = ""
     @State private var acquired = Date()
     @State private var setting: PlantSetting = .indoor
+    @State private var light: LightSource?
 
     var body: some View {
         NavigationStack {
@@ -198,6 +199,7 @@ struct EditPlantView: View {
                 Picker("Lives", selection: $setting) {
                     ForEach(PlantSetting.allCases) { Text($0.label).tag($0) }
                 }
+                LightSourcePicker(selection: $light)
             }
             .navigationTitle("Edit")
             .navigationBarTitleDisplayMode(.inline)
@@ -211,6 +213,7 @@ struct EditPlantView: View {
                         plant.location = trimmedLocation.isEmpty ? nil : trimmedLocation
                         plant.acquiredDate = acquired
                         plant.settingValue = setting
+                        plant.lightSourceValue = light
                         Persistence.shared.save(context)
                         NotificationPlanner.reschedule()
                         dismiss()
@@ -222,6 +225,7 @@ struct EditPlantView: View {
                 location = plant.location ?? ""
                 acquired = plant.acquiredDate ?? Date()
                 setting = plant.settingValue
+                light = plant.lightSourceValue
             }
         }
     }

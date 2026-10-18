@@ -23,6 +23,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink {
+                        HelpView()
+                    } label: {
+                        Label("How Greenhouse works", systemImage: "questionmark.circle")
+                    }
+                }
+
                 Section("You") {
                     TextField("Your first name", text: $myName)
                 }

@@ -80,6 +80,7 @@ struct NameEntryView: View {
 struct WelcomeView: View {
     @Environment(\.managedObjectContext) private var context
     @State private var waitingForInvite = false
+    @State private var showingHelp = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -115,9 +116,14 @@ struct WelcomeView: View {
                 }
                 .buttonStyle(.bordered)
             }
+            Button("How Greenhouse works") { showingHelp = true }
+                .font(.footnote)
             Spacer()
         }
         .padding(32)
+        .sheet(isPresented: $showingHelp) {
+            NavigationStack { HelpView() }
+        }
     }
 }
 

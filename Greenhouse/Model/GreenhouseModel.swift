@@ -28,6 +28,7 @@ enum GreenhouseModel {
             attr("catalogID", .string),
             attr("acquiredDate", .date),
             attr("location", .string),
+            attr("lightSource", .string),
             attr("setting", .string, default: PlantSetting.indoor.rawValue),
             attr("status", .string, default: PlantStatus.active.rawValue),
             attr("createdAt", .date),

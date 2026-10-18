@@ -12,6 +12,7 @@ struct AddPlantView: View {
     @State private var acquired = Date()
     @State private var location = ""
     @State private var setting: PlantSetting = .indoor
+    @State private var light: LightSource?
     @State private var waterEvery = 7
     @State private var image: UIImage?
     @State private var showingSpeciesPicker = false
@@ -54,6 +55,7 @@ struct AddPlantView: View {
                     Picker("Lives", selection: $setting) {
                         ForEach(PlantSetting.allCases) { Text($0.label).tag($0) }
                     }
+                    LightSourcePicker(selection: $light)
                 }
 
                 Section {
@@ -96,6 +98,7 @@ struct AddPlantView: View {
             acquired: acquired,
             location: location,
             setting: setting,
+            lightSource: light,
             waterEvery: waterEvery,
             photo: image.flatMap { ImageTools.preparedJPEG(from: $0) },
             household: household,
@@ -147,6 +150,17 @@ struct SpeciesPickerView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
+        }
+    }
+}
+
+struct LightSourcePicker: View {
+    @Binding var selection: LightSource?
+
+    var body: some View {
+        Picker("Light", selection: $selection) {
+            Text("Not set").tag(LightSource?.none)
+            ForEach(LightSource.allCases) { Text($0.label).tag(Optional($0)) }
         }
     }
 }

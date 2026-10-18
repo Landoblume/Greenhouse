@@ -20,6 +20,29 @@ enum PlantSetting: String, CaseIterable, Identifiable {
     }
 }
 
+/// Where a plant's light comes from.
+enum LightSource: String, CaseIterable, Identifiable {
+    case southWindow, eastWindow, westWindow, northWindow, skylight, growLight, awayFromWindows
+    case fullSun, partShade, shade
+
+    var id: Self { self }
+
+    var label: String {
+        switch self {
+        case .southWindow: "South-facing window"
+        case .eastWindow: "East-facing window"
+        case .westWindow: "West-facing window"
+        case .northWindow: "North-facing window"
+        case .skylight: "Skylight"
+        case .growLight: "Grow light"
+        case .awayFromWindows: "Away from windows"
+        case .fullSun: "Full sun outdoors"
+        case .partShade: "Part shade outdoors"
+        case .shade: "Shade outdoors"
+        }
+    }
+}
+
 enum PlantStatus: String {
     /// On the home screen.
     case active
@@ -72,6 +95,7 @@ final class Plant: NSManagedObject {
     @NSManaged var catalogID: String?
     @NSManaged var acquiredDate: Date?
     @NSManaged var location: String?
+    @NSManaged var lightSource: String?
     @NSManaged var setting: String?
     @NSManaged var status: String?
     @NSManaged var createdAt: Date?
@@ -99,6 +123,11 @@ final class Plant: NSManagedObject {
     }
 
     var isActive: Bool { statusValue == .active }
+
+    var lightSourceValue: LightSource? {
+        get { lightSource.flatMap(LightSource.init(rawValue:)) }
+        set { lightSource = newValue?.rawValue }
+    }
 
     var species: Species? { SpeciesCatalog.shared.species(id: catalogID) }
 

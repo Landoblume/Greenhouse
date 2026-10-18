@@ -5,6 +5,7 @@ import SwiftUI
 struct PlantsView: View {
     let household: Household
     @FetchRequest private var plants: FetchedResults<Plant>
+    @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
     @State private var selecting = false
     @State private var selection: Set<NSManagedObjectID> = []
     @State private var showingAdd = false
@@ -25,6 +26,10 @@ struct PlantsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
+                ForEach(HouseholdMerge.candidates(for: household, in: Array(households))) { other in
+                    MergeCard(source: other, target: household)
+                        .padding([.horizontal, .top])
+                }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], spacing: 12) {
                     ForEach(plants) { plant in
                         if selecting {
@@ -90,6 +95,48 @@ struct PlantsView: View {
             selection.remove(plant.objectID)
         } else {
             selection.insert(plant.objectID)
+        }
+    }
+}
+
+/// Offers to bring plants from your own household into the one you joined.
+struct MergeCard: View {
+    @ObservedObject var source: Household
+    let target: Household
+    @Environment(\.managedObjectContext) private var context
+    @State private var confirming = false
+    @State private var dismissed = false
+
+    private var count: Int { (source.plants ?? []).filter(\.isActive).count }
+
+    var body: some View {
+        if !dismissed {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("You have \(count) plant\(count == 1 ? "" : "s") of your own", systemImage: "arrow.triangle.merge")
+                    .font(.headline)
+                Text("They're from before you joined \(target.name ?? "this household"). Bring them in to share them here, with their photos, reminders and history.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                HStack {
+                    Button("Bring them in") { confirming = true }
+                        .buttonStyle(.borderedProminent)
+                    Button("Not now") { dismissed = true }
+                        .buttonStyle(.bordered)
+                }
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+            .confirmationDialog("Move \(count) plant\(count == 1 ? "" : "s") into \(target.name ?? "this household")?",
+                                isPresented: $confirming, titleVisibility: .visible) {
+                Button("Move them") {
+                    HouseholdMerge.move(source, into: target, context: context)
+                    Persistence.shared.save(context)
+                    NotificationPlanner.reschedule()
+                }
+            } message: {
+                Text("Everyone in the household will see them. Your separate household is removed once they've moved.")
+            }
         }
     }
 }

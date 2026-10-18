@@ -12,6 +12,7 @@ enum PlantFactory {
         acquired: Date,
         location: String?,
         setting: PlantSetting,
+        lightSource: LightSource? = nil,
         waterEvery days: Int,
         photo: Data?,
         now: Date = .now,
@@ -29,6 +30,7 @@ enum PlantFactory {
         plant.acquiredDate = acquired
         plant.location = nonEmpty(location)
         plant.settingValue = setting
+        plant.lightSourceValue = lightSource
         plant.statusValue = .active
         plant.household = household
 
