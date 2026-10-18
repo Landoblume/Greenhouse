@@ -310,15 +310,15 @@ struct PlantNotesSection: View {
 }
 
 extension View {
-    /// A plant view only watches the plant itself, so editing one of its photos
-    /// or projects (a new date, a project started, here or on the other phone)
-    /// wouldn't redraw it. This redraws it whenever any photo or project
-    /// changes, which also re-sorts the timeline and re-picks the newest photo.
+    /// A plant view only watches the plant itself, so editing one of its photos,
+    /// milestones or projects (a new date, a fixed note, a project started,
+    /// here or on the other phone) wouldn't redraw it. This redraws it whenever
+    /// any of those change, which also re-sorts the timeline and History.
     func redrawsOnRelatedChanges(_ plant: Plant) -> some View {
         onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
             let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
             let changed = keys.contains { key in
-                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is Photo || $0 is Project } ?? false
+                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is Photo || $0 is Milestone || $0 is Project } ?? false
             }
             if changed { plant.objectWillChange.send() }
         }

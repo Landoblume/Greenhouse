@@ -5,6 +5,14 @@ import SwiftUI
 struct MilestoneRow: View {
     let item: Milestones.Item
     let viewedPlant: Plant
+    /// Watched so an edit (here or on the other phone) shows right away.
+    @ObservedObject private var milestone: Milestone
+
+    init(item: Milestones.Item, viewedPlant: Plant) {
+        self.item = item
+        self.viewedPlant = viewedPlant
+        _milestone = ObservedObject(wrappedValue: item.milestone)
+    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -12,8 +20,8 @@ struct MilestoneRow: View {
                 .font(.caption)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.milestone.title ?? "Milestone")
-                if let notes = item.milestone.notes {
+                Text(milestone.title ?? "Milestone")
+                if let notes = milestone.notes {
                     Text(notes)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -23,7 +31,7 @@ struct MilestoneRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                let photos = Milestones.photos(of: item.milestone)
+                let photos = Milestones.photos(of: milestone)
                 if !photos.isEmpty {
                     HStack(spacing: 4) {
                         ForEach(photos.prefix(4)) { photo in
@@ -40,7 +48,7 @@ struct MilestoneRow: View {
                 }
             }
             Spacer()
-            Text(item.milestone.date.map(Lineage.format) ?? "")
+            Text(milestone.date.map(Lineage.format) ?? "")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
