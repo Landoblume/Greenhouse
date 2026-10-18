@@ -16,6 +16,13 @@ extension Persistence {
         return (try? cloudKit.fetchShares(matching: [household.objectID]))?[household.objectID]
     }
 
+    /// People other than the owner who accepted an invite to this household.
+    /// An invite that was created but never accepted counts as zero.
+    func joinedCount(for household: Household) -> Int {
+        guard let share = existingShare(for: household) else { return 0 }
+        return share.participants.filter { $0.role != .owner && $0.acceptanceStatus == .accepted }.count
+    }
+
     func shareForInvite(_ household: Household) async throws -> CKShare {
         guard let cloudKit, let privateStore else { throw SharingError.unavailable }
         if let share = existingShare(for: household) { return share }

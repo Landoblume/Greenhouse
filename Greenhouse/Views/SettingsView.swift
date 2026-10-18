@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var shareError: String?
     @State private var participants: Int?
     @State private var notificationsAllowed: Bool?
+    @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
 
     private var isMember: Bool { Persistence.shared.isShared(household) }
 
@@ -94,6 +95,19 @@ struct SettingsView: View {
                     Text("Grow zone")
                 } footer: {
                     Text("USDA hardiness zone, from your ZIP code or picked by hand. Outdoor and seasonal plants use it to tell you whether they survive winter outside. Both phones share it.")
+                }
+
+                let others = HouseholdMerge.others(of: household, in: Array(households))
+                if !others.isEmpty {
+                    Section {
+                        ForEach(others) { other in
+                            OtherHouseholdRow(source: other, target: household)
+                        }
+                    } header: {
+                        Text("Your other households")
+                    } footer: {
+                        Text("Plants you added before joining \(household.name ?? "this household"). Bringing them here moves their photos, reminders and history too.")
+                    }
                 }
 
                 Section {
@@ -211,6 +225,41 @@ struct ErrorText: View {
                 .textSelection(.enabled)
             Button("Copy details") { UIPasteboard.general.string = text }
                 .font(.caption)
+        }
+    }
+}
+
+/// One of your own households, with a button to bring its plants here.
+struct OtherHouseholdRow: View {
+    @ObservedObject var source: Household
+    let target: Household
+    @Environment(\.managedObjectContext) private var context
+    @State private var confirming = false
+
+    private var count: Int { (source.plants ?? []).filter(\.isActive).count }
+    private var joined: Int { Persistence.shared.joinedCount(for: source) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(source.name ?? "Untitled household")
+            Text("\(count) plant\(count == 1 ? "" : "s")" + (joined > 0 ? " · \(joined) other \(joined == 1 ? "person" : "people") joined it" : ""))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Bring \(count == 1 ? "it" : "them") into \(target.name ?? "this household")") { confirming = true }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+        }
+        .confirmationDialog("Move \(count) plant\(count == 1 ? "" : "s") into \(target.name ?? "this household")?",
+                            isPresented: $confirming, titleVisibility: .visible) {
+            Button("Move them") {
+                HouseholdMerge.move(source, into: target, context: context)
+                Persistence.shared.save(context)
+                NotificationPlanner.reschedule()
+            }
+        } message: {
+            Text(joined > 0
+                 ? "\(joined) other \(joined == 1 ? "person" : "people") joined \(source.name ?? "that household") and will no longer see these plants there."
+                 : "Everyone here will see them. \(source.name ?? "Your other household") is removed once they've moved.")
         }
     }
 }

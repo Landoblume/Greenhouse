@@ -11,16 +11,21 @@ import CoreData
 /// the private store, a joined one in the shared store), so everything is
 /// copied into the target household's store and the originals are deleted.
 enum HouseholdMerge {
-    /// Households whose plants could be brought into `current`: your own
-    /// (not one you joined), not shared with anyone else (they'd lose it),
-    /// and not empty.
-    static func candidates(for current: Household, in households: [Household], persistence: Persistence = .shared) -> [Household] {
+    /// Your own households (not ones you joined) that still hold plants,
+    /// other than `current`. Settings lists all of these.
+    static func others(of current: Household, in households: [Household], persistence: Persistence = .shared) -> [Household] {
         households.filter { household in
             household != current
                 && !persistence.isShared(household)
-                && persistence.existingShare(for: household) == nil
                 && !(household.plants ?? []).isEmpty
         }
+    }
+
+    /// The ones offered automatically on the Plants tab: also nobody else has
+    /// joined them, since moving would take the plants away from that person.
+    /// An invite that was sent but never accepted doesn't count.
+    static func candidates(for current: Household, in households: [Household], persistence: Persistence = .shared) -> [Household] {
+        others(of: current, in: households, persistence: persistence).filter { persistence.joinedCount(for: $0) == 0 }
     }
 
     /// Returns how many plants now show on the home screen as a result.
