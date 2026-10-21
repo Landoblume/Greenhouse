@@ -282,22 +282,25 @@ struct PlantNotesSection: View {
         _notes = State(initialValue: plant.notes ?? "")
     }
 
+    // The modifiers go on the field, not the section: a List section applies
+    // its modifiers to the header and the row separately, which added the
+    // keyboard's Done button twice.
     var body: some View {
         CollapsibleSection("Notes") {
             TextField("Anything worth remembering: quirks, where it came from, what it likes…", text: $notes, axis: .vertical)
                 .lineLimit(2...)
                 .focused($focused)
-        }
-        .onChange(of: focused) { _, isFocused in if !isFocused { save() } }
-        .onDisappear(perform: save)
-        .onChange(of: plant.notes) { _, saved in
-            // Changed on the other phone.
-            if !focused { notes = saved ?? "" }
-        }
-        .toolbar {
-            if focused {
-                ToolbarItem(placement: .keyboard) { Button("Done") { focused = false } }
-            }
+                .onChange(of: focused) { _, isFocused in if !isFocused { save() } }
+                .onDisappear(perform: save)
+                .onChange(of: plant.notes) { _, saved in
+                    // Changed on the other phone.
+                    if !focused { notes = saved ?? "" }
+                }
+                .toolbar {
+                    if focused {
+                        ToolbarItem(placement: .keyboard) { Button("Done") { focused = false } }
+                    }
+                }
         }
     }
 
