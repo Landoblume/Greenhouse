@@ -42,6 +42,9 @@ No model change → no deploy step, so say so in the release report.
   `.redrawsOnRelatedChanges(plant)` (extend its type list for new related
   entities). Otherwise edits show stale text until the page is rebuilt (v1.2.1,
   v1.3.10).
+- **Don't put `.toolbar`/`.onChange` on a List `Section`.** A section applies
+  its modifiers to the header and each row separately, so a keyboard Done
+  button showed up twice (v1.3.11). Attach them to the field itself.
 - **Forms set `@State` in `init`**, not `onAppear`, or date pickers show stale
   dates.
 - **Navigation:** in a NavigationStack, don't mix `NavigationLink(destination:)`
