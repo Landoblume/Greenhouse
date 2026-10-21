@@ -81,6 +81,7 @@ struct TaskEditorView: View {
     @State private var firstDue = Date()
     @State private var selected: Set<NSManagedObjectID> = []
     @State private var confirmingDelete = false
+    @FocusState private var nameFocused: Bool
 
     /// Common ones, so the usual cases are two taps.
     private static let presets: [(String, Int, IntervalUnit)] = [
@@ -109,6 +110,7 @@ struct TaskEditorView: View {
                 if !isWatering {
                     Section {
                         TextField("What (e.g. Hydrogen peroxide treatment)", text: $name)
+                            .focused($nameFocused)
                         if task == nil {
                             Menu("Suggestions") {
                                 ForEach(Self.presets, id: \.0) { preset in
@@ -192,6 +194,8 @@ struct TaskEditorView: View {
             selected = Set((task.plants ?? []).map(\.objectID))
         } else {
             selected = Set(preselected.map(\.objectID))
+            // A new reminder starts with its name, so open the keyboard there.
+            nameFocused = true
         }
     }
 
