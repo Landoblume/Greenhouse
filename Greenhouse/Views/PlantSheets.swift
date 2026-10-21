@@ -206,15 +206,82 @@ struct CuttingSheet: View {
     }
 }
 
-/// One photo full size, with edit, main-photo and delete.
+/// A plant's photos full size, starting at the one tapped; swipe left and
+/// right for the others. The ••• menu edits whichever photo is showing.
 struct PhotoDetailView: View {
-    @ObservedObject var photo: Photo
-    let plant: Plant
+    @ObservedObject var plant: Plant
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @State private var current: NSManagedObjectID
     @State private var editing = false
     @State private var cropping = false
     @State private var confirmingDelete = false
+
+    init(photo: Photo, plant: Plant) {
+        _plant = ObservedObject(wrappedValue: plant)
+        _current = State(initialValue: photo.objectID)
+    }
+
+    /// Same order as the plant page's Photos list.
+    private var photos: [Photo] { Lineage.timeline(for: plant).map(\.photo) }
+    private var photo: Photo? { photos.first { $0.objectID == current } }
+
+    var body: some View {
+        TabView(selection: $current) {
+            ForEach(photos) { photo in
+                PhotoPage(photo: photo, plant: plant).tag(photo.objectID)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .navigationTitle(photo?.takenAt.map(Lineage.format) ?? "Photo")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let photo {
+                Menu {
+                    Button { editing = true } label: { Label("Edit date, caption or milestone", systemImage: "pencil") }
+                    Button { cropping = true } label: { Label("Crop photo", systemImage: "crop") }
+                    if !PlantPhotos.isCover(photo, of: plant) {
+                        Button {
+                            PlantPhotos.setCover(photo, of: plant)
+                            Persistence.shared.save(context)
+                        } label: { Label("Use as main photo", systemImage: "star") }
+                    }
+                    Button(role: .destructive) { confirmingDelete = true } label: { Label("Delete photo", systemImage: "trash") }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("Photo options")
+            }
+        }
+        .sheet(isPresented: $editing) {
+            if let photo { EditPhotoSheet(photo: photo, plant: plant) }
+        }
+        .fullScreenCover(isPresented: $cropping) {
+            if let photo, let data = photo.imageData, let image = UIImage(data: data) {
+                CropView(image: image) { cropped in
+                    PlantPhotos.replaceImage(of: photo, with: cropped)
+                    Persistence.shared.save(context)
+                }
+            }
+        }
+        .confirmationDialog("Delete this photo?", isPresented: $confirmingDelete, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                guard let photo else { return }
+                dismiss()
+                PlantPhotos.delete(photo, context: context)
+                Persistence.shared.save(context)
+            }
+        } message: {
+            Text("It's removed from both phones.")
+        }
+        .redrawsOnRelatedChanges(plant)
+    }
+}
+
+/// One photo full size with its caption, milestone and main-photo star.
+private struct PhotoPage: View {
+    @ObservedObject var photo: Photo
+    let plant: Plant
 
     var body: some View {
         ScrollView {
@@ -237,42 +304,6 @@ struct PhotoDetailView: View {
                 }
             }
             .padding()
-        }
-        .navigationTitle(photo.takenAt.map(Lineage.format) ?? "Photo")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            Menu {
-                Button { editing = true } label: { Label("Edit date, caption or milestone", systemImage: "pencil") }
-                Button { cropping = true } label: { Label("Crop photo", systemImage: "crop") }
-                if !PlantPhotos.isCover(photo, of: plant) {
-                    Button {
-                        PlantPhotos.setCover(photo, of: plant)
-                        Persistence.shared.save(context)
-                    } label: { Label("Use as main photo", systemImage: "star") }
-                }
-                Button(role: .destructive) { confirmingDelete = true } label: { Label("Delete photo", systemImage: "trash") }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-            }
-            .accessibilityLabel("Photo options")
-        }
-        .sheet(isPresented: $editing) { EditPhotoSheet(photo: photo, plant: plant) }
-        .fullScreenCover(isPresented: $cropping) {
-            if let data = photo.imageData, let image = UIImage(data: data) {
-                CropView(image: image) { cropped in
-                    PlantPhotos.replaceImage(of: photo, with: cropped)
-                    Persistence.shared.save(context)
-                }
-            }
-        }
-        .confirmationDialog("Delete this photo?", isPresented: $confirmingDelete, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
-                dismiss()
-                PlantPhotos.delete(photo, context: context)
-                Persistence.shared.save(context)
-            }
-        } message: {
-            Text("It's removed from both phones.")
         }
     }
 }

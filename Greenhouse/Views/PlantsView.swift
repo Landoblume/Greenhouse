@@ -85,6 +85,7 @@ struct PlantsView: View {
             }
             .navigationTitle(household.name ?? "Plants")
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
+            .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
                     Button {

@@ -79,6 +79,13 @@ struct PlantDetailView: View {
                 }
             }
 
+            let projects = Plans.sorted(Array(plant.projects ?? []))
+            if !projects.isEmpty {
+                CollapsibleSection("Projects", summary: "\(projects.count)") {
+                    ForEach(projects) { ProjectRow(project: $0, household: household) }
+                }
+            }
+
             CollapsibleSection("Photos", summary: "\(timeline.count)") {
                 if plant.isActive {
                     Button { showingAddPhoto = true } label: { Label("Add photo", systemImage: "camera") }
@@ -247,7 +254,14 @@ struct TaskRow: View {
         HStack {
             Button(action: onEdit) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(task.title).foregroundStyle(.primary)
+                    // The chevron says the row opens; testers didn't know
+                    // tapping it edits the schedule.
+                    HStack(spacing: 4) {
+                        Text(task.title).foregroundStyle(.primary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
                     Text(CareSchedule.cadence(count: Int(task.intervalCount), unit: task.unit).capitalizedFirst
                          + (task.isWatering || task.activePlants.isEmpty ? "" : " · " + task.activePlants.map(\.displayName).joined(separator: ", ")))
                         .font(.caption)
@@ -267,6 +281,13 @@ struct TaskRow: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
         }
+        .swipeActions(edge: .leading) {
+            Button(action: onEdit) { Label("Edit", systemImage: "pencil") }
+                .tint(.accentColor)
+        }
+        .contextMenu {
+            Button(action: onEdit) { Label("Edit reminder", systemImage: "pencil") }
+        }
     }
 }
 
@@ -282,22 +303,25 @@ struct PlantNotesSection: View {
         _notes = State(initialValue: plant.notes ?? "")
     }
 
+    // The modifiers go on the field, not the section: a List section applies
+    // its modifiers to the header and the row separately, which added the
+    // keyboard's Done button twice.
     var body: some View {
         CollapsibleSection("Notes") {
             TextField("Anything worth remembering: quirks, where it came from, what it likes…", text: $notes, axis: .vertical)
                 .lineLimit(2...)
                 .focused($focused)
-        }
-        .onChange(of: focused) { _, isFocused in if !isFocused { save() } }
-        .onDisappear(perform: save)
-        .onChange(of: plant.notes) { _, saved in
-            // Changed on the other phone.
-            if !focused { notes = saved ?? "" }
-        }
-        .toolbar {
-            if focused {
-                ToolbarItem(placement: .keyboard) { Button("Done") { focused = false } }
-            }
+                .onChange(of: focused) { _, isFocused in if !isFocused { save() } }
+                .onDisappear(perform: save)
+                .onChange(of: plant.notes) { _, saved in
+                    // Changed on the other phone.
+                    if !focused { notes = saved ?? "" }
+                }
+                .toolbar {
+                    if focused {
+                        ToolbarItem(placement: .keyboard) { Button("Done") { focused = false } }
+                    }
+                }
         }
     }
 

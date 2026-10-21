@@ -57,12 +57,15 @@ enum LineageKind: String {
 }
 
 enum IntervalUnit: String, CaseIterable, Identifiable {
-    case day, week, month
+    /// `once` is a one-time task: due on its first date, finished when done.
+    /// Stored in the same text field, so it needed no schema change.
+    case day, week, month, once
 
     var id: Self { self }
 
     func label(count: Int) -> String {
-        count == 1 ? rawValue : rawValue + "s"
+        if self == .once { return "once" }
+        return count == 1 ? rawValue : rawValue + "s"
     }
 }
 
@@ -210,7 +213,8 @@ final class CareTask: NSManagedObject {
     /// Due date until the first time it's done; after that, the last log decides.
     @NSManaged var firstDue: Date?
     @NSManaged var isWatering: Bool
-    /// Retired by a staple or split; kept so its logs stay in history.
+    /// Retired by a staple or split, or a one-time task that's been done;
+    /// kept so its logs stay in history.
     @NSManaged var isArchived: Bool
     @NSManaged var createdAt: Date?
     /// Empty means a household-wide task, like "clean the grow lights".
