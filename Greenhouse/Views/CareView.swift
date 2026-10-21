@@ -66,8 +66,8 @@ struct CareView: View {
     }
 }
 
-/// Create or edit a recurring reminder: a name, an interval, and the plants it
-/// covers (none means the whole household).
+/// Create or edit a reminder: a name, an interval (or just once), and the
+/// plants it covers (none means the whole household).
 struct TaskEditorView: View {
     let household: Household
     let task: CareTask?
@@ -126,13 +126,18 @@ struct TaskEditorView: View {
                     }
                 }
                 Section {
-                    Stepper("Every \(count)", value: $count, in: 1...365)
+                    if unit != .once {
+                        Stepper("Every \(count)", value: $count, in: 1...365)
+                    }
                     Picker("Unit", selection: $unit) {
-                        ForEach(IntervalUnit.allCases) { Text($0.label(count: count).capitalizedFirst).tag($0) }
+                        // Watering always repeats.
+                        ForEach(IntervalUnit.allCases.filter { !isWatering || $0 != .once }) {
+                            Text($0.label(count: count).capitalizedFirst).tag($0)
+                        }
                     }
                     .pickerStyle(.segmented)
-                    if task == nil {
-                        DatePicker("First due", selection: $firstDue, displayedComponents: .date)
+                    if task == nil || unit == .once {
+                        DatePicker(unit == .once ? "Due" : "First due", selection: $firstDue, displayedComponents: .date)
                     }
                 } header: {
                     Text("Repeats")
@@ -192,6 +197,7 @@ struct TaskEditorView: View {
             name = task.name ?? ""
             count = Int(task.intervalCount)
             unit = task.unit
+            firstDue = task.firstDue ?? Date()
             selected = Set((task.plants ?? []).map(\.objectID))
         } else {
             selected = Set(preselected.map(\.objectID))
@@ -212,6 +218,7 @@ struct TaskEditorView: View {
             }
             task.intervalCount = Int64(count)
             task.unit = unit
+            if unit == .once { task.firstDue = firstDue }
         } else {
             CareSchedule.makeTask(name: trimmed, count: count, unit: unit, firstDue: firstDue,
                                   plants: chosen, household: household, context: context)

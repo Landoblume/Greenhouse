@@ -131,6 +131,34 @@ final class CareTests: XCTestCase {
         XCTAssertNil(NotificationPlanner.nextAnniversary(of: future, after: day(2026, 10, 17), hour: 9, minute: 0, calendar: .current))
     }
 
+    func testOneTimeTaskIsDueOnItsDateAndFinishesWhenDone() {
+        let store = TestStore()
+        let cutting = store.plant(nickname: "Cutting", acquired: day(2026, 10, 18))
+        let task = CareSchedule.makeTask(name: "Water the cutting", count: 1, unit: .once, firstDue: day(2026, 10, 19),
+                                         plants: [cutting], household: store.household,
+                                         context: store.context, persistence: store.persistence)
+        XCTAssertEqual(CareSchedule.nextDue(for: task), Calendar.current.startOfDay(for: day(2026, 10, 19)))
+        XCTAssertEqual(CareSchedule.cadence(count: 1, unit: .once), "one time")
+        XCTAssertEqual(NotificationPlanner.taskBody(task), "Water the cutting: Cutting")
+        XCTAssertTrue(cutting.activeTasks.contains(task))
+
+        CareSchedule.markDone(task, by: "Sam", at: day(2026, 10, 19), household: store.household,
+                              context: store.context, persistence: store.persistence)
+        store.save()
+        XCTAssertTrue(task.isArchived)
+        XCTAssertFalse(cutting.activeTasks.contains(task))
+        XCTAssertEqual(task.lastLog?.doneBy, "Sam")
+    }
+
+    func testRecurringTaskStaysAfterDone() {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2026, 10, 1), waterEvery: 7, now: day(2026, 10, 1))
+        let watering = try! XCTUnwrap(plant.wateringTask)
+        CareSchedule.markDone(watering, by: "Sam", at: day(2026, 10, 9),
+                              household: store.household, context: store.context, persistence: store.persistence)
+        XCTAssertFalse(watering.isArchived)
+    }
+
     func testCadenceWords() {
         XCTAssertEqual(CareSchedule.cadence(count: 3, unit: .month), "quarterly")
         XCTAssertEqual(CareSchedule.cadence(count: 1, unit: .week), "weekly")

@@ -73,7 +73,13 @@ enum NotificationPlanner {
     }
 
     /// "Time for your quarterly hydrogen peroxide treatment: Aloe, Pothos"
+    /// A one-time task just says what: "Water the cutting: Cutting"
     static func taskBody(_ task: CareTask) -> String {
+        if task.unit == .once {
+            let names = task.activePlants.map(\.displayName)
+            let what = task.name ?? "Care task"
+            return names.isEmpty ? what : "\(what): \(names.joined(separator: ", "))"
+        }
         let name = lowercasedFirst(task.name ?? "care task")
         let count = Int(task.intervalCount)
         let what: String

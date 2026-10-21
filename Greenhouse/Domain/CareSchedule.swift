@@ -30,8 +30,9 @@ enum DueStatus: Equatable {
 /// days" and "hydrogen peroxide treatment every 3 months".
 enum CareSchedule {
     static func addInterval(_ count: Int, _ unit: IntervalUnit, to date: Date, calendar: Calendar = .current) -> Date {
+        guard unit != .once else { return date }
         let component: Calendar.Component = switch unit {
-        case .day: .day
+        case .day, .once: .day
         case .week: .weekOfYear
         case .month: .month
         }
@@ -39,8 +40,9 @@ enum CareSchedule {
     }
 
     /// Last time done plus the interval; before the first time, `firstDue`.
+    /// A one-time task is always due on `firstDue`.
     static func nextDue(for task: CareTask, calendar: Calendar = .current) -> Date? {
-        if let doneAt = task.lastLog?.doneAt {
+        if task.unit != .once, let doneAt = task.lastLog?.doneAt {
             return addInterval(Int(task.intervalCount), task.unit, to: calendar.startOfDay(for: doneAt), calendar: calendar)
         }
         return task.firstDue.map { calendar.startOfDay(for: $0) }
@@ -60,6 +62,7 @@ enum CareSchedule {
     /// One-word cadence when there is one ("weekly", "quarterly"), else nil.
     static func cadenceWord(count: Int, unit: IntervalUnit) -> String? {
         switch (count, unit) {
+        case (_, .once): "one time"
         case (1, .day): "daily"
         case (1, .week): "weekly"
         case (1, .month): "monthly"
@@ -87,6 +90,8 @@ enum CareSchedule {
         log.doneAt = date
         log.doneBy = name
         log.task = task
+        // A one-time task is finished, so it leaves Care and the plant page.
+        if task.unit == .once { task.isArchived = true }
     }
 
     @discardableResult
@@ -154,6 +159,7 @@ enum CareSchedule {
         case .day: 1
         case .week: 7
         case .month: 30
+        case .once: 0
         }
         return Int(task.intervalCount) * perUnit
     }
