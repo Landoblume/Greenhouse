@@ -247,7 +247,14 @@ struct TaskRow: View {
         HStack {
             Button(action: onEdit) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(task.title).foregroundStyle(.primary)
+                    // The chevron says the row opens; testers didn't know
+                    // tapping it edits the schedule.
+                    HStack(spacing: 4) {
+                        Text(task.title).foregroundStyle(.primary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
                     Text(CareSchedule.cadence(count: Int(task.intervalCount), unit: task.unit).capitalizedFirst
                          + (task.isWatering || task.activePlants.isEmpty ? "" : " · " + task.activePlants.map(\.displayName).joined(separator: ", ")))
                         .font(.caption)
@@ -266,6 +273,13 @@ struct TaskRow: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
+        }
+        .swipeActions(edge: .leading) {
+            Button(action: onEdit) { Label("Edit", systemImage: "pencil") }
+                .tint(.accentColor)
+        }
+        .contextMenu {
+            Button(action: onEdit) { Label("Edit reminder", systemImage: "pencil") }
         }
     }
 }
