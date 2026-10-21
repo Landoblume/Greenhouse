@@ -96,6 +96,17 @@ struct CollectionBar: View {
     }
 
     private func chip(_ title: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+        CollectionChip(title: title, isOn: isOn, action: action)
+    }
+}
+
+/// A pill to pick a collection, green when it's the one picked.
+struct CollectionChip: View {
+    let title: String
+    let isOn: Bool
+    let action: () -> Void
+
+    var body: some View {
         Button(action: action) {
             Text(title)
                 .font(.subheadline.weight(isOn ? .semibold : .regular))
@@ -187,9 +198,12 @@ struct CollectionPlantsSheet: View {
 
 /// Active plants with checkmarks; used for collections and projects.
 struct PlantChecklist: View {
-    let household: Household
+    @ObservedObject var household: Household
     @Binding var selected: Set<NSManagedObjectID>
     @FetchRequest private var plants: FetchedResults<Plant>
+    /// Narrows a long list while picking. Only for this sheet, so it doesn't
+    /// change the collection picked on the tabs.
+    @State private var filter: PlantCollection?
 
     init(household: Household, selected: Binding<Set<NSManagedObjectID>>) {
         self.household = household
@@ -202,7 +216,22 @@ struct PlantChecklist: View {
 
     var body: some View {
         List {
-            ForEach(plants) { plant in
+            if !household.sortedCollections.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        CollectionChip(title: "All", isOn: filter == nil) { filter = nil }
+                        ForEach(household.sortedCollections) { collection in
+                            CollectionChip(title: collection.name ?? "Untitled", isOn: filter == collection) { filter = collection }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+            // Ticked plants outside the filter stay ticked; they're just hidden.
+            ForEach(plants.filter { Collections.contains(filter, $0) }) { plant in
                 PlantCheckRow(plant: plant, isOn: selected.contains(plant.objectID)) {
                     if selected.contains(plant.objectID) { selected.remove(plant.objectID) } else { selected.insert(plant.objectID) }
                 }
