@@ -51,6 +51,7 @@ struct CareView: View {
             }
             .navigationTitle("Care")
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
+            .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
             .toolbar {
                 Button { showingNew = true } label: { Image(systemName: "plus") }
                     .accessibilityLabel("Add care reminder")

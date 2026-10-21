@@ -79,6 +79,13 @@ struct PlantDetailView: View {
                 }
             }
 
+            let projects = Plans.sorted(Array(plant.projects ?? []))
+            if !projects.isEmpty {
+                CollapsibleSection("Projects", summary: "\(projects.count)") {
+                    ForEach(projects) { ProjectRow(project: $0, household: household) }
+                }
+            }
+
             CollapsibleSection("Photos", summary: "\(timeline.count)") {
                 if plant.isActive {
                     Button { showingAddPhoto = true } label: { Label("Add photo", systemImage: "camera") }
