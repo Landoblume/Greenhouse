@@ -217,6 +217,13 @@ final class CareTask: NSManagedObject {
     /// kept so its logs stay in history.
     @NSManaged var isArchived: Bool
     @NSManaged var createdAt: Date?
+    /// How to do it ("bottom-water, let it drain").
+    @NSManaged var instructions: String?
+    /// Pushed out by hand; wins over the schedule until it's done.
+    @NSManaged var snoozedUntil: Date?
+    /// The next due date after a snooze that didn't change the schedule; nil
+    /// means the last log decides.
+    @NSManaged var dueOverride: Date?
     /// Empty means a household-wide task, like "clean the grow lights".
     @NSManaged var plants: Set<Plant>?
     @NSManaged var logs: Set<CareLog>?
@@ -266,6 +273,17 @@ final class PlantCollection: NSManagedObject {
     @NSManaged var plants: Set<Plant>?
     @NSManaged var wishlist: Set<WishlistItem>?
     @NSManaged var projects: Set<Project>?
+    /// Hidden from the pickers; its plants and history stay.
+    @NSManaged var isArchived: Bool
+    /// The collection this is a group inside, like "Break Room" in "Business A".
+    @NSManaged var parent: PlantCollection?
+    @NSManaged var groups: Set<PlantCollection>?
+
+    /// "Business A › Break Room", or just the name at the top level.
+    var path: String {
+        let own = name ?? "Untitled"
+        return parent.map { "\($0.name ?? "Untitled") › \(own)" } ?? own
+    }
 }
 
 /// A plant you'd like to get.

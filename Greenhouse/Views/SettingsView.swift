@@ -43,6 +43,11 @@ struct SettingsView: View {
                     } label: {
                         Label("Milestone quick picks", systemImage: "flag")
                     }
+                    NavigationLink {
+                        ArchivedCollectionsView(household: household)
+                    } label: {
+                        Label("Archived collections", systemImage: "archivebox")
+                    }
                 }
 
                 Section {

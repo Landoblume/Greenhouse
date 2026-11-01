@@ -80,6 +80,7 @@ struct TaskEditorView: View {
     @State private var count = 1
     @State private var unit: IntervalUnit = .month
     @State private var firstDue = Date()
+    @State private var instructions = ""
     @State private var selected: Set<NSManagedObjectID> = []
     @State private var confirmingDelete = false
     @FocusState private var nameFocused: Bool
@@ -144,6 +145,10 @@ struct TaskEditorView: View {
                 } footer: {
                     Text(CareSchedule.cadence(count: count, unit: unit).capitalizedFirst)
                 }
+                Section("Instructions") {
+                    TextField("How to do it (e.g. bottom-water, let it drain)", text: $instructions, axis: .vertical)
+                        .lineLimit(2...)
+                }
                 if !isWatering {
                     Section {
                         ForEach(plants) { plant in
@@ -198,6 +203,7 @@ struct TaskEditorView: View {
             count = Int(task.intervalCount)
             unit = task.unit
             firstDue = task.firstDue ?? Date()
+            instructions = task.instructions ?? ""
             selected = Set((task.plants ?? []).map(\.objectID))
         } else {
             selected = Set(preselected.map(\.objectID))
@@ -216,12 +222,20 @@ struct TaskEditorView: View {
                 targets.removeAllObjects()
                 targets.addObjects(from: chosen)
             }
+            // A new schedule replaces a date left over from a one-off snooze.
+            if Int(task.intervalCount) != count || task.unit != unit { task.dueOverride = nil }
             task.intervalCount = Int64(count)
             task.unit = unit
-            if unit == .once { task.firstDue = firstDue }
+            task.instructions = PlantFactory.cleanNotes(instructions)
+            if unit == .once {
+                task.firstDue = firstDue
+                // The date just picked is the date, even if it was snoozed.
+                task.snoozedUntil = nil
+            }
         } else {
-            CareSchedule.makeTask(name: trimmed, count: count, unit: unit, firstDue: firstDue,
-                                  plants: chosen, household: household, context: context)
+            let task = CareSchedule.makeTask(name: trimmed, count: count, unit: unit, firstDue: firstDue,
+                                             plants: chosen, household: household, context: context)
+            task.instructions = PlantFactory.cleanNotes(instructions)
         }
         Persistence.shared.save(context)
         NotificationPlanner.reschedule()

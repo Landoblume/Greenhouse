@@ -21,12 +21,14 @@ struct HelpView: View {
 
             Each plant's page has a Notes box anyone in the household can write in.
 
-            Under History, Add milestone writes down things like a new pot, a repot or a first bloom, with the date and a note. Tap one to change or delete it. The quick picks (New pot, Combined, …) are yours to change in Settings → Milestone quick picks. When adding a photo (or editing one), pick a milestone to link them, or start a new milestone that takes the photo's date.
+            Under History, Add milestone writes down things like a new pot, a repot or a first bloom, with the date and a note. Tap one to change it, or swipe it: left to delete, right to edit. The quick picks (New pot, Combined, …) are yours to change in Settings → Milestone quick picks. When adding a photo (or editing one), pick a milestone to link them, or start a new milestone that takes the photo's date.
             """)
             topic("Collections", "square.stack", """
             Group plants however you like: Indoor, Outdoor greenhouse, Succulents. Tap + Collection at the top of the Plants tab, then Choose plants, or tap New collection while adding or editing a plant. A plant can be in more than one.
 
             Picking a collection filters the Plants, Care and Plans tabs together, so each one has its own reminders, wishlist and projects. Press and hold a collection to rename or delete it; deleting never removes plants.
+
+            Too many at the top? Press and hold one → Add group to put groups inside it, like Business A with a Break Room and an Office, or Move into to tuck an existing collection inside another. Its groups show in a second row once you pick it, and the collection shows everything in them. Archive hides a collection you're done with; its plants still show under All, and Settings → Archived collections brings it back.
 
             Looking for one plant? Tap the magnifying glass at the top of the Plants tab and type a name, species, where it lives or something from its notes. The filter button next to it shows only indoor, outdoor or seasonal plants, or the ones that need water now, and changes the order.
             """)
@@ -47,7 +49,9 @@ struct HelpView: View {
             topic("Care reminders", "drop", """
             Every plant gets a watering schedule. Tap Watered (or Done) when it's handled and the next date moves on, with your name on it so the other phone knows.
 
-            For anything else, like a quarterly hydrogen peroxide treatment, tap + on the Care tab. A reminder can cover several plants, or none for household chores. Reminders arrive at the time set in Settings.
+            For anything else, like a quarterly hydrogen peroxide treatment, tap + on the Care tab. A reminder can cover several plants, or none for household chores. Reminders arrive at the time set in Settings. Edit a reminder to add instructions, like how much to mix, and they show under its name.
+
+            Not ready yet? Swipe a reminder left and tap Snooze. When you finish a snoozed one, it asks whether to keep the new day going forward or go back to the original one. Pressed Watered by mistake? Press and hold the reminder the same day → Undo.
             """)
             topic("Anniversaries", "gift", """
             On the day you got a plant, you'll get a "you've had it a year" note. Combined plants count from their oldest original, which is also their Had since date. A cutting counts from the day it was taken.

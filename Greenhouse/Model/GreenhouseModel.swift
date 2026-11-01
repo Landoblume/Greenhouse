@@ -80,6 +80,13 @@ enum GreenhouseModel {
             attr("isWatering", .boolean, default: NSNumber(value: false)),
             attr("isArchived", .boolean, default: NSNumber(value: false)),
             attr("createdAt", .date),
+            /// How to do it ("bottom-water, let it drain").
+            attr("instructions", .string),
+            /// Pushed out by hand; wins over the schedule until it's done.
+            attr("snoozedUntil", .date),
+            /// The next due date after a snooze that didn't change the
+            /// schedule; nil means the last log decides.
+            attr("dueOverride", .date),
         ])
         let log = entity(CareLog.self, [
             attr("uuid", .uuid),
@@ -99,6 +106,8 @@ enum GreenhouseModel {
             attr("uuid", .uuid),
             attr("name", .string),
             attr("createdAt", .date),
+            /// Hidden from the pickers; its plants and history stay.
+            attr("isArchived", .boolean, default: NSNumber(value: false)),
         ])
         let wish = entity(WishlistItem.self, [
             attr("uuid", .uuid),
@@ -140,6 +149,8 @@ enum GreenhouseModel {
         relate(household, "collections", many: true, collection, "household", many: false)
         relate(household, "wishlist", many: true, wish, "household", many: false)
         relate(household, "projects", many: true, project, "household", many: false)
+        // Groups inside a collection, one level deep (see Collections.setParent).
+        relate(collection, "parent", many: false, collection, "groups", many: true)
         relate(collection, "plants", many: true, plant, "collections", many: true)
         relate(collection, "wishlist", many: true, wish, "collection", many: false)
         relate(collection, "projects", many: true, project, "collection", many: false)

@@ -45,6 +45,8 @@ No model change → no deploy step, so say so in the release report.
 - **Don't put `.toolbar`/`.onChange` on a List `Section`.** A section applies
   its modifiers to the header and each row separately, so a keyboard Done
   button showed up twice (v1.3.11). Attach them to the field itself.
+- **A view watching the household doesn't see its collections change.** Archiving
+  or nesting one wouldn't redraw the tabs; use `.redrawsOnCollectionChanges` (v1.4).
 - **Forms set `@State` in `init`**, not `onAppear`, or date pickers show stale
   dates.
 - **Navigation:** in a NavigationStack, don't mix `NavigationLink(destination:)`

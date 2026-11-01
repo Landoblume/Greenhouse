@@ -236,11 +236,12 @@ struct WishEditorView: View {
                 Section("Notes") {
                     TextField("Where you saw it, a price, which color…", text: $notes, axis: .vertical)
                 }
-                if !household.sortedCollections.isEmpty {
+                let collections = Collections.pickable(in: household, keeping: collection)
+                if !collections.isEmpty {
                     Section {
                         Picker("Collection", selection: $collection) {
                             Text("None").tag(PlantCollection?.none)
-                            ForEach(household.sortedCollections) { Text($0.name ?? "Untitled").tag(Optional($0)) }
+                            ForEach(collections) { Text($0.path).tag(Optional($0)) }
                         }
                     }
                 }
@@ -364,10 +365,11 @@ struct ProjectEditorView: View {
                         LabeledContent("For plants", value: plantIDs.isEmpty ? "None" : "\(plantIDs.count)")
                     }
                     .foregroundStyle(.primary)
-                    if !household.sortedCollections.isEmpty {
+                    let collections = Collections.pickable(in: household, keeping: collection)
+                    if !collections.isEmpty {
                         Picker("Collection", selection: $collection) {
                             Text("None").tag(PlantCollection?.none)
-                            ForEach(household.sortedCollections) { Text($0.name ?? "Untitled").tag(Optional($0)) }
+                            ForEach(collections) { Text($0.path).tag(Optional($0)) }
                         }
                     }
                 }

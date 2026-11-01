@@ -13,40 +13,55 @@ struct CollectionBar: View {
 
     private enum Naming: Identifiable {
         case new
+        case newGroup(PlantCollection)
         case rename(PlantCollection)
         var id: String {
             switch self {
             case .new: "new"
+            case .newGroup(let parent): "group-" + parent.objectID.uriRepresentation().absoluteString
             case .rename(let collection): collection.objectID.uriRepresentation().absoluteString
             }
         }
     }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                chip("All", isOn: Collections.find(selected, in: household) == nil) { selected = "" }
-                ForEach(household.sortedCollections) { collection in
-                    chip(collection.name ?? "Untitled", isOn: selected == collection.uuid?.uuidString) {
-                        selected = collection.uuid?.uuidString ?? ""
+        let current = Collections.find(selected, in: household)
+        let openParent = current?.parent ?? current
+        VStack(alignment: .leading, spacing: 6) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    chip("All", isOn: current == nil) { selected = "" }
+                    ForEach(Collections.topLevel(in: household)) { collection in
+                        chip(collection.name ?? "Untitled", isOn: openParent == collection) { pick(collection) }
+                            .contextMenu { menu(for: collection) }
                     }
-                    .contextMenu {
-                        Button { start(.rename(collection)) } label: { Label("Rename", systemImage: "pencil") }
-                        Button(role: .destructive) { deleting = collection } label: { Label("Delete collection", systemImage: "trash") }
+                    Button { start(.new) } label: {
+                        Label("Collection", systemImage: "plus")
+                            .font(.subheadline)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .overlay(Capsule().strokeBorder(Color.secondary.opacity(0.4)))
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("New collection")
                 }
-                Button { start(.new) } label: {
-                    Label("Collection", systemImage: "plus")
-                        .font(.subheadline)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .overlay(Capsule().strokeBorder(Color.secondary.opacity(0.4)))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("New collection")
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
+            // The groups only take up room once their collection is open.
+            if let openParent, !Collections.groups(of: openParent).isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        chip("All \(openParent.name ?? "")", isOn: current == openParent) { pick(openParent) }
+                        ForEach(Collections.groups(of: openParent)) { group in
+                            chip(group.name ?? "Untitled", isOn: current == group) { pick(group) }
+                                .contextMenu { menu(for: group) }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
         }
+        .redrawsOnCollectionChanges(household)
         .alert(alertTitle, isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
             TextField("Name (e.g. Succulents)", text: $draft)
             Button("Cancel", role: .cancel) { naming = nil }
@@ -64,13 +79,56 @@ struct CollectionBar: View {
                 deleting = nil
             }
         } message: {
-            Text("Its plants, wishlist and projects stay; they just stop being grouped.")
+            Text("Its plants, wishlist and projects stay; they just stop being grouped. To only hide it, use Archive.")
         }
     }
 
+    @ViewBuilder
+    private func menu(for collection: PlantCollection) -> some View {
+        Button { start(.rename(collection)) } label: { Label("Rename", systemImage: "pencil") }
+        if collection.parent == nil {
+            Button { start(.newGroup(collection)) } label: { Label("Add group", systemImage: "plus") }
+        }
+        let homes = Collections.topLevel(in: household).filter { $0 != collection.parent && Collections.canNest(collection, under: $0) }
+        if !homes.isEmpty {
+            Menu {
+                ForEach(homes) { home in
+                    Button(home.name ?? "Untitled") { move(collection, to: home) }
+                }
+            } label: {
+                Label(collection.parent == nil ? "Move into" : "Move to", systemImage: "folder")
+            }
+        }
+        if let parent = collection.parent {
+            Button { move(collection, to: nil) } label: {
+                Label("Move out of \(parent.name ?? "collection")", systemImage: "arrow.up.left")
+            }
+        }
+        Button {
+            collection.isArchived = true
+            Persistence.shared.save(context)
+            if Collections.find(selected, in: household) == nil { selected = "" }
+        } label: {
+            Label("Archive", systemImage: "archivebox")
+        }
+        Button(role: .destructive) { deleting = collection } label: { Label("Delete collection", systemImage: "trash") }
+    }
+
+    private func pick(_ collection: PlantCollection) {
+        selected = collection.uuid?.uuidString ?? ""
+    }
+
+    private func move(_ collection: PlantCollection, to parent: PlantCollection?) {
+        Collections.setParent(of: collection, to: parent)
+        Persistence.shared.save(context)
+    }
+
     private var alertTitle: String {
-        if case .rename = naming { return "Rename collection" }
-        return "New collection"
+        switch naming {
+        case .rename: "Rename collection"
+        case .newGroup(let parent): "New group in \(parent.name ?? "collection")"
+        default: "New collection"
+        }
     }
 
     private func start(_ mode: Naming) {
@@ -88,6 +146,10 @@ struct CollectionBar: View {
             let collection = Collections.create(name: name, household: household, context: context)
             Persistence.shared.save(context)
             selected = collection.uuid?.uuidString ?? ""
+        case .newGroup(let parent):
+            let group = Collections.create(name: name, parent: parent, household: household, context: context)
+            Persistence.shared.save(context)
+            selected = group.uuid?.uuidString ?? ""
         case nil:
             break
         }
@@ -131,8 +193,9 @@ struct CollectionToggles: View {
 
     var body: some View {
         Section("Collections") {
-            ForEach(household.sortedCollections) { collection in
-                Toggle(collection.name ?? "Untitled", isOn: Binding(
+            // An archived collection isn't listed, but a plant stays in it.
+            ForEach(Collections.pickable(in: household)) { collection in
+                Toggle(collection.path, isOn: Binding(
                     get: { selection.contains(collection) },
                     set: { on in
                         if on { selection.insert(collection) } else { selection.remove(collection) }
@@ -159,6 +222,63 @@ struct CollectionToggles: View {
         let collection = Collections.create(name: name, household: household, context: context)
         Persistence.shared.save(context)
         selection.insert(collection)
+    }
+}
+
+/// Settings → Archived collections: bring one back.
+struct ArchivedCollectionsView: View {
+    @ObservedObject var household: Household
+    @Environment(\.managedObjectContext) private var context
+
+    var body: some View {
+        let archived = Collections.archived(in: household)
+        List {
+            Section {
+                ForEach(archived) { collection in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(collection.path)
+                            let count = (collection.plants ?? []).filter(\.isActive).count
+                            Text(count == 1 ? "1 plant" : "\(count) plants")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Unarchive") {
+                            collection.isArchived = false
+                            Persistence.shared.save(context)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+            } footer: {
+                Text("Archived collections leave the chips at the top of each tab. Their plants, wishlist and projects stay, and still show under All.")
+            }
+        }
+        .overlay {
+            if archived.isEmpty {
+                ContentUnavailableView("Nothing archived", systemImage: "archivebox",
+                                       description: Text("Press and hold a collection at the top of the Plants tab → Archive."))
+            }
+        }
+        .navigationTitle("Archived collections")
+        .redrawsOnCollectionChanges(household)
+    }
+}
+
+extension View {
+    /// A view watching the household isn't told when one of its collections
+    /// changes, here or on the other phone. This tells it, which also redraws
+    /// the tabs that filter by the picked collection.
+    func redrawsOnCollectionChanges(_ household: Household) -> some View {
+        onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
+            let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
+            let changed = keys.contains { key in
+                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is PlantCollection } ?? false
+            }
+            if changed { household.objectWillChange.send() }
+        }
     }
 }
 
@@ -216,11 +336,11 @@ struct PlantChecklist: View {
 
     var body: some View {
         List {
-            if !household.sortedCollections.isEmpty {
+            if !Collections.pickable(in: household).isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         CollectionChip(title: "All", isOn: filter == nil) { filter = nil }
-                        ForEach(household.sortedCollections) { collection in
+                        ForEach(Collections.pickable(in: household)) { collection in
                             CollectionChip(title: collection.name ?? "Untitled", isOn: filter == collection) { filter = collection }
                         }
                     }

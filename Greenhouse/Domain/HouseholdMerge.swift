@@ -99,6 +99,9 @@ enum HouseholdMerge {
             copy.mutableSetValue(forKey: "plants").addObjects(from: (collection.plants ?? []).compactMap { copies[$0.objectID] })
             collectionCopies[collection.objectID] = copy
         }
+        for collection in collections {
+            collectionCopies[collection.objectID]?.parent = collection.parent.flatMap { collectionCopies[$0.objectID] }
+        }
 
         let wishes = Array(source.wishlist ?? [])
         for item in wishes {
