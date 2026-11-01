@@ -79,7 +79,7 @@ struct ProjectDetailView: View {
                         Label(url.host() ?? link, systemImage: "link")
                     }
                 }
-                if let collection = project.collection?.name {
+                if let collection = project.collection?.path {
                     LabeledContent("Collection", value: collection)
                 }
             }

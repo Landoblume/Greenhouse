@@ -50,7 +50,7 @@ struct PlantDetailView: View {
                     }
                 }
                 if !(plant.collections ?? []).isEmpty {
-                    LabeledContent("Collections", value: (plant.collections ?? []).compactMap(\.name).sorted().joined(separator: ", "))
+                    LabeledContent("Collections", value: (plant.collections ?? []).map(\.path).sorted().joined(separator: ", "))
                 }
                 if let since = Lineage.effectiveAcquiredDate(of: plant) {
                     LabeledContent("Had since", value: "\(Lineage.format(since)) (\(Self.age(since: since)))")
@@ -142,6 +142,18 @@ struct PlantDetailView: View {
                         MilestoneRow(item: item, viewedPlant: plant)
                     }
                     .foregroundStyle(.primary)
+                    .swipeActions(edge: .leading) {
+                        Button { editingMilestone = item.milestone } label: { Label("Edit", systemImage: "pencil") }
+                            .tint(.accentColor)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            context.delete(item.milestone)
+                            Persistence.shared.save(context)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
                 if plant.isActive {
                     Button { addingMilestone = true } label: {
@@ -249,6 +261,14 @@ struct TaskRow: View {
     var onEdit: () -> Void = {}
     @Environment(\.managedObjectContext) private var context
     @AppStorage(SettingsKey.myName) private var myName = ""
+    @State private var choosingSnooze = false
+    @State private var snoozeChoice: CareSchedule.SnoozeChoice?
+
+    private static let snoozeOptions: [(label: String, days: Int)] = [
+        ("1 day", 1), ("2 days", 2), ("3 days", 3), ("1 week", 7),
+    ]
+
+    private var doneWord: String { task.isWatering ? "Watered" : "Done" }
 
     var body: some View {
         HStack {
@@ -266,17 +286,25 @@ struct TaskRow: View {
                          + (task.isWatering || task.activePlants.isEmpty ? "" : " · " + task.activePlants.map(\.displayName).joined(separator: ", ")))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let instructions = task.instructions {
+                        Text(instructions)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                            .lineLimit(3)
+                    }
                     DueBadge(task: task)
                 }
             }
             .buttonStyle(.plain)
             Spacer()
             Button {
-                CareSchedule.markDone(task, by: myName, household: household, context: context)
-                Persistence.shared.save(context)
-                NotificationPlanner.reschedule()
+                if let choice = CareSchedule.snoozeChoice(for: task) {
+                    snoozeChoice = choice
+                } else {
+                    finish(keepNewTiming: true)
+                }
             } label: {
-                Text(task.isWatering ? "Watered" : "Done")
+                Text(doneWord)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
@@ -285,9 +313,55 @@ struct TaskRow: View {
             Button(action: onEdit) { Label("Edit", systemImage: "pencil") }
                 .tint(.accentColor)
         }
+        .swipeActions(edge: .trailing) {
+            Button { choosingSnooze = true } label: { Label("Snooze", systemImage: "moon.zzz") }
+                .tint(.indigo)
+        }
         .contextMenu {
             Button(action: onEdit) { Label("Edit reminder", systemImage: "pencil") }
+            Button { choosingSnooze = true } label: { Label("Snooze…", systemImage: "moon.zzz") }
+            if task.snoozedUntil != nil {
+                Button {
+                    task.snoozedUntil = nil
+                    saveAndReschedule()
+                } label: {
+                    Label("Cancel snooze", systemImage: "alarm")
+                }
+            }
+            if CareSchedule.canUndoDone(task) {
+                Button {
+                    CareSchedule.undoDone(task, context: context)
+                    saveAndReschedule()
+                } label: {
+                    Label("Undo \(doneWord)", systemImage: "arrow.uturn.backward")
+                }
+            }
         }
+        .confirmationDialog("Snooze \(task.title)", isPresented: $choosingSnooze, titleVisibility: .visible) {
+            ForEach(Self.snoozeOptions, id: \.days) { option in
+                Button(option.label) {
+                    CareSchedule.snooze(task, days: option.days)
+                    saveAndReschedule()
+                }
+            }
+        }
+        .confirmationDialog(snoozeChoice?.title ?? "", isPresented: Binding(
+            get: { snoozeChoice != nil },
+            set: { if !$0 { snoozeChoice = nil } }
+        ), titleVisibility: .visible, presenting: snoozeChoice) { choice in
+            Button("Yes, next on \(Lineage.format(choice.keepDue))") { finish(keepNewTiming: true) }
+            Button("No, next on \(Lineage.format(choice.originalDue))") { finish(keepNewTiming: false) }
+        }
+    }
+
+    private func finish(keepNewTiming: Bool) {
+        CareSchedule.markDone(task, by: myName, keepNewTiming: keepNewTiming, household: household, context: context)
+        saveAndReschedule()
+    }
+
+    private func saveAndReschedule() {
+        Persistence.shared.save(context)
+        NotificationPlanner.reschedule()
     }
 }
 

@@ -278,7 +278,8 @@ struct DueBadge: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             if let status = CareSchedule.status(of: task) {
-                Label(status.label, systemImage: task.isWatering ? "drop.fill" : "calendar")
+                Label(status.label + (task.snoozedUntil == nil ? "" : " (snoozed)"),
+                      systemImage: task.isWatering ? "drop.fill" : "calendar")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(status.needsAttention ? Color.orange : Color.secondary)
             }
