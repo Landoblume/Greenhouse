@@ -300,6 +300,61 @@ final class CareHistoryTests: XCTestCase {
         XCTAssertEqual(CareHistory.stats(for: plant)?.mostlyBy, "Alex")
     }
 
+    // MARK: "mostly by" is earned
+
+    /// One watering a day by each name in order, so `["Sam", "Sam", "Alex"]` is 2 + 1.
+    private func statsFor(_ names: [String]) -> CareHistory.Stats? {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2026, 1, 1))
+        for (index, name) in names.enumerated() {
+            water(plant, on: day(2026, 2, 1 + index), by: name, store: store)
+        }
+        store.save()
+        return CareHistory.stats(for: plant)
+    }
+
+    func testClearMajorityIsCredited() {
+        let stats = statsFor(["Sam", "Sam", "Sam", "Alex"])
+        XCTAssertEqual(stats?.byline(), "mostly by Sam \u{1F49A}")
+        XCTAssertEqual(stats?.byline(viewerName: "Alex"), "mostly by Sam \u{1F49A}")
+        XCTAssertTrue(stats?.headline.hasSuffix(" \u{00B7} mostly by Sam \u{1F49A}") ?? false)
+    }
+
+    func testViewerWhoIsTheTopPersonReadsYou() {
+        let stats = statsFor(["Sam", "Sam", "Sam", "Alex"])
+        XCTAssertEqual(stats?.byline(viewerName: "Sam"), "mostly by you \u{1F49A}")
+        XCTAssertEqual(stats?.byline(viewerName: "  sam "), "mostly by you \u{1F49A}", "case and spaces don't matter")
+        XCTAssertTrue(stats?.headline(viewerName: "Sam").hasSuffix(" \u{00B7} mostly by you \u{1F49A}") ?? false)
+        XCTAssertEqual(stats?.byline(viewerName: ""), "mostly by Sam \u{1F49A}", "an empty name is nobody")
+    }
+
+    func testSplitCareIsShared() {
+        for names in [["Sam", "Alex"], ["Sam", "Sam", "Alex", "Alex"], ["Sam", "Sam", "Sam", "Alex", "Alex"]] {
+            let stats = statsFor(names)
+            XCTAssertEqual(stats?.byline(), "shared care \u{1F49A}", "\(names)")
+            XCTAssertEqual(stats?.byline(viewerName: "Sam"), "shared care \u{1F49A}", "\(names)")
+            XCTAssertTrue(stats?.headline.hasSuffix(" \u{00B7} shared care \u{1F49A}") ?? false, "\(names)")
+        }
+    }
+
+    func testUnnamedLogsCountAgainstAMajority() {
+        // Sam did 2 of 5 logs; the other 3 have no name. Not a majority of all logs.
+        XCTAssertEqual(statsFor(["Sam", "Sam", "", "", ""])?.byline(), "shared care \u{1F49A}")
+        // 4 of 5 is.
+        XCTAssertEqual(statsFor(["Sam", "Sam", "Sam", "Sam", ""])?.byline(), "mostly by Sam \u{1F49A}")
+    }
+
+    func testOnePersonDoingEverythingIsCredited() {
+        XCTAssertEqual(statsFor(["Sam"])?.byline(), "mostly by Sam \u{1F49A}")
+        XCTAssertEqual(statsFor(["Sam"])?.byline(viewerName: "Sam"), "mostly by you \u{1F49A}")
+    }
+
+    func testNoNamesMeansNoBylineAtAll() {
+        let stats = statsFor(["", ""])
+        XCTAssertNil(stats?.byline())
+        XCTAssertFalse(stats?.headline.contains("\u{1F49A}") ?? true)
+    }
+
     func testStatsCoverCombinedPlantsOriginals() {
         let store = TestStore()
         let a = store.plant(acquired: day(2026, 1, 1))

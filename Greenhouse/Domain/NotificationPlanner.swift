@@ -33,11 +33,13 @@ enum NotificationPlanner {
     /// Notification ids for check-ins start with this; a tap on one opens the camera.
     static let photoCheckInPrefix = "photo-"
     static let plantIDKey = "plantID"
-    /// Weekly check-ins planned ahead per plant. Every launch and sync plans
-    /// again, so a month ahead is plenty.
-    static let checkInsPerPlant = 4
-    /// At most this many check-ins on one day; the rest wait for the next days.
-    static let checkInsPerDay = 2
+    static let photoCheckInTitle = "Photo check-in 📸"
+    /// The household gets at most one check-in on each of these days
+    /// (Calendar weekdays, 1 is Sunday: Tue, Thu, Sat), so about 3 a week.
+    static let checkInSlotWeekdays = [3, 5, 7]
+    /// How far ahead check-ins are planned. Every launch and sync plans
+    /// again, so a quarter ahead is plenty.
+    static let checkInWeeksAhead = 12
 
     static func photoCheckInMonths(in defaults: UserDefaults = .standard) -> Int {
         defaults.object(forKey: photoCheckInKey) as? Int ?? defaultPhotoCheckInMonths
@@ -103,27 +105,34 @@ enum NotificationPlanner {
         return (reminders + sortedCheckIns.prefix(free)).sorted { $0.date < $1.date }
     }
 
-    /// When a plant's check-ins start: `months` after it was last seen, which
-    /// is its newest photo (by takenAt, including photos inherited from the
-    /// plants it was combined from) or when it was acquired (or added),
-    /// whichever is later. A new plant whose only photo is an old one from the
-    /// library isn't nudged right away.
-    static func photoCheckInStart(for plant: Plant, months: Int, calendar: Calendar) -> Date? {
+    /// When a plant was last seen: its newest photo (by takenAt, including
+    /// photos inherited from the plants it was combined from) or when it was
+    /// acquired (or added), whichever is later. A new plant whose only photo
+    /// is an old one from the library counts from when it arrived.
+    static func lastSeen(of plant: Plant) -> Date? {
         let newestPhoto = Lineage.timeline(for: plant).compactMap(\.photo.takenAt).max()
         let arrived = plant.acquiredDate ?? plant.createdAt
-        guard let lastSeen = [newestPhoto, arrived].compactMap({ $0 }).max() else { return nil }
+        return [newestPhoto, arrived].compactMap({ $0 }).max()
+    }
+
+    /// When a plant's check-ins start: `months` after it was last seen.
+    static func photoCheckInStart(for plant: Plant, months: Int, calendar: Calendar) -> Date? {
+        guard let lastSeen = lastSeen(of: plant) else { return nil }
         return calendar.date(byAdding: .month, value: months, to: calendar.startOfDay(for: lastSeen))
             .map(calendar.startOfDay)
     }
 
-    /// "Haven't seen Aloe in a while" from each plant's threshold day, then
-    /// every 7 days, at most `checkInsPerDay` a day. When more are due on one
-    /// day, the rest roll to the next days (longest waiting first, ties by
-    /// plant id), and each plant's next one comes 7 days after the day it got.
+    /// The household's check-ins: one on each slot day (`checkInSlotWeekdays`,
+    /// so about 3 a week), for the plant that's been waiting longest. A plant
+    /// is waiting from its threshold day (see `photoCheckInStart`) and goes
+    /// to the back of the line 7 days after the day it got, so a backlog (30
+    /// plants with no photo for years, say) is spread over the following
+    /// weeks and then comes round again, and a lone plant hears weekly.
     ///
     /// The days are worked out from the thresholds forward, never from today,
-    /// so every reschedule (on either phone) plans the same notifications;
-    /// `now` only decides which of them are still ahead.
+    /// and ties go to the plant id, so every reschedule (on either phone)
+    /// plans the same notifications; `now` only decides which of them are
+    /// still ahead, and how far ahead (`checkInWeeksAhead`).
     static func photoCheckIns(
         for plants: [Plant],
         months: Int,
@@ -136,44 +145,83 @@ enum NotificationPlanner {
         struct Waiting {
             let plant: Plant
             let key: String
+            let lastSeen: Date
             var due: Date
-            var planned = 0
         }
-        var waiting = plants.compactMap { plant in
-            photoCheckInStart(for: plant, months: months, calendar: calendar)
-                .map { Waiting(plant: plant, key: plant.uuid?.uuidString ?? "", due: $0) }
+        var waiting: [Waiting] = plants.compactMap { plant in
+            guard let seen = lastSeen(of: plant),
+                  let due = photoCheckInStart(for: plant, months: months, calendar: calendar) else { return nil }
+            return Waiting(plant: plant, key: plant.uuid?.uuidString ?? "", lastSeen: calendar.startOfDay(for: seen), due: due)
         }
-        var result: [PlannedNotification] = []
-        var today = waiting.map(\.due).min()
+        guard var day = waiting.map(\.due).min(),
+              let horizon = calendar.date(byAdding: .day, value: checkInWeeksAhead * 7, to: now).map(calendar.startOfDay)
+        else { return [] }
 
-        // Plants that already have enough planned keep their place in line,
-        // so how the days roll over never depends on how far ahead we look.
-        while let day = today, waiting.contains(where: { $0.planned < checkInsPerPlant }) {
-            let due = waiting.indices.filter { waiting[$0].due <= day }
-                .sorted { (waiting[$0].due, waiting[$0].key) < (waiting[$1].due, waiting[$1].key) }
-            guard !due.isEmpty else {
-                // Nothing due: skip ahead to the next day something is.
-                today = waiting.map(\.due).min()
+        var result: [PlannedNotification] = []
+        while day <= horizon {
+            let waitingToday = waiting.indices.filter { waiting[$0].due <= day }
+            guard !waitingToday.isEmpty else {
+                // Nothing waiting: skip ahead to the next day something is.
+                guard let next = waiting.map(\.due).min(), next > day else { break }
+                day = next
                 continue
             }
-            let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
-            for index in due.prefix(checkInsPerDay) {
-                if let fire, fire > now, waiting[index].planned < checkInsPerPlant {
-                    let plant = waiting[index].plant
+            if checkInSlotWeekdays.contains(calendar.component(.weekday, from: day)),
+               let index = waitingToday.min(by: { (waiting[$0].due, waiting[$0].key) < (waiting[$1].due, waiting[$1].key) }) {
+                if let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day), fire > now {
+                    let entry = waiting[index]
+                    let gap = calendar.dateComponents([.month], from: entry.lastSeen, to: day).month ?? months
+                    let week = (calendar.ordinality(of: .day, in: .era, for: day) ?? 0) / 7
                     result.append(PlannedNotification(
-                        id: "\(photoCheckInPrefix)\(waiting[index].key)-\(Int(fire.timeIntervalSince1970))",
+                        id: "\(photoCheckInPrefix)\(entry.key)-\(Int(fire.timeIntervalSince1970))",
                         date: fire,
-                        title: "Photo check-in",
-                        body: "Haven't seen \(plant.displayName) in a while, how's it coming? 📸",
-                        plantID: plant.uuid
+                        title: photoCheckInTitle,
+                        body: photoCheckInBody(plantName: entry.plant.displayName, gapMonths: gap,
+                                               variant: photoCheckInVariant(key: entry.key, week: week)),
+                        plantID: entry.plant.uuid
                     ))
-                    waiting[index].planned += 1
                 }
                 waiting[index].due = calendar.date(byAdding: .day, value: 7, to: day) ?? day
             }
-            today = calendar.date(byAdding: .day, value: 1, to: day)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
         }
         return result
+    }
+
+    // MARK: Check-in wording
+
+    /// How many phrasings the body rotates through.
+    static let photoCheckInPhrasingCount = 4
+
+    /// Which phrasing a plant gets in a given week: the same on every
+    /// reschedule and on both phones (so no `hashValue`, which changes per launch).
+    static func photoCheckInVariant(key: String, week: Int) -> Int {
+        var hash: UInt64 = 14_695_981_039_346_656_037  // FNV-1a
+        for byte in key.utf8 {
+            hash = (hash ^ UInt64(byte)) &* 1_099_511_628_211
+        }
+        return Int((hash &+ UInt64(truncatingIfNeeded: week)) % UInt64(photoCheckInPhrasingCount))
+    }
+
+    /// "It's been 7 months since Aloe's last close-up. Show off the new growth? 📸"
+    static func photoCheckInBody(plantName: String, gapMonths: Int, variant: Int) -> String {
+        let gap = gapText(months: gapMonths)
+        let possessive = plantName.hasSuffix("s") ? "\(plantName)'" : "\(plantName)'s"
+        switch ((variant % photoCheckInPhrasingCount) + photoCheckInPhrasingCount) % photoCheckInPhrasingCount {
+        case 0: return "It's been \(gap) since \(possessive) last close-up. Show off the new growth? 📸"
+        case 1: return "\(plantName) hasn't had a photo in \(gap). How's it looking? 📸"
+        case 2: return "\(gap.prefix(1).uppercased() + gap.dropFirst()) since \(possessive) last portrait. Time for a fresh one? 📸"
+        default: return "Say cheese, \(plantName)! The last photo was \(gap) ago. 📸"
+        }
+    }
+
+    /// "7 months", "a year", "over a year", "over 2 years".
+    static func gapText(months: Int) -> String {
+        if months < 12 { return months <= 1 ? "a month" : "\(months) months" }
+        let years = months / 12
+        if months % 12 == 0 { return years == 1 ? "a year" : "\(years) years" }
+        return "over " + (years == 1 ? "a year" : "\(years) years")
     }
 
     /// The plant a tapped check-in should open Add photo for: the plant

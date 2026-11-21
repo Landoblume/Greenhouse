@@ -325,16 +325,38 @@ enum CareHistory {
         /// The day of the oldest log of the lead kind.
         let since: Date?
         /// Whoever did the most; ties go to the first name alphabetically.
+        /// Not necessarily a majority: see `byline(viewerName:)`.
         let mostlyBy: String?
+        /// How many of all the logs `mostlyBy` did.
+        let mostlyByCount: Int
+
+        /// A person has to have done more than this share of all the logs
+        /// (unnamed ones count) before the line credits them.
+        static let clearMajority = 0.6
+
+        /// "mostly by Sam 💚" when one person did a clear majority of all the
+        /// logs, "mostly by you 💚" when that's the viewer, "shared care 💚"
+        /// when the named logs are spread around. Nil when nobody's name was
+        /// set on any log, since then there's nothing to say.
+        func byline(viewerName: String? = nil) -> String? {
+            guard let mostlyBy else { return nil }
+            guard Double(mostlyByCount) > Double(total) * Self.clearMajority else { return "shared care 💚" }
+            let viewer = viewerName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let isViewer = viewer.map { !$0.isEmpty && $0.caseInsensitiveCompare(mostlyBy) == .orderedSame } ?? false
+            return "mostly by \(isViewer ? "you" : mostlyBy) 💚"
+        }
 
         /// "Watered 23 times since May 2023 · mostly by Sam 💚"
-        var headline: String {
+        func headline(viewerName: String?) -> String {
             let times = lead.count == 1 ? "1 time" : "\(lead.count) times"
             var text = lead.isWatering ? "Watered \(times)" : "\(lead.title) \(times)"
             if let since { text += " since " + since.formatted(.dateTime.month(.abbreviated).year()) }
-            if let mostlyBy { text += " · mostly by \(mostlyBy) 💚" }
+            if let byline = byline(viewerName: viewerName) { text += " · " + byline }
             return text
         }
+
+        /// The headline without knowing who's looking, so a name is never "you".
+        var headline: String { headline(viewerName: nil) }
 
         /// The other kinds, "Mist 4 · Repot 1", or nil when there's only one kind.
         var others: String? {
@@ -362,15 +384,16 @@ enum CareHistory {
         let lead = counts.first { $0.isWatering } ?? counts[0]
         var people: [String: Int] = [:]
         for name in all.compactMap(\.doneBy) { people[name, default: 0] += 1 }
-        let mostlyBy = people.max { a, b in
+        let top = people.max { a, b in
             a.value != b.value ? a.value < b.value : a.key > b.key
-        }?.key
+        }
         return Stats(
             counts: counts,
             total: all.count,
             lead: lead,
             since: all.filter { $0.title == lead.title }.compactMap(\.doneAt).min(),
-            mostlyBy: mostlyBy
+            mostlyBy: top?.key,
+            mostlyByCount: top?.value ?? 0
         )
     }
 

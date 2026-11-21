@@ -55,12 +55,17 @@ final class PhotoNudgeTests: XCTestCase {
 
         let planned = plan(store, now: day(2026, 10, 1), months: 6, hour: 8, minute: 30)
         let first = try XCTUnwrap(checkIns(planned).first)
-        XCTAssertEqual(first.body, "Haven't seen Aloe in a while, how's it coming? 📸")
+        XCTAssertEqual(first.title, "Photo check-in 📸")
+        // Last seen Mar 15, nudged Oct 6: 6 months and a bit.
+        XCTAssertTrue((0..<NotificationPlanner.photoCheckInPhrasingCount).map {
+            NotificationPlanner.photoCheckInBody(plantName: "Aloe", gapMonths: 6, variant: $0)
+        }.contains(first.body), first.body)
+        XCTAssertTrue(first.body.contains("6 months"), first.body)
         XCTAssertEqual(first.plantID, plant.uuid)
         XCTAssertTrue(first.id.hasPrefix("photo-\(plant.uuid!.uuidString)-"))
         XCTAssertEqual(calendar.component(.hour, from: first.date), 8)
         XCTAssertEqual(calendar.component(.minute, from: first.date), 30)
-        // Threshold Sep 15, then weekly: Sep 22, 29, Oct 6 is the first one after now.
+        // Threshold Sep 15 (a Tuesday, a slot day), then weekly: Sep 22, 29, Oct 6 is the first one after now.
         XCTAssertTrue(calendar.isDate(first.date, inSameDayAs: day(2026, 10, 6)))
     }
 
@@ -72,17 +77,20 @@ final class PhotoNudgeTests: XCTestCase {
 
         let planned = plan(store, now: day(2026, 9, 1), months: 2)
         let first = try XCTUnwrap(checkIns(planned).first)
-        XCTAssertTrue(calendar.isDate(first.date, inSameDayAs: day(2026, 10, 1)), "Aug 1 + 2 months")
+        XCTAssertTrue(first.date >= day(2026, 10, 1, hour: 0) && first.date < day(2026, 10, 8, hour: 0), "Aug 1 + 2 months: \(first.date)")
     }
 
     func testRecentPhotoMeansNoNudgeYet() throws {
         let store = TestStore()
         let plant = store.plant(nickname: "Aloe", acquired: day(2026, 1, 10))
         addPhoto(store, to: plant, takenAt: day(2026, 9, 20))
-        let planned = plan(store, now: day(2026, 10, 1), months: 6)
-        // Slots are free, so it's planned ahead, but not before Sep 20 + 6 months.
+        // Nothing within the next quarter...
+        XCTAssertTrue(checkIns(plan(store, now: day(2026, 10, 1), months: 6)).isEmpty)
+        // ...and once Sep 20 + 6 months is in reach, not before it.
+        let planned = plan(store, now: day(2027, 3, 1), months: 6)
         let first = try XCTUnwrap(checkIns(planned).first)
-        XCTAssertTrue(calendar.isDate(first.date, inSameDayAs: day(2027, 3, 20)))
+        XCTAssertTrue(first.date >= day(2027, 3, 20, hour: 0) && first.date < day(2027, 3, 27, hour: 0),
+                      "Sep 20 + 6 months, on that week's slot day: \(first.date)")
     }
 
     func testNoPhotosStartsFromAcquiredDate() throws {
@@ -90,8 +98,9 @@ final class PhotoNudgeTests: XCTestCase {
         store.plant(nickname: "Fern", acquired: day(2026, 4, 1))
         let planned = plan(store, now: day(2026, 6, 15), months: 3)
         let first = try XCTUnwrap(checkIns(planned).first)
-        XCTAssertTrue(calendar.isDate(first.date, inSameDayAs: day(2026, 7, 1)), "Apr 1 + 3 months")
-        XCTAssertEqual(first.body, "Haven't seen Fern in a while, how's it coming? 📸")
+        XCTAssertTrue(first.date >= day(2026, 7, 1, hour: 0) && first.date < day(2026, 7, 8, hour: 0), "Apr 1 + 3 months: \(first.date)")
+        XCTAssertTrue(first.body.contains("Fern"))
+        XCTAssertTrue(first.body.contains("3 months"), first.body)
     }
 
     func testNoPhotosAndNoAcquiredDateFallsBackToCreatedAt() throws {
@@ -102,7 +111,7 @@ final class PhotoNudgeTests: XCTestCase {
         store.save()
         let planned = plan(store, now: day(2026, 6, 15), months: 2)
         let first = try XCTUnwrap(checkIns(planned).first)
-        XCTAssertTrue(calendar.isDate(first.date, inSameDayAs: day(2026, 7, 1)), "May 1 + 2 months")
+        XCTAssertTrue(first.date >= day(2026, 7, 1, hour: 0) && first.date < day(2026, 7, 8, hour: 0), "May 1 + 2 months: \(first.date)")
     }
 
     func testOffPlansNoCheckIns() {
@@ -200,61 +209,123 @@ final class PhotoNudgeTests: XCTestCase {
         addPhoto(store, to: plant, takenAt: day(2025, 3, 1))  // from the library, dated last year
         let planned = plan(store, now: day(2026, 9, 15), months: 2)
         let first = try XCTUnwrap(checkIns(planned).first)
-        XCTAssertTrue(calendar.isDate(first.date, inSameDayAs: day(2026, 11, 1)), "Sep 1 + 2 months, not right away")
+        XCTAssertTrue(first.date >= day(2026, 11, 1, hour: 0) && first.date < day(2026, 11, 8, hour: 0), "Sep 1 + 2 months, not right away: \(first.date)")
     }
 
-    // MARK: At most two a day
+    // MARK: About three a week, oldest waiting first
 
     /// 15 plants added the same day, none photographed since.
     private func sameDayPlants(_ store: TestStore) -> [Plant] {
         (0..<15).map { store.plant(nickname: "Plant \($0)", acquired: day(2026, 3, 1)) }
     }
 
-    func testAtMostTwoCheckInsADayTheRestRollOver() {
+    private func perWeek(_ planned: [PlannedNotification]) -> [Date: [PlannedNotification]] {
+        Dictionary(grouping: planned) { calendar.dateInterval(of: .weekOfYear, for: $0.date)!.start }
+    }
+
+    func testAtMostThreeCheckInsAWeekTheRestRollOver() {
         let store = TestStore()
         let plants = sameDayPlants(store)
-        let planned = checkIns(plan(store, now: day(2026, 4, 20), months: 2))
-
-        let perDay = Dictionary(grouping: planned) { calendar.startOfDay(for: $0.date) }
-        XCTAssertTrue(perDay.values.allSatisfy { $0.count <= NotificationPlanner.checkInsPerDay },
-                      perDay.mapValues(\.count).description)
-        // May 1 is the threshold for all 15: two that day, the rest on the next days.
-        let first = planned.filter { calendar.isDate($0.date, inSameDayAs: day(2026, 5, 1)) }
-        XCTAssertEqual(first.count, 2)
-        XCTAssertEqual(Set(planned.compactMap(\.plantID)), Set(plants.compactMap(\.uuid)), "everyone gets theirs")
+        let now = day(2026, 4, 20)
+        let planned = NotificationPlanner.photoCheckIns(for: plants, months: 2, after: now,
+                                                        hour: 9, minute: 0, calendar: calendar)
+        let weeks = perWeek(planned).sorted { $0.key < $1.key }
+        XCTAssertTrue(weeks.allSatisfy { $0.value.count <= 3 }, weeks.map { $0.value.count }.description)
+        XCTAssertTrue(weeks.dropFirst().dropLast().allSatisfy { $0.value.count == 3 }, "three in every full week")
+        let days = Set(planned.map { calendar.startOfDay(for: $0.date) })
+        XCTAssertEqual(days.count, planned.count, "one a day, never two together")
         XCTAssertTrue(planned.allSatisfy { calendar.component(.hour, from: $0.date) == 9 })
-
-        // Each plant still waits at least a week between check-ins, never daily.
-        // (Straight from the check-in planner: in the full plan the last few
-        // only get the slots the anniversaries leave.)
-        let all = NotificationPlanner.photoCheckIns(for: plants, months: 2, after: day(2026, 4, 20),
-                                                    hour: 9, minute: 0, calendar: calendar)
-        XCTAssertTrue(Dictionary(grouping: all) { calendar.startOfDay(for: $0.date) }.values.allSatisfy { $0.count <= 2 })
+        // May 1 is the threshold for all 15: nothing sooner, and 3 in the first week.
+        XCTAssertGreaterThanOrEqual(planned.map(\.date).min()!, day(2026, 5, 1, hour: 0))
+        XCTAssertEqual(planned.filter { $0.date < day(2026, 5, 9, hour: 0) }.count, 3)
+        // Everyone gets a turn before anyone gets a second, and a plant never waits less than a week.
+        XCTAssertEqual(Set(planned.prefix(15).compactMap(\.plantID)), Set(plants.compactMap(\.uuid)))
         for plant in plants {
-            let dates = all.filter { $0.plantID == plant.uuid }.map(\.date).sorted()
-            XCTAssertEqual(dates.count, NotificationPlanner.checkInsPerPlant)
+            let dates = planned.filter { $0.plantID == plant.uuid }.map(\.date).sorted()
             for (a, b) in zip(dates, dates.dropFirst()) {
                 XCTAssertGreaterThanOrEqual(calendar.dateComponents([.day], from: a, to: b).day ?? 0, 7)
             }
         }
     }
 
+    func testOldestWaitingGoesFirst() {
+        let store = TestStore()
+        // Thresholds (acquired + 2 months) a day apart, newest created first so
+        // that creation order and fetch order can't be what decides.
+        let newest = store.plant(nickname: "Newest", acquired: day(2026, 3, 5))
+        let middle = store.plant(nickname: "Middle", acquired: day(2026, 3, 3))
+        let oldest = store.plant(nickname: "Oldest", acquired: day(2026, 3, 1))
+        let planned = NotificationPlanner.photoCheckIns(for: [newest, middle, oldest], months: 2, after: day(2026, 4, 20),
+                                                        hour: 9, minute: 0, calendar: calendar)
+        XCTAssertEqual(planned.prefix(3).compactMap(\.plantID), [oldest, middle, newest].compactMap(\.uuid))
+    }
+
+    func testABacklogOf30IsSpreadOverTheFollowingWeeks() {
+        let store = TestStore()
+        // 30 plants nobody has photographed for a year and a half, thresholds a day apart.
+        let plants = (0..<30).map { store.plant(nickname: "Plant \($0)", acquired: day(2025, 1, 1).addingTimeInterval(Double($0) * 86_400)) }
+        let now = day(2026, 11, 21)
+        let planned = NotificationPlanner.photoCheckIns(for: plants, months: 6, after: now,
+                                                        hour: 9, minute: 0, calendar: calendar)
+        XCTAssertTrue(planned.allSatisfy { $0.date > now })
+        XCTAssertTrue(perWeek(planned).values.allSatisfy { $0.count <= 3 }, perWeek(planned).mapValues(\.count).description)
+        XCTAssertEqual(perWeek(planned).count, NotificationPlanner.checkInWeeksAhead, "every coming week, not one burst")
+        // The first 30 are 30 different plants (10 weeks), and the first lands within days.
+        XCTAssertEqual(Set(planned.prefix(30).compactMap(\.plantID)).count, 30)
+        XCTAssertLessThan(planned[0].date, day(2026, 11, 29))
+
+        // And the full plan, with its 60-slot cap and the plants' anniversaries, keeps the same limits.
+        let full = checkIns(plan(store, now: now, months: 6))
+        XCTAssertFalse(full.isEmpty)
+        XCTAssertTrue(perWeek(full).values.allSatisfy { $0.count <= 3 })
+    }
+
     func testRolledOverDaysAreTheSameOnEveryReschedule() {
         let store = TestStore()
-        let plants = sameDayPlants(store)
-        func checkIns(now: Date) -> [PlannedNotification] {
-            NotificationPlanner.photoCheckIns(for: plants, months: 2, after: now, hour: 9, minute: 0, calendar: calendar)
+        let plants = (0..<30).map { store.plant(nickname: "Plant \($0)", acquired: day(2025, 1, 1).addingTimeInterval(Double($0) * 86_400)) }
+        func checkIns(now: Date, plants: [Plant] = plants) -> [PlannedNotification] {
+            NotificationPlanner.photoCheckIns(for: plants, months: 6, after: now, hour: 9, minute: 0, calendar: calendar)
         }
-        let early = checkIns(now: day(2026, 4, 20))
-        let later = checkIns(now: day(2026, 5, 9))
-        let shuffled = NotificationPlanner.photoCheckIns(for: plants.reversed(), months: 2, after: day(2026, 4, 20),
-                                                         hour: 9, minute: 0, calendar: calendar)
+        let early = checkIns(now: day(2026, 11, 21))
+        let later = checkIns(now: day(2026, 12, 9))
+        let shuffled = checkIns(now: day(2026, 11, 21), plants: plants.reversed())
 
-        XCTAssertEqual(Set(early.map(\.id)), Set(shuffled.map(\.id)), "doesn't depend on fetch order")
-        let stillAhead = early.filter { $0.date > day(2026, 5, 9) }.map(\.id)
+        XCTAssertEqual(early.map(\.id), shuffled.map(\.id), "doesn't depend on fetch order")
+        XCTAssertEqual(early.map(\.body), shuffled.map(\.body))
+        let stillAhead = early.filter { $0.date > day(2026, 12, 9) }.map(\.id)
         XCTAssertFalse(stillAhead.isEmpty)
         XCTAssertTrue(Set(stillAhead).isSubset(of: later.map(\.id)),
                       "a later reschedule keeps the same days for what hasn't fired yet")
+    }
+
+    // MARK: Wording
+
+    func testBodyNamesThePlantAndTheRealGap() {
+        XCTAssertEqual(NotificationPlanner.photoCheckInBody(plantName: "Aloe", gapMonths: 7, variant: 0),
+                       "It's been 7 months since Aloe's last close-up. Show off the new growth? 📸")
+        for variant in 0..<NotificationPlanner.photoCheckInPhrasingCount {
+            XCTAssertTrue(NotificationPlanner.photoCheckInBody(plantName: "Aloe", gapMonths: 7, variant: variant).contains("7 months"))
+            XCTAssertTrue(NotificationPlanner.photoCheckInBody(plantName: "Aloe", gapMonths: 7, variant: variant).contains("Aloe"))
+            XCTAssertTrue(NotificationPlanner.photoCheckInBody(plantName: "Aloe", gapMonths: 7, variant: variant).hasSuffix("📸"))
+        }
+        XCTAssertEqual(NotificationPlanner.gapText(months: 2), "2 months")
+        XCTAssertEqual(NotificationPlanner.gapText(months: 12), "a year")
+        XCTAssertEqual(NotificationPlanner.gapText(months: 14), "over a year")
+        XCTAssertEqual(NotificationPlanner.gapText(months: 24), "2 years")
+        XCTAssertEqual(NotificationPlanner.gapText(months: 30), "over 2 years")
+        XCTAssertEqual(NotificationPlanner.photoCheckInBody(plantName: "Pothos", gapMonths: 12, variant: 2),
+                       "A year since Pothos' last portrait. Time for a fresh one? 📸")
+    }
+
+    func testBodyRotatesByWeekAndStaysTheSameOnEveryPlan() {
+        let store = TestStore()
+        store.plant(nickname: "Fern", acquired: day(2025, 1, 1))
+        let now = day(2026, 10, 1)
+        let first = checkIns(plan(store, now: now, months: 2))
+        let again = checkIns(plan(store, now: now, months: 2))
+        XCTAssertEqual(first.map(\.body), again.map(\.body), "deterministic")
+        XCTAssertGreaterThan(Set(first.map(\.body)).count, 1, "the wording changes week to week")
+        XCTAssertTrue(first.allSatisfy { $0.body.contains("Fern") && $0.title == "Photo check-in 📸" })
     }
 
     // MARK: N4: which plant a tap opens
