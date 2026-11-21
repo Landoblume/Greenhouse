@@ -55,4 +55,19 @@ final class GenusFilterTests: XCTestCase {
         XCTAssertEqual(PlantFilter(genus: "").apply(to: [nameless]), [])
         XCTAssertEqual(PlantFilter().apply(to: [nameless]), [nameless], "no filter keeps them")
     }
+
+    func testClearsGenusNotInNewCollection() {
+        let store = TestStore()
+        let aloe = plant(store, latin: "Aloe vera")
+        let pothos = plant(store, latin: "Epipremnum aureum")
+        let filter = PlantFilter(query: "x", needsWater: true, genus: "Aloe")
+
+        XCTAssertEqual(filter.clearingUnavailableGenus(in: [aloe, pothos]), filter, "still offered, kept")
+        let cleared = filter.clearingUnavailableGenus(in: [pothos])
+        XCTAssertNil(cleared.genus)
+        XCTAssertEqual(cleared.query, "x", "other filters untouched")
+        XCTAssertTrue(cleared.needsWater)
+        XCTAssertNil(filter.clearingUnavailableGenus(in: []).genus)
+        XCTAssertEqual(PlantFilter().clearingUnavailableGenus(in: [pothos]), PlantFilter())
+    }
 }

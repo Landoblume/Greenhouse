@@ -107,6 +107,9 @@ struct PlantsView: View {
                         .accessibilityLabel("Add plant")
                 }
             }
+            .onChange(of: PlantFilter.genera(in: inCollection)) {
+                filter = filter.clearingUnavailableGenus(in: inCollection)
+            }
             .sheet(isPresented: $showingAdd) { AddPlantView(household: household) }
             .sheet(item: $choosingPlants) { CollectionPlantsSheet(collection: $0, household: household) }
             .confirmationDialog("Delete \(deleting?.displayName ?? "plant")?",
@@ -166,6 +169,7 @@ struct PlantsView: View {
                     Text("Any genus").tag(String?.none)
                     ForEach(genera, id: \.self) { Text($0).tag(String?.some($0)) }
                 }
+                .pickerStyle(.menu)
             }
             Picker("Sort by", selection: $filter.sort) {
                 ForEach(PlantFilter.Sort.allCases) { Text($0.label).tag($0) }

@@ -55,6 +55,16 @@ struct PlantFilter: Equatable {
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
+    /// This filter with the genus dropped if none of these plants has it, so
+    /// switching collections can't leave a genus selected that the menu no
+    /// longer offers (and an empty grid with no obvious cause).
+    func clearingUnavailableGenus(in plants: [Plant]) -> PlantFilter {
+        guard let genus, !Self.genera(in: plants).contains(genus) else { return self }
+        var adjusted = self
+        adjusted.genus = nil
+        return adjusted
+    }
+
     /// Watering due today or overdue.
     static func needsWater(_ plant: Plant, now: Date = .now) -> Bool {
         switch plant.wateringTask.flatMap({ CareSchedule.status(of: $0, now: now) }) {
