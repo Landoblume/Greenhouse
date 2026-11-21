@@ -6,6 +6,9 @@ struct PlannedNotification: Equatable {
     let date: Date
     let title: String
     let body: String
+    /// The plant a tap should open, for photo check-ins. Travels in the
+    /// notification's userInfo under `NotificationPlanner.plantIDKey`.
+    var plantID: UUID? = nil
 }
 
 /// Turns care tasks and plant anniversaries into local notifications.
@@ -22,11 +25,28 @@ enum NotificationPlanner {
     static let hourKey = "notifyHour"
     static let minuteKey = "notifyMinute"
 
+    /// Months without a photo before a plant's check-in starts; 0 is Off.
+    /// Per phone, like the reminder time.
+    static let photoCheckInKey = "photoCheckInMonths"
+    static let photoCheckInOptions = [0, 2, 3, 6]
+    static let defaultPhotoCheckInMonths = 6
+    /// Notification ids for check-ins start with this; a tap on one opens the camera.
+    static let photoCheckInPrefix = "photo-"
+    static let plantIDKey = "plantID"
+    /// Weekly check-ins planned ahead per plant. Every launch and sync plans
+    /// again, so a month ahead is plenty.
+    static let checkInsPerPlant = 4
+
+    static func photoCheckInMonths(in defaults: UserDefaults = .standard) -> Int {
+        defaults.object(forKey: photoCheckInKey) as? Int ?? defaultPhotoCheckInMonths
+    }
+
     static func plan(
         household: Household,
         now: Date = .now,
         hour: Int = 9,
         minute: Int = 0,
+        photoCheckInMonths: Int = defaultPhotoCheckInMonths,
         calendar: Calendar = .current
     ) -> [PlannedNotification] {
         func at(_ day: Date) -> Date? {
@@ -69,7 +89,62 @@ enum NotificationPlanner {
             }
         }
 
-        return Array(planned.sorted { $0.date < $1.date }.prefix(limit))
+        let reminders = Array(planned.sorted { $0.date < $1.date }.prefix(limit))
+
+        // Check-ins only take the slots reminders and anniversaries leave
+        // over, even when they'd fire sooner.
+        let free = limit - reminders.count
+        guard free > 0, photoCheckInMonths > 0 else { return reminders }
+        let checkIns = (household.plants ?? []).filter(\.isActive).flatMap {
+            photoCheckIns(for: $0, months: photoCheckInMonths, after: now, hour: hour, minute: minute, calendar: calendar)
+        }
+        let sortedCheckIns = checkIns.sorted { ($0.date, $0.id) < ($1.date, $1.id) }
+        return (reminders + sortedCheckIns.prefix(free)).sorted { $0.date < $1.date }
+    }
+
+    /// When a plant's check-ins start: `months` after its newest photo (by
+    /// takenAt, including photos inherited from the plants it was combined
+    /// from), or after it was acquired (or added) when it has none.
+    static func photoCheckInStart(for plant: Plant, months: Int, calendar: Calendar) -> Date? {
+        let lastSeen = Lineage.timeline(for: plant).compactMap(\.photo.takenAt).max()
+            ?? plant.acquiredDate ?? plant.createdAt
+        guard let lastSeen else { return nil }
+        return calendar.date(byAdding: .month, value: months, to: calendar.startOfDay(for: lastSeen))
+    }
+
+    /// "Haven't seen Aloe in a while" on the threshold day, then every 7 days
+    /// from it. The dates come from the threshold, not from today, so each
+    /// reschedule (on either phone) plans the same notifications.
+    static func photoCheckIns(
+        for plant: Plant,
+        months: Int,
+        after now: Date,
+        hour: Int,
+        minute: Int,
+        calendar: Calendar
+    ) -> [PlannedNotification] {
+        guard months > 0, let start = photoCheckInStart(for: plant, months: months, calendar: calendar) else { return [] }
+        func fire(week: Int) -> Date? {
+            calendar.date(byAdding: .day, value: week * 7, to: start)
+                .flatMap { calendar.date(bySettingHour: hour, minute: minute, second: 0, of: $0) }
+        }
+        // Jump close to today instead of walking every week since the threshold.
+        let daysSince = calendar.dateComponents([.day], from: start, to: calendar.startOfDay(for: now)).day ?? 0
+        var week = max(0, daysSince / 7 - 1)
+        while let date = fire(week: week), date <= now { week += 1 }
+
+        let id = plant.uuid?.uuidString ?? ""
+        let body = "Haven't seen \(plant.displayName) in a while, how's it coming? 📸"
+        return (week..<(week + checkInsPerPlant)).compactMap { week in
+            guard let date = fire(week: week) else { return nil }
+            return PlannedNotification(
+                id: "\(photoCheckInPrefix)\(id)-\(Int(date.timeIntervalSince1970))",
+                date: date,
+                title: "Photo check-in",
+                body: body,
+                plantID: plant.uuid
+            )
+        }
     }
 
     /// "Time for your quarterly hydrogen peroxide treatment: Aloe, Pothos"
@@ -154,16 +229,21 @@ enum NotificationPlanner {
         let defaults = UserDefaults.standard
         let hour = defaults.object(forKey: hourKey) as? Int ?? 9
         let minute = defaults.object(forKey: minuteKey) as? Int ?? 0
+        let checkInMonths = photoCheckInMonths(in: defaults)
 
         context.perform {
             center.removeAllPendingNotificationRequests()
             guard let household = persistence.currentHousehold(in: context) else { return }
             let calendar = Calendar.current
-            for item in plan(household: household, hour: hour, minute: minute, calendar: calendar) {
+            for item in plan(household: household, hour: hour, minute: minute,
+                             photoCheckInMonths: checkInMonths, calendar: calendar) {
                 let content = UNMutableNotificationContent()
                 content.title = item.title
                 content.body = item.body
                 content.sound = .default
+                if let plantID = item.plantID {
+                    content.userInfo = [plantIDKey: plantID.uuidString]
+                }
                 let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: item.date)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
                 center.add(UNNotificationRequest(identifier: item.id, content: content, trigger: trigger))
@@ -190,6 +270,29 @@ final class RemoteChangeObserver {
             let work = DispatchWorkItem { NotificationPlanner.reschedule(persistence: persistence) }
             self?.pending = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
+        }
+    }
+}
+
+/// Rebuilds notifications when a photo is added, deleted or redated on this
+/// phone, so a plant's check-ins stop as soon as it has a newer photo. (The
+/// other phone's photos arrive through `RemoteChangeObserver`.)
+final class PhotoChangeObserver {
+    static let shared = PhotoChangeObserver()
+    private var token: NSObjectProtocol?
+
+    func start(persistence: Persistence = .shared) {
+        guard token == nil else { return }
+        token = NotificationCenter.default.addObserver(
+            forName: .NSManagedObjectContextDidSave,
+            object: persistence.viewContext,
+            queue: .main
+        ) { note in
+            let keys = [NSInsertedObjectsKey, NSDeletedObjectsKey, NSUpdatedObjectsKey]
+            let touchedPhoto = keys.contains { key in
+                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is Photo } ?? false
+            }
+            if touchedPhoto { NotificationPlanner.reschedule(persistence: persistence) }
         }
     }
 }
