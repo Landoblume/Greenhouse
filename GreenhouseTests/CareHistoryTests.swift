@@ -312,4 +312,123 @@ final class CareHistoryTests: XCTestCase {
         XCTAssertEqual(CareHistory.stats(for: merged)?.counts.first?.count, 2)
         XCTAssertEqual(CareHistory.stats(for: merged)?.since, day(2026, 2, 1))
     }
+
+    // MARK: - Care before and after a combine
+
+    func testCareOnAMovedTaskBeforeTheCombineSitsOnTheOldestOriginal() {
+        let store = TestStore()
+        let a = store.plant(nickname: "Aloe", acquired: day(2026, 1, 1))
+        let b = store.plant(nickname: "Fern", acquired: day(2026, 1, 5))
+        let mist = CareSchedule.makeTask(name: "Mist", count: 1, unit: .week, firstDue: day(2026, 2, 1),
+                                         plants: [a, b], household: store.household, context: store.context,
+                                         persistence: store.persistence)
+        CareSchedule.markDone(mist, by: "Sam", at: day(2026, 2, 2), household: store.household,
+                              context: store.context, persistence: store.persistence)
+        let merged = Lineage.staple([a, b], nickname: "Both", date: day(2026, 3, 1), household: store.household,
+                                    context: store.context, persistence: store.persistence)
+        CareSchedule.markDone(mist, by: "Sam", at: day(2026, 3, 15), household: store.household,
+                              context: store.context, persistence: store.persistence)
+        store.save()
+
+        let entries = CareHistory.entries(for: merged)
+        XCTAssertEqual(entries.count, 2)
+        XCTAssertEqual(entries[0].doneAt, day(2026, 3, 15))
+        XCTAssertEqual(entries[0].source, merged)
+        XCTAssertEqual(entries[1].doneAt, day(2026, 2, 2))
+        XCTAssertEqual(entries[1].source, a, "shown once, on the oldest original")
+        XCTAssertEqual(entries[1].sources, [a, b])
+        XCTAssertEqual(entries[1].sourceLabel, "Aloe + Fern")
+
+        // Month, 3/15 log, merge, month, 2/2 log. Nothing on the combined lane below its node.
+        let timeline = CareHistory.timeline(for: merged)
+        XCTAssertEqual(timeline.rows.count, 5)
+        XCTAssertTrue(timeline.rows[1].lanes[0].dot)
+        XCTAssertTrue(timeline.rows[2].lanes[0].isMergeNode)
+        XCTAssertTrue(timeline.rows[3].lanes[0].isEmpty)
+        XCTAssertTrue(timeline.rows[4].lanes[0].isEmpty)
+        XCTAssertTrue(timeline.rows[4].lanes[1].dot)
+        XCTAssertFalse(timeline.rows[4].lanes[2].dot)
+    }
+
+    func testCareBeforeEachNestedCombineLandsOnTheRightThread() {
+        let store = TestStore()
+        let a = store.plant(nickname: "A", acquired: day(2026, 1, 1))
+        let b = store.plant(nickname: "B", acquired: day(2026, 1, 2))
+        let c = store.plant(nickname: "C", acquired: day(2026, 1, 3))
+        let mist = CareSchedule.makeTask(name: "Mist", count: 1, unit: .week, firstDue: day(2026, 2, 1),
+                                         plants: [a, b, c], household: store.household, context: store.context,
+                                         persistence: store.persistence)
+        CareSchedule.markDone(mist, by: "Sam", at: day(2026, 2, 5), household: store.household,
+                              context: store.context, persistence: store.persistence)
+        let ab = Lineage.staple([a, b], nickname: "AB", date: day(2026, 3, 1), household: store.household,
+                                context: store.context, persistence: store.persistence)
+        CareSchedule.markDone(mist, by: "Sam", at: day(2026, 3, 10), household: store.household,
+                              context: store.context, persistence: store.persistence)
+        let abc = Lineage.staple([ab, c], nickname: "ABC", date: day(2026, 4, 1), household: store.household,
+                                 context: store.context, persistence: store.persistence)
+        CareSchedule.markDone(mist, by: "Sam", at: day(2026, 4, 10), household: store.household,
+                              context: store.context, persistence: store.persistence)
+        store.save()
+
+        let entries = CareHistory.entries(for: abc)
+        XCTAssertEqual(entries.map(\.doneAt), [day(2026, 4, 10), day(2026, 3, 10), day(2026, 2, 5)])
+        XCTAssertEqual(entries[0].source, abc)
+        XCTAssertEqual(entries[1].source, ab, "between the two combines")
+        XCTAssertEqual(entries[2].source, a)
+        XCTAssertEqual(entries[2].sources, [a, b, c], "AB didn't exist yet, so its originals stand in")
+        // Every thread still ends at or below its merge row; no dot on lane 0 below the first merge.
+        let timeline = CareHistory.timeline(for: abc)
+        let firstMerge = timeline.rows.firstIndex { if case .merge = $0.kind { return true } else { return false } }!
+        XCTAssertTrue(timeline.rows[(firstMerge + 1)...].allSatisfy { !$0.lanes[0].dot })
+    }
+
+    func testCareDatedAfterABackdatedCombineMovesToTheCombinedPlant() {
+        let store = TestStore()
+        let a = store.plant(nickname: "A", acquired: day(2026, 1, 1))
+        let b = store.plant(nickname: "B", acquired: day(2026, 1, 5))
+        water(a, on: day(2026, 2, 1), by: "Sam", store: store)
+        water(a, on: day(2026, 4, 1), by: "Sam", store: store)
+        water(b, on: day(2026, 3, 1), by: "Alex", store: store)
+        // The combine is entered with a date before some of the care.
+        let merged = Lineage.staple([a, b], nickname: "AB", date: day(2026, 3, 1), household: store.household,
+                                    context: store.context, persistence: store.persistence)
+        store.save()
+
+        let entries = CareHistory.entries(for: merged)
+        XCTAssertEqual(entries.map(\.doneAt), [day(2026, 4, 1), day(2026, 3, 1), day(2026, 2, 1)])
+        XCTAssertEqual(entries[0].source, merged, "after the combine")
+        XCTAssertEqual(entries[1].source, merged, "on the day counts as the combined plant")
+        XCTAssertEqual(entries[2].source, a)
+
+        let timeline = CareHistory.timeline(for: merged)
+        let mergeIndex = timeline.rows.firstIndex { if case .merge = $0.kind { return true } else { return false } }!
+        // Above the merge row the originals' lanes are empty; they start at the merge.
+        for row in timeline.rows[..<mergeIndex] {
+            XCTAssertFalse(row.lanes[1].dot || row.lanes[1].lineAbove || row.lanes[1].lineBelow)
+            XCTAssertFalse(row.lanes[2].dot || row.lanes[2].lineAbove || row.lanes[2].lineBelow)
+        }
+        XCTAssertFalse(timeline.rows[mergeIndex].lanes[1].lineAbove)
+        XCTAssertEqual(timeline.rows[mergeIndex].lanes[1].joinsLane, 0)
+        XCTAssertTrue(timeline.rows[mergeIndex - 1].lanes[0].lineBelow)
+    }
+
+    // MARK: - Stats since
+
+    func testStatsSinceUsesTheOldestWateringWhenWateringLeads() {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2026, 1, 1))
+        let repot = CareSchedule.makeTask(name: "Fertilize", count: 1, unit: .month, firstDue: day(2026, 1, 15),
+                                          plants: [plant], household: store.household, context: store.context,
+                                          persistence: store.persistence)
+        CareSchedule.markDone(repot, by: "Sam", at: day(2026, 1, 20), household: store.household,
+                              context: store.context, persistence: store.persistence)
+        water(plant, on: day(2026, 3, 1), by: "Sam", store: store)
+        water(plant, on: day(2026, 4, 1), by: "Sam", store: store)
+        store.save()
+
+        let stats = CareHistory.stats(for: plant)
+        XCTAssertEqual(stats?.since, day(2026, 3, 1), "not the older fertilizing")
+        let since = day(2026, 3, 1).formatted(.dateTime.month(.abbreviated).year())
+        XCTAssertTrue(stats?.headline.hasPrefix("Watered 2 times since \(since)") ?? false)
+    }
 }

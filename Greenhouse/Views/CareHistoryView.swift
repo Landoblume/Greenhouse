@@ -72,8 +72,11 @@ struct CareHistoryRow: View {
     let row: CareHistory.Row
     let viewedPlant: Plant
     let laneCount: Int
-    @ScaledMetric(relativeTo: .body) private var laneWidth: CGFloat = 22
+    @ScaledMetric(relativeTo: .body) private var scaledLaneWidth: CGFloat = 22
     @ScaledMetric(relativeTo: .body) private var nodeY: CGFloat = 22
+
+    /// Capped so a few lanes at the largest text sizes don't eat the row.
+    private var laneWidth: CGFloat { min(scaledLaneWidth, 30) }
 
     private var gutter: CGFloat { laneWidth * CGFloat(max(laneCount, 1)) + 8 }
 
@@ -129,7 +132,7 @@ private struct LogContent: View {
                         .foregroundStyle(.secondary)
                 }
                 if source != viewedPlant {
-                    Text("For \(source.displayName)")
+                    Text("For \(entry.sourceLabel)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -210,7 +213,9 @@ private struct ThreadGutter: View {
             }
             // Line carrying on below.
             if mark.lineBelow {
-                let startY: CGFloat = (mark.dot || mark.joinsLane != nil) ? nodeY : 0
+                // Below an original's join the line starts where its curve ends,
+                // so there's no stub left that reads as a fork.
+                let startY: CGFloat = mark.joinsLane != nil ? nodeY + laneWidth : (mark.dot ? nodeY : 0)
                 Path { p in
                     p.move(to: CGPoint(x: x(lane), y: startY))
                     p.addLine(to: CGPoint(x: x(lane), y: height))

@@ -8,6 +8,8 @@ struct CareView: View {
     @FetchRequest private var tasks: FetchedResults<CareTask>
     @State private var showingNew = false
     @State private var editing: CareTask?
+    /// Lets a plant name under a reminder push that plant onto the stack.
+    @State private var path = NavigationPath()
 
     init(household: Household) {
         self.household = household
@@ -25,7 +27,7 @@ struct CareView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             let due = sorted.filter { CareSchedule.status(of: $0)?.needsAttention == true }
             let later = sorted.filter { CareSchedule.status(of: $0)?.needsAttention != true }
             List {
@@ -35,12 +37,12 @@ struct CareView: View {
                 .listRowSeparator(.hidden)
                 if !due.isEmpty {
                     Section("Due now") {
-                        ForEach(due) { TaskRow(task: $0, household: household, onEdit: edit($0)) }
+                        ForEach(due) { TaskRow(task: $0, household: household, onEdit: edit($0), onOpenPlant: openPlant) }
                     }
                 }
                 if !later.isEmpty {
                     Section("Coming up") {
-                        ForEach(later) { TaskRow(task: $0, household: household, onEdit: edit($0)) }
+                        ForEach(later) { TaskRow(task: $0, household: household, onEdit: edit($0), onOpenPlant: openPlant) }
                     }
                 }
             }
@@ -60,6 +62,8 @@ struct CareView: View {
             .sheet(item: $editing) { TaskEditorView(household: household, task: $0, preselected: []) }
         }
     }
+
+    private func openPlant(_ plant: Plant) { path.append(plant) }
 
     private func edit(_ task: CareTask) -> () -> Void {
         { editing = task }

@@ -19,26 +19,36 @@ enum CareHistory {
         let doneAt: Date?
         /// Nil when nobody's name was set.
         let doneBy: String?
-        /// The plant the task belonged to; differs from the viewed plant for
-        /// care done before a combine.
+        /// The plant whose thread this sits on; differs from the viewed plant
+        /// for care done before a combine.
         let source: Plant
+        /// Every plant the care was for, oldest first, `source` among them. More
+        /// than one when a task that covered several originals moved to the
+        /// combined plant: the log shows once, on the oldest.
+        let sources: [Plant]
         var id: NSManagedObjectID { log.objectID }
+
+        /// "Aloe + Fern"
+        var sourceLabel: String { sources.map(\.displayName).joined(separator: " + ") }
     }
 
     /// Newest first. Logs with the same date are ordered by id, so the order
     /// is the same on every launch and on both phones.
     static func entries(for plant: Plant) -> [Entry] {
+        let family = [plant] + Lineage.ancestors(of: plant)
         var seen: Set<NSManagedObjectID> = []
         var result: [Entry] = []
-        for source in [plant] + Lineage.ancestors(of: plant) {
-            for task in source.tasks ?? [] {
+        for member in family {
+            for task in member.tasks ?? [] {
                 for log in task.logs ?? [] where seen.insert(log.objectID).inserted {
+                    let resolved = owner(of: log.doneAt, startingAt: member, family: family)
                     result.append(Entry(
                         log: log,
                         title: title(of: task),
                         doneAt: log.doneAt,
                         doneBy: cleaned(log.doneBy),
-                        source: source
+                        source: resolved.plant,
+                        sources: resolved.labels
                     ))
                 }
             }
@@ -48,6 +58,68 @@ enum CareHistory {
             let bDate = b.doneAt ?? .distantPast
             if aDate != bDate { return aDate > bDate }
             return (a.log.uuid?.uuidString ?? "") < (b.log.uuid?.uuidString ?? "")
+        }
+    }
+
+    /// Whose thread a log belongs on, by its date. A task moves to the combined
+    /// plant at a combine, so care dated before it was for the originals; and
+    /// a log dated on or after the combine (a combine entered with an earlier
+    /// date than the care) is for the combined plant. Either can chain through
+    /// nested combines.
+    private static func owner(of date: Date?, startingAt start: Plant, family: [Plant]) -> (plant: Plant, labels: [Plant]) {
+        guard let date else { return (start, [start]) }
+        var current = start
+        var labels = [start]
+        for _ in 0..<family.count * 2 {
+            if let event = current.producedBy, let combined = event.date, date < combined {
+                let inputs = sortedByAge(inputsAlive(in: event, at: date))
+                guard let oldest = inputs.first else { break }
+                current = oldest
+                labels = inputs
+            } else if let event = current.consumedBy, let combined = event.date, date >= combined,
+                      let output = sortedByAcquired(event.outputs ?? []).first(where: { family.contains($0) }) {
+                current = output
+                labels = [output]
+            } else {
+                break
+            }
+        }
+        return (current, labels)
+    }
+
+    /// The plants a combine's care could have been for on `date`: its inputs,
+    /// except one that was itself made by a later combine, which stands for
+    /// the plants it was made from.
+    private static func inputsAlive(in event: LineageEvent, at date: Date) -> [Plant] {
+        var result: [Plant] = []
+        for input in event.inputs ?? [] {
+            if let madeBy = input.producedBy, let made = madeBy.date, date < made {
+                result += inputsAlive(in: madeBy, at: date)
+            } else {
+                result.append(input)
+            }
+        }
+        return Array(Set(result))
+    }
+
+    /// By how long you've had them (counting back through combines), oldest
+    /// first; ties by id.
+    private static func sortedByAge(_ plants: [Plant]) -> [Plant] {
+        plants.sorted { a, b in
+            let aDate = Lineage.effectiveAcquiredDate(of: a) ?? .distantPast
+            let bDate = Lineage.effectiveAcquiredDate(of: b) ?? .distantPast
+            if aDate != bDate { return aDate < bDate }
+            return (a.uuid?.uuidString ?? "") < (b.uuid?.uuidString ?? "")
+        }
+    }
+
+    /// Oldest first; ties by id so it never depends on set order.
+    private static func sortedByAcquired(_ plants: Set<Plant>) -> [Plant] {
+        plants.sorted { a, b in
+            let aDate = a.acquiredDate ?? .distantPast
+            let bDate = b.acquiredDate ?? .distantPast
+            if aDate != bDate { return aDate < bDate }
+            return (a.uuid?.uuidString ?? "") < (b.uuid?.uuidString ?? "")
         }
     }
 
@@ -70,8 +142,9 @@ enum CareHistory {
     /// The viewed plant first, then every plant it came from.
     static func threads(for plant: Plant) -> [CareThread] {
         let family = [plant] + Lineage.ancestors(of: plant)
+        let all = entries(for: plant)
         return family.enumerated().map { lane, member in
-            let logDates = (member.tasks ?? []).flatMap { $0.logs ?? [] }.compactMap(\.doneAt)
+            let logDates = all.filter { $0.source == member }.compactMap(\.doneAt)
             let began = member.producedBy?.date ?? member.acquiredDate
             return CareThread(
                 plant: member,
@@ -99,8 +172,7 @@ enum CareHistory {
     static func merges(for plant: Plant) -> [Merge] {
         ([plant] + Lineage.ancestors(of: plant)).compactMap { member in
             guard let event = member.producedBy else { return nil }
-            let inputs = (event.inputs ?? []).sorted { ($0.acquiredDate ?? .distantPast) < ($1.acquiredDate ?? .distantPast) }
-            return Merge(output: member, inputs: inputs, date: event.date, kind: event.kindValue)
+            return Merge(output: member, inputs: sortedByAcquired(event.inputs ?? []), date: event.date, kind: event.kindValue)
         }
     }
 
@@ -248,14 +320,15 @@ enum CareHistory {
         /// Most done first, watering winning ties.
         let counts: [KindCount]
         let total: Int
-        /// The day of the oldest log.
+        /// What the headline leads with: watering if there is any, else the most done.
+        let lead: KindCount
+        /// The day of the oldest log of the lead kind.
         let since: Date?
         /// Whoever did the most; ties go to the first name alphabetically.
         let mostlyBy: String?
 
         /// "Watered 23 times since May 2023 · mostly by Sam 💚"
         var headline: String {
-            let lead = counts.first { $0.isWatering } ?? counts[0]
             let times = lead.count == 1 ? "1 time" : "\(lead.count) times"
             var text = lead.isWatering ? "Watered \(times)" : "\(lead.title) \(times)"
             if let since { text += " since " + since.formatted(.dateTime.month(.abbreviated).year()) }
@@ -265,7 +338,6 @@ enum CareHistory {
 
         /// The other kinds, "Mist 4 · Repot 1", or nil when there's only one kind.
         var others: String? {
-            let lead = counts.first { $0.isWatering } ?? counts[0]
             let rest = counts.filter { $0.title != lead.title }
             return rest.isEmpty ? nil : rest.map { "\($0.title) \($0.count)" }.joined(separator: " · ")
         }
@@ -287,12 +359,19 @@ enum CareHistory {
                 if $0.isWatering != $1.isWatering { return $0.isWatering }
                 return $0.title < $1.title
             }
+        let lead = counts.first { $0.isWatering } ?? counts[0]
         var people: [String: Int] = [:]
         for name in all.compactMap(\.doneBy) { people[name, default: 0] += 1 }
         let mostlyBy = people.max { a, b in
             a.value != b.value ? a.value < b.value : a.key > b.key
         }?.key
-        return Stats(counts: counts, total: all.count, since: all.compactMap(\.doneAt).min(), mostlyBy: mostlyBy)
+        return Stats(
+            counts: counts,
+            total: all.count,
+            lead: lead,
+            since: all.filter { $0.title == lead.title }.compactMap(\.doneAt).min(),
+            mostlyBy: mostlyBy
+        )
     }
 
     // MARK: - Helpers
