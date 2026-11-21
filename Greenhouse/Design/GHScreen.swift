@@ -24,6 +24,8 @@ struct GHProminentButtonStyle: ButtonStyle {
         configuration.label
             .font(compact ? .ghRounded(.subheadline, weight: .bold) : .ghRounded(.body, weight: .bold))
             .foregroundStyle(GH.Palette.onLeaf)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, compact ? GH.Space.m : GH.Space.l)
             .padding(.vertical, compact ? GH.Space.xs : GH.Space.s)
             .frame(minHeight: 44)

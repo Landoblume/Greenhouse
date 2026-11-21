@@ -29,6 +29,7 @@ struct GHTabBar: View {
                         Image(systemName: selected ? item.selectedIcon : item.icon)
                             .font(.system(.title3, weight: .semibold))
                             .imageScale(.medium)
+                            .frame(height: 26)
                         Text(item.title)
                             .font(.ghRounded(.caption2, weight: .bold))
                             .lineLimit(1)
@@ -52,6 +53,9 @@ struct GHTabBar: View {
             }
         }
         .padding(6)
+        // Like the system bar, stop growing at the largest regular text size:
+        // four labels don't fit side by side beyond that.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(.ultraThinMaterial, in: Capsule(style: .continuous))
         .overlay(Capsule(style: .continuous).strokeBorder(GH.Palette.line, lineWidth: 1))
         .shadow(color: .black.opacity(0.10), radius: 18, y: 8)
