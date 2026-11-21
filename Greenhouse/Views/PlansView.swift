@@ -54,12 +54,15 @@ struct PlansView: View {
                     ForEach(shownWishes) { item in
                         WishRow(item: item, household: household) { editingWish = item } onGotIt: { buying = item }
                     }
+                    .listRowBackground(GH.Palette.surface)
                 case .projects:
                     ForEach(shownProjects) { project in
                         ProjectRow(project: project, household: household)
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
             }
+            .ghScreen()
             .overlay { emptyState }
             .navigationTitle("Plans")
             .toolbar {
@@ -74,6 +77,7 @@ struct PlansView: View {
             .sheet(isPresented: $addingProject) { ProjectEditorView(household: household, project: nil) }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
+            .navigationDestination(for: CareHistoryRoute.self) { CareHistoryView(plant: $0.plant) }
         }
     }
 
@@ -104,27 +108,27 @@ struct WishRow: View {
         HStack(alignment: .top) {
             Button(action: onEdit) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(item.displayName).foregroundStyle(.primary)
+                    Text(item.displayName).foregroundStyle(GH.Palette.ink)
                     if let latin = item.scientificName, latin != item.displayName {
-                        Text(latin).font(.caption).italic().foregroundStyle(.secondary)
+                        Text(latin).font(.caption).italic().foregroundStyle(GH.Palette.ink2)
                     }
                     if let species = item.species {
                         Text(hint(for: species))
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(GH.Palette.ink2)
                     }
                     if let notes = item.notes {
                         Text(notes).font(.caption).lineLimit(2)
                     }
                     if let by = item.addedBy {
-                        Text("Added by \(by)").font(.caption2).foregroundStyle(.secondary)
+                        Text("Added by \(by)").font(.caption2).foregroundStyle(GH.Palette.ink2)
                     }
                 }
             }
             .buttonStyle(.plain)
             Spacer()
             Button("Got it", action: onGotIt)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.ghProminent)
                 .controlSize(.small)
         }
     }
@@ -158,7 +162,7 @@ struct ProjectRow: View {
             } label: {
                 Image(systemName: project.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(project.isDone ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(project.isDone ? GH.Palette.leaf : GH.Palette.ink2)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(project.isDone ? "Mark not done" : "Mark done")
@@ -169,27 +173,27 @@ struct ProjectRow: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(project.title ?? "Untitled project")
                         .strikethrough(project.isDone)
-                        .foregroundStyle(project.isDone ? .secondary : .primary)
+                        .foregroundStyle(project.isDone ? GH.Palette.ink2 : GH.Palette.ink)
                     if let started = project.startedAt, !project.isDone {
                         Label("In progress since \(Lineage.format(started))", systemImage: "hammer.fill")
                             .font(.caption)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(GH.Palette.leafInk)
                     }
                     if let target = project.targetDate, !project.isDone {
                         Label("By \(Lineage.format(target))", systemImage: "calendar")
                             .font(.caption)
-                            .foregroundStyle(target < Calendar.current.startOfDay(for: .now) ? Color.orange : Color.secondary)
+                            .foregroundStyle(target < Calendar.current.startOfDay(for: .now) ? GH.Palette.terraInk : GH.Palette.ink2)
                     }
                     if let done = project.doneAt, project.isDone {
-                        Text("Done \(Lineage.format(done))").font(.caption).foregroundStyle(.secondary)
+                        Text("Done \(Lineage.format(done))").font(.caption).foregroundStyle(GH.Palette.ink2)
                     }
                     let names = (project.plants ?? []).filter(\.isActive).map(\.displayName).sorted()
                     if !names.isEmpty {
-                        Text(names.joined(separator: ", ")).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        Text(names.joined(separator: ", ")).font(.caption).foregroundStyle(GH.Palette.ink2).lineLimit(1)
                     }
                     ProjectSummary(project: project)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(GH.Palette.ink2)
                     if let notes = project.notes {
                         Text(notes).font(.caption).lineLimit(2)
                     }
@@ -223,8 +227,8 @@ struct WishEditorView: View {
                     Button { showingSpeciesPicker = true } label: {
                         if let species {
                             VStack(alignment: .leading) {
-                                Text(species.primaryCommonName).foregroundStyle(.primary)
-                                Text(species.latin).font(.caption).italic().foregroundStyle(.secondary)
+                                Text(species.primaryCommonName).foregroundStyle(GH.Palette.ink)
+                                Text(species.latin).font(.caption).italic().foregroundStyle(GH.Palette.ink2)
                             }
                         } else if !customLatin.isEmpty {
                             Text(customLatin).italic()
@@ -233,9 +237,11 @@ struct WishEditorView: View {
                         }
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
                 Section("Notes") {
                     TextField("Where you saw it, a price, which color…", text: $notes, axis: .vertical)
                 }
+                .listRowBackground(GH.Palette.surface)
                 let collections = Collections.pickable(in: household, keeping: collection)
                 if !collections.isEmpty {
                     Section {
@@ -244,11 +250,13 @@ struct WishEditorView: View {
                             ForEach(collections) { Text($0.path).tag(Optional($0)) }
                         }
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
                 if let item {
                     Section {
                         Button("Remove from wishlist", role: .destructive) { confirmingDelete = true }
                     }
+                    .listRowBackground(GH.Palette.surface)
                     .confirmationDialog("Remove \(item.displayName)?", isPresented: $confirmingDelete, titleVisibility: .visible) {
                         Button("Remove", role: .destructive) {
                             context.delete(item)
@@ -258,6 +266,7 @@ struct WishEditorView: View {
                     }
                 }
             }
+            .ghScreen()
             .navigationTitle(item == nil ? "Add to wishlist" : "Wishlist")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -334,6 +343,7 @@ struct ProjectEditorView: View {
                     TextField("What (e.g. Spray paint a new greenhouse)", text: $title)
                     TextField("Notes, supplies, measurements…", text: $notes, axis: .vertical)
                 }
+                .listRowBackground(GH.Palette.surface)
                 Section {
                     Picker("State", selection: $state) {
                         ForEach(ProjectState.allCases) { Text($0.label).tag($0) }
@@ -342,6 +352,7 @@ struct ProjectEditorView: View {
                 } footer: {
                     Text("While a project is in progress, its plants get a green edge on the Plants tab.")
                 }
+                .listRowBackground(GH.Palette.surface)
                 Section {
                     TextField("Where (e.g. back patio)", text: $place)
                     TextField("Link (inspiration, how-to, product)", text: $link)
@@ -354,17 +365,19 @@ struct ProjectEditorView: View {
                             .multilineTextAlignment(.trailing)
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
                 Section {
                     Toggle("Target date", isOn: $hasTarget)
                     if hasTarget {
                         DatePicker("By", selection: $target, displayedComponents: .date)
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
                 Section {
                     Button { choosingPlants = true } label: {
                         LabeledContent("For plants", value: plantIDs.isEmpty ? "None" : "\(plantIDs.count)")
                     }
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(GH.Palette.ink)
                     let collections = Collections.pickable(in: household, keeping: collection)
                     if !collections.isEmpty {
                         Picker("Collection", selection: $collection) {
@@ -373,10 +386,12 @@ struct ProjectEditorView: View {
                         }
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
                 if let project {
                     Section {
                         Button("Delete project", role: .destructive) { confirmingDelete = true }
                     }
+                    .listRowBackground(GH.Palette.surface)
                     .confirmationDialog("Delete \(project.title ?? "this project")?", isPresented: $confirmingDelete, titleVisibility: .visible) {
                         Button("Delete", role: .destructive) {
                             context.delete(project)
@@ -386,6 +401,7 @@ struct ProjectEditorView: View {
                     }
                 }
             }
+            .ghScreen()
             .navigationTitle(project == nil ? "New project" : "Edit project")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

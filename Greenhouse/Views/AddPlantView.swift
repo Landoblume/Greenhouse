@@ -34,20 +34,21 @@ struct AddPlantView: View {
                                 Text(species.latin).italic()
                                 Text(species.common.joined(separator: ", "))
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(GH.Palette.ink2)
                             }
                         } else if !customLatin.isEmpty {
                             VStack(alignment: .leading) {
                                 Text(customLatin).italic()
                                 Text("Not in the list, so no care data")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(GH.Palette.ink2)
                             }
                         } else {
                             Label("Choose species…", systemImage: "magnifyingglass")
                         }
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 Section {
                     PhotoInput(image: $image) { photoDate = $0 }
@@ -58,6 +59,7 @@ struct AddPlantView: View {
                         Text("Dated \(Lineage.format(photoDate)), when the photo was taken.")
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 Section("About") {
                     TextField("Nickname (optional)", text: $nickname)
@@ -68,6 +70,7 @@ struct AddPlantView: View {
                     }
                     LightSourcePicker(selection: $light)
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 CollectionToggles(household: household, selection: $collections)
 
@@ -80,7 +83,9 @@ struct AddPlantView: View {
                         Text("Starting point for \(species.primaryCommonName). Light: \(species.light).")
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
             }
+            .ghScreen()
             .navigationTitle(wish == nil ? "New plant" : "Got it!")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -160,6 +165,7 @@ struct SpeciesPickerView: View {
                     } label: {
                         Label("Use “\(trimmed)” as the Latin name", systemImage: "character.cursor.ibeam")
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
                 ForEach(results) { species in
                     Button {
@@ -167,14 +173,16 @@ struct SpeciesPickerView: View {
                         dismiss()
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(species.latin).italic().foregroundStyle(.primary)
+                            Text(species.latin).italic().foregroundStyle(GH.Palette.ink)
                             Text(species.common.joined(separator: ", "))
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(GH.Palette.ink2)
                         }
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
             }
+            .ghScreen()
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Common or Latin name")
             .navigationTitle("Species")
             .navigationBarTitleDisplayMode(.inline)
@@ -213,7 +221,7 @@ struct PhotoInput: View {
                 .scaledToFill()
                 .frame(height: 200)
                 .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
             Button { showingCrop = true } label: {
                 Label("Crop", systemImage: "crop")
             }

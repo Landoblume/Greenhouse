@@ -23,6 +23,7 @@ struct AddPhotoSheet: View {
                         dateFromPhoto = date != nil
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
                 Section {
                     DatePicker("Taken on", selection: $takenAt, in: ...Date(), displayedComponents: .date)
                     TextField("Caption (optional)", text: $caption)
@@ -31,8 +32,10 @@ struct AddPhotoSheet: View {
                         Text("Date read from the photo. Change it if it's wrong.")
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
                 MilestonePicker(plant: plant, selection: $milestone, newTitle: $newMilestoneTitle)
             }
+            .ghScreen()
             .navigationTitle("Add photo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -82,10 +85,10 @@ struct ThenNowView: View {
             PlantPhotoView(photo: item?.photo, maxPixel: 1200)
                 .frame(height: 260)
                 .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
             Text(item?.photo.takenAt.map(Lineage.format) ?? "")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GH.Palette.ink2)
         }
     }
 }
@@ -131,11 +134,14 @@ struct CombineSheet: View {
                 } footer: {
                     Text("They become one plant with one tile. Their photos, history and care carry over, and the originals stay reachable from History.")
                 }
+                .listRowBackground(GH.Palette.surface)
                 Section("New plant") {
                     TextField("Nickname (optional)", text: $nickname)
                     DatePicker("Combined on", selection: $date, in: ...Date(), displayedComponents: .date)
                 }
+                .listRowBackground(GH.Palette.surface)
             }
+            .ghScreen()
             .overlay {
                 if candidates.isEmpty {
                     ContentUnavailableView("Nothing to combine with", systemImage: "leaf",
@@ -184,7 +190,9 @@ struct CuttingSheet: View {
                 } footer: {
                     Text(footer)
                 }
+                .listRowBackground(GH.Palette.surface)
             }
+            .ghScreen()
             .navigationTitle("Take a cutting")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -288,19 +296,19 @@ private struct PhotoPage: View {
             VStack(alignment: .leading, spacing: 12) {
                 PlantPhotoView(photo: photo, maxPixel: 2048)
                     .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
                 if let caption = photo.caption {
                     Text(caption).font(.body)
                 }
                 if let milestone = photo.milestone {
                     Label(milestone.title ?? "Milestone", systemImage: "flag.fill")
                         .font(.subheadline)
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(GH.Palette.leaf)
                 }
                 if PlantPhotos.isCover(photo, of: plant) {
                     Label("Main photo", systemImage: "star.fill")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(GH.Palette.ink2)
                 }
             }
             .padding()
@@ -339,8 +347,10 @@ struct EditPhotoSheet: View {
                     DatePicker("Taken on", selection: $takenAt, in: ...Date(), displayedComponents: .date)
                     TextField("Caption", text: $caption, axis: .vertical)
                 }
+                .listRowBackground(GH.Palette.surface)
                 MilestonePicker(plant: plant, selection: $milestone, newTitle: $newMilestoneTitle)
             }
+            .ghScreen()
             .navigationTitle("Edit photo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -401,6 +411,7 @@ struct EditPlantView: View {
                     }
                     LightSourcePicker(selection: $light)
                 }
+                .listRowBackground(GH.Palette.surface)
                 if let household = plant.household {
                     // Combined or split plants already know where they came from.
                     if plant.producedBy == nil {
@@ -412,7 +423,7 @@ struct EditPlantView: View {
                                     ForEach(parents) { parent in
                                         VStack(alignment: .leading) {
                                             Text(parent.displayName)
-                                            Text(parentDetail(parent)).font(.caption).foregroundStyle(.secondary)
+                                            Text(parentDetail(parent)).font(.caption).foregroundStyle(GH.Palette.ink2)
                                         }
                                         .tag(Plant?.some(parent))
                                     }
@@ -427,6 +438,7 @@ struct EditPlantView: View {
                                     Text("Started this plant as a cutting of one you already have? Pick it to link them in History.")
                                 }
                             }
+                            .listRowBackground(GH.Palette.surface)
                         }
                     }
                     CollectionToggles(household: household, selection: $collections)
@@ -443,7 +455,7 @@ struct EditPlantView: View {
                                     VStack(alignment: .leading) {
                                         Text(project.title ?? "Untitled project")
                                         if Plans.state(of: project) != .planned {
-                                            Text(Plans.state(of: project).label).font(.caption).foregroundStyle(.secondary)
+                                            Text(Plans.state(of: project).label).font(.caption).foregroundStyle(GH.Palette.ink2)
                                         }
                                     }
                                 }
@@ -451,9 +463,11 @@ struct EditPlantView: View {
                         } header: {
                             Text("Projects")
                         }
+                        .listRowBackground(GH.Palette.surface)
                     }
                 }
             }
+            .ghScreen()
             .navigationTitle("Edit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

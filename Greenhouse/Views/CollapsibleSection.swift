@@ -38,6 +38,7 @@ struct CollapsibleSection<Content: View>: View {
             .buttonStyle(.plain)
             .accessibilityHint(isCollapsed ? "Shows this section" : "Hides this section")
         }
+        .listRowBackground(GH.Palette.surface)
     }
 }
 

@@ -18,18 +18,18 @@ struct MilestoneRow: View {
         HStack(alignment: .firstTextBaseline) {
             Image(systemName: "flag.fill")
                 .font(.caption)
-                .foregroundStyle(.tint)
+                .foregroundStyle(GH.Palette.leaf)
             VStack(alignment: .leading, spacing: 2) {
                 Text(milestone.title ?? "Milestone")
                 if let notes = milestone.notes {
                     Text(notes)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(GH.Palette.ink2)
                 }
                 if item.source != viewedPlant {
                     Text("From \(item.source.displayName)")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(GH.Palette.ink2)
                 }
                 let photos = Milestones.photos(of: milestone)
                 if !photos.isEmpty {
@@ -37,10 +37,10 @@ struct MilestoneRow: View {
                         ForEach(photos.prefix(4)) { photo in
                             PlantPhotoView(photo: photo, maxPixel: 120)
                                 .frame(width: 36, height: 36)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
                         }
                         if photos.count > 4 {
-                            Text("+\(photos.count - 4)").font(.caption).foregroundStyle(.secondary)
+                            Text("+\(photos.count - 4)").font(.caption).foregroundStyle(GH.Palette.ink2)
                         }
                     }
                     .padding(.top, 2)
@@ -50,7 +50,7 @@ struct MilestoneRow: View {
             Spacer()
             Text(milestone.date.map(Lineage.format) ?? "")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GH.Palette.ink2)
         }
     }
 }
@@ -96,12 +96,15 @@ struct MilestoneEditorView: View {
                         Text("Added by \(by)")
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
                 if milestone != nil {
                     Section {
                         Button("Delete milestone", role: .destructive) { confirmingDelete = true }
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
             }
+            .ghScreen()
             .navigationTitle(milestone == nil ? "New milestone" : "Edit milestone")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -149,8 +152,8 @@ struct MilestoneSuggestions: View {
                         .font(.subheadline)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(title == suggestion ? Color.accentColor : Color(.tertiarySystemFill), in: Capsule())
-                        .foregroundStyle(title == suggestion ? Color.white : Color.primary)
+                        .background(title == suggestion ? GH.Palette.leaf : GH.Palette.surface2, in: Capsule())
+                        .foregroundStyle(title == suggestion ? GH.Palette.onLeaf : GH.Palette.ink)
                         .buttonStyle(.plain)
                 }
             }
@@ -203,6 +206,7 @@ struct MilestonePicker: View {
                 Text("The new milestone gets the photo's date.")
             }
         }
+        .listRowBackground(GH.Palette.surface)
     }
 }
 
@@ -226,7 +230,7 @@ struct MilestoneOptionsView: View {
                         draft = option
                         renaming = index
                     }
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(GH.Palette.ink)
                 }
                 .onDelete { offsets in
                     var list = options
@@ -247,11 +251,14 @@ struct MilestoneOptionsView: View {
             } footer: {
                 Text("These fill in a milestone's title when you tap them. Changing the list only affects new milestones; saved ones keep their titles. Both phones share it.")
             }
+            .listRowBackground(GH.Palette.surface)
             Section {
                 Button("Reset to the original list") { save(Milestones.defaultSuggestions) }
                     .disabled(household.milestoneSuggestions == nil)
             }
+            .listRowBackground(GH.Palette.surface)
         }
+        .ghScreen()
         .navigationTitle("Milestone quick picks")
         .toolbar { EditButton() }
         .alert("Rename quick pick", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {

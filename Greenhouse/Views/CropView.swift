@@ -64,7 +64,7 @@ struct CropView: View {
                 .padding(.horizontal)
                 Text("Pinch to zoom, drag to move.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
             }
             .padding(.bottom)
             .navigationTitle("Crop")

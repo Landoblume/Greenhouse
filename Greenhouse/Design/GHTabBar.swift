@@ -1,0 +1,82 @@
+import SwiftUI
+
+/// One tab in the floating bar.
+struct GHTabItem: Identifiable {
+    let tag: Int
+    let title: String
+    let icon: String
+    let selectedIcon: String
+    var id: Int { tag }
+}
+
+/// Floating glass capsule that replaces the system tab bar. The tabs still
+/// live in a `TabView` (so each keeps its scroll position and navigation
+/// stack); this only draws the bar and sets the selection.
+struct GHTabBar: View {
+    let items: [GHTabItem]
+    @Binding var selection: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var pill
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(items) { item in
+                let selected = item.tag == selection
+                Button {
+                    withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.press) { selection = item.tag }
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: selected ? item.selectedIcon : item.icon)
+                            .font(.system(.title3, weight: .semibold))
+                            .imageScale(.medium)
+                        Text(item.title)
+                            .font(.ghRounded(.caption2, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .foregroundStyle(selected ? GH.Palette.leafInk : GH.Palette.ink2)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .padding(.vertical, GH.Space.xs)
+                    .background {
+                        if selected {
+                            Capsule(style: .continuous)
+                                .fill(GH.Palette.leafSoft)
+                                .matchedGeometryEffect(id: "pill", in: pill)
+                        }
+                    }
+                    .contentShape(Capsule(style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.title)
+                .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+            }
+        }
+        .padding(6)
+        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+        .overlay(Capsule(style: .continuous).strokeBorder(GH.Palette.line, lineWidth: 1))
+        .shadow(color: .black.opacity(0.10), radius: 18, y: 8)
+        .padding(.horizontal, GH.Space.screen)
+        .padding(.bottom, GH.Space.xs)
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+/// True while the software keyboard is up, so the floating bar can step aside
+/// instead of riding on top of it.
+@MainActor
+final class KeyboardWatcher: ObservableObject {
+    @Published var isVisible = false
+    private var tokens: [NSObjectProtocol] = []
+
+    init() {
+        let center = NotificationCenter.default
+        tokens.append(center.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.isVisible = true }
+        })
+        tokens.append(center.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.isVisible = false }
+        })
+    }
+
+    deinit { tokens.forEach(NotificationCenter.default.removeObserver) }
+}

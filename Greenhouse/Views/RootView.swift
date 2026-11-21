@@ -6,6 +6,8 @@ struct RootView: View {
     @AppStorage(SettingsKey.myName) private var myName = ""
     @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
 
+    init() { GHAppearance.apply() }
+
     var body: some View {
         Group {
             if myName.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -19,6 +21,7 @@ struct RootView: View {
                 WelcomeView()
             }
         }
+        .tint(GH.Palette.leaf)
     }
 }
 
@@ -29,27 +32,46 @@ struct MainTabView: View {
     /// The plant a tapped photo check-in is asking for a photo of.
     @State private var checkInPlant: Plant?
     @State private var checkInAskedAt = Date.distantPast
+    @StateObject private var keyboard = KeyboardWatcher()
     #if DEBUG
     @State private var tab = DemoData.openTab
     #else
     @State private var tab = 0
     #endif
 
+    private static let tabs = [
+        GHTabItem(tag: 0, title: "Plants", icon: "leaf", selectedIcon: "leaf.fill"),
+        GHTabItem(tag: 1, title: "Care", icon: "drop", selectedIcon: "drop.fill"),
+        GHTabItem(tag: 2, title: "Plans", icon: "list.star", selectedIcon: "list.star"),
+        GHTabItem(tag: 3, title: "Settings", icon: "gearshape", selectedIcon: "gearshape.fill"),
+    ]
+
     var body: some View {
+        // A TabView still holds the four screens (each keeps its scroll
+        // position and navigation stack); its own bar is hidden and the
+        // floating glass bar below drives the selection instead.
         TabView(selection: $tab) {
             PlantsView(household: household)
-                .tabItem { Label("Plants", systemImage: "leaf") }
+                .toolbar(.hidden, for: .tabBar)
                 .tag(0)
             CareView(household: household)
-                .tabItem { Label("Care", systemImage: "drop") }
+                .toolbar(.hidden, for: .tabBar)
                 .tag(1)
             PlansView(household: household)
-                .tabItem { Label("Plans", systemImage: "list.star") }
+                .toolbar(.hidden, for: .tabBar)
                 .tag(2)
             SettingsView(household: household)
-                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .toolbar(.hidden, for: .tabBar)
                 .tag(3)
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            // Steps aside while typing so it never rides on top of the keyboard.
+            if !keyboard.isVisible {
+                GHTabBar(items: Self.tabs, selection: $tab)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: keyboard.isVisible)
         .onAppear {
             NotificationPlanner.requestAuthorization()
             NotificationPlanner.reschedule()
@@ -106,24 +128,27 @@ struct NameEntryView: View {
             Spacer()
             Image(systemName: "leaf.circle.fill")
                 .font(.system(size: 72))
-                .foregroundStyle(.tint)
+                .foregroundStyle(GH.Palette.leaf)
             Text("Welcome to Greenhouse")
-                .font(.largeTitle.bold())
+                .font(.ghRounded(.largeTitle))
+                .foregroundStyle(GH.Palette.ink)
                 .multilineTextAlignment(.center)
             Text("What should we call you? It shows up next to things you do, like “Watered by \(draft.isEmpty ? "you" : draft)”.")
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GH.Palette.ink2)
             TextField("Your first name", text: $draft)
-                .textFieldStyle(.roundedBorder)
+                .padding(GH.Space.s)
+                .background(GH.Palette.surface2, in: RoundedRectangle(cornerRadius: GH.Radius.control, style: .continuous))
                 .textContentType(.givenName)
                 .submitLabel(.continue)
                 .onSubmit(save)
             Button("Continue", action: save)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.ghProminent)
                 .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
             Spacer()
         }
         .padding(32)
+        .background(GH.Palette.paper.ignoresSafeArea())
     }
 
     private func save() {
@@ -143,28 +168,30 @@ struct WelcomeView: View {
             Spacer()
             Image(systemName: "house.and.flag.fill")
                 .font(.system(size: 60))
-                .foregroundStyle(.tint)
+                .foregroundStyle(GH.Palette.leaf)
             if waitingForInvite {
                 Text("Waiting for your invite")
-                    .font(.title.bold())
+                    .font(.ghRounded(.title))
+                    .foregroundStyle(GH.Palette.ink)
                 Text("Open the Greenhouse invite link you were sent in Messages and tap it. The shared plants will show up here, usually within a minute.")
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
                 ProgressView()
                 ICloudStatusView()
                 Button("Back") { waitingForInvite = false }
             } else {
                 Text("Set up your plants")
-                    .font(.title.bold())
+                    .font(.ghRounded(.title))
+                    .foregroundStyle(GH.Palette.ink)
                 Text("Start a household and invite someone to share it, or join one you were invited to.")
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
                 Button {
                     Persistence.shared.createHousehold(name: "Our plants", in: context)
                 } label: {
                     Text("Start a household").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.ghProminent)
                 Button {
                     waitingForInvite = true
                 } label: {
@@ -177,6 +204,7 @@ struct WelcomeView: View {
             Spacer()
         }
         .padding(32)
+        .background(GH.Palette.paper.ignoresSafeArea())
         .sheet(isPresented: $showingHelp) {
             NavigationStack { HelpView() }
         }
@@ -195,7 +223,7 @@ struct ICloudStatusView: View {
             default:
                 Label("This iPhone isn't signed in to iCloud, so nothing can sync. Sign in under Settings → your name.", systemImage: "exclamationmark.icloud")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(GH.Palette.terraInk)
             }
         }
         .task {

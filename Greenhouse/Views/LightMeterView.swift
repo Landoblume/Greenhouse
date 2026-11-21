@@ -14,7 +14,7 @@ struct LightMeterView: View {
                     .frame(height: 260)
                     .frame(maxWidth: .infinity)
                     .background(Color.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: GH.Radius.card, style: .continuous))
                     .overlay {
                         if let problem = meter.problem {
                             Text(problem)
@@ -31,19 +31,19 @@ struct LightMeterView: View {
                             .contentTransition(.numericText())
                         Text("≈ \(Int(LightMeter.footCandles(lux: lux).rounded()).formatted()) foot-candles · \(LightMeter.describe(lux: lux))")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(GH.Palette.ink2)
                     }
                     if let species = plant?.species, let level = LightMeter.level(lux: lux, for: species.light) {
                         Label {
                             Text("\(level.label) for \(plant?.displayName ?? species.primaryCommonName), which likes \(species.light.lowercased())")
                         } icon: {
                             Image(systemName: level == .aboutRight ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                                .foregroundStyle(level == .aboutRight ? .green : .orange)
+                                .foregroundStyle(level == .aboutRight ? GH.Palette.leafInk : GH.Palette.terraInk)
                         }
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                        .background(GH.Palette.surface, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
                     }
                 } else if meter.problem == nil {
                     ProgressView("Reading the light…")
@@ -51,7 +51,7 @@ struct LightMeterView: View {
 
                 Text("Hold the phone where the plant sits with the back camera facing the window or lamp, at the time of day it usually gets light. The number is a rough estimate from the camera's exposure, good for comparing spots, not for exact values.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
             }
             .padding()
         }
