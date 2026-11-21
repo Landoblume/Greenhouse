@@ -40,7 +40,7 @@ struct CollectionBar: View {
                             .font(.subheadline)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .overlay(Capsule().strokeBorder(Color.secondary.opacity(0.4)))
+                            .overlay(Capsule().strokeBorder(GH.Palette.ink2.opacity(0.4)))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("New collection")
@@ -174,8 +174,8 @@ struct CollectionChip: View {
                 .font(.subheadline.weight(isOn ? .semibold : .regular))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isOn ? Color.accentColor : Color(.tertiarySystemFill), in: Capsule())
-                .foregroundStyle(isOn ? Color.white : Color.primary)
+                .background(isOn ? GH.Palette.leaf : GH.Palette.surface2, in: Capsule())
+                .foregroundStyle(isOn ? GH.Palette.onLeaf : GH.Palette.ink)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isOn ? .isSelected : [])
@@ -209,6 +209,7 @@ struct CollectionToggles: View {
                 Label("New collection", systemImage: "plus")
             }
         }
+        .listRowBackground(GH.Palette.surface)
         .alert("New collection", isPresented: $naming) {
             TextField("Name (e.g. Succulents)", text: $draft)
             Button("Cancel", role: .cancel) {}
@@ -241,7 +242,7 @@ struct ArchivedCollectionsView: View {
                             let count = (collection.plants ?? []).filter(\.isActive).count
                             Text(count == 1 ? "1 plant" : "\(count) plants")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(GH.Palette.ink2)
                         }
                         Spacer()
                         Button("Unarchive") {
@@ -255,7 +256,9 @@ struct ArchivedCollectionsView: View {
             } footer: {
                 Text("Archived collections leave the chips at the top of each tab. Their plants, wishlist and projects stay, and still show under All.")
             }
+            .listRowBackground(GH.Palette.surface)
         }
+        .ghScreen()
         .overlay {
             if archived.isEmpty {
                 ContentUnavailableView("Nothing archived", systemImage: "archivebox",
@@ -356,7 +359,9 @@ struct PlantChecklist: View {
                     if selected.contains(plant.objectID) { selected.remove(plant.objectID) } else { selected.insert(plant.objectID) }
                 }
             }
+            .listRowBackground(GH.Palette.surface)
         }
+        .ghScreen()
         .overlay {
             if plants.isEmpty {
                 ContentUnavailableView("No plants yet", systemImage: "leaf")
@@ -375,11 +380,11 @@ struct PlantCheckRow: View {
             HStack {
                 PlantPhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 120)
                     .frame(width: 36, height: 36)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                Text(plant.displayName).foregroundStyle(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
+                Text(plant.displayName).foregroundStyle(GH.Palette.ink)
                 Spacer()
                 if isOn {
-                    Image(systemName: "checkmark").foregroundStyle(.tint)
+                    Image(systemName: "checkmark").foregroundStyle(GH.Palette.leaf)
                 }
             }
         }

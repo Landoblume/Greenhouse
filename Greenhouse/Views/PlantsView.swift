@@ -65,6 +65,8 @@ struct PlantsView: View {
                 }
                 .padding()
             }
+            .background(GH.Palette.paper.ignoresSafeArea())
+            .ghTabBarClearance()
             .overlay {
                 if allPlants.isEmpty {
                     ContentUnavailableView("No plants yet", systemImage: "leaf", description: Text("Tap + to add your first plant."))
@@ -86,6 +88,7 @@ struct PlantsView: View {
             .navigationTitle(household.name ?? "Plants")
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
+            .navigationDestination(for: CareHistoryRoute.self) { CareHistoryView(plant: $0.plant) }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
                     Button {
@@ -132,20 +135,20 @@ struct PlantsView: View {
 
     private var searchField: some View {
         HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            Image(systemName: "magnifyingglass").foregroundStyle(GH.Palette.ink2)
             TextField("Name, species, where it lives or notes", text: $filter.query)
                 .focused($searchFocused)
                 .submitLabel(.search)
                 .autocorrectionDisabled()
             if !filter.query.isEmpty {
                 Button { filter.query = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(GH.Palette.ink2)
                 }
                 .accessibilityLabel("Clear search")
             }
         }
         .padding(10)
-        .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10))
+        .background(GH.Palette.surface2, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
         .padding(.horizontal)
         .padding(.top, 4)
     }
@@ -163,6 +166,7 @@ struct PlantsView: View {
                 }
                 Toggle("Needs water now", isOn: $filter.needsWater)
             }
+            .listRowBackground(GH.Palette.surface)
             let genera = PlantFilter.genera(in: inCollection)
             if !genera.isEmpty {
                 Picker("Genus", selection: $filter.genus) {
@@ -208,17 +212,17 @@ struct MergeCard: View {
                     .font(.headline)
                 Text("They're from before you joined \(target.name ?? "this household"). Bring them in to share them here, with their photos, reminders and history.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
                 HStack {
                     Button("Bring them in") { confirming = true }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.ghProminent)
                     Button("Not now") { dismissed = true }
                         .buttonStyle(.bordered)
                 }
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+            .background(GH.Palette.leafSoft, in: RoundedRectangle(cornerRadius: GH.Radius.card, style: .continuous))
             .confirmationDialog("Move \(count) plant\(count == 1 ? "" : "s") into \(target.name ?? "this household")?",
                                 isPresented: $confirming, titleVisibility: .visible) {
                 Button("Move them") {
@@ -241,40 +245,41 @@ struct PlantTile: View {
             PlantPhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 400)
                 .frame(height: 150)
                 .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
             Text(plant.displayName)
-                .font(.headline)
+                .font(.ghRounded(.headline))
+                .foregroundStyle(GH.Palette.ink)
                 .lineLimit(1)
             if let latin = plant.scientificName {
                 Text(latin)
                     .font(.caption)
                     .italic()
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
                     .lineLimit(1)
             }
             if let since = Lineage.effectiveAcquiredDate(of: plant) {
                 Text("Since \(Lineage.format(since))")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
             }
             if let watering = plant.wateringTask {
                 DueBadge(task: watering)
             }
         }
         .padding(8)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
+        .ghCard()
         .overlay {
             if Plans.isInActiveProject(plant) {
-                RoundedRectangle(cornerRadius: 16).strokeBorder(Color.green, lineWidth: 3)
+                RoundedRectangle(cornerRadius: GH.Radius.card, style: .continuous).strokeBorder(GH.Palette.leaf, lineWidth: 3)
             }
         }
         .overlay(alignment: .topLeading) {
             if Plans.isInActiveProject(plant) {
                 Image(systemName: "hammer.fill")
                     .font(.caption)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GH.Palette.onLeaf)
                     .padding(6)
-                    .background(Color.green, in: Circle())
+                    .background(GH.Palette.leaf, in: Circle())
                     .padding(14)
                     .accessibilityLabel("Part of a project in progress")
             }
@@ -293,12 +298,12 @@ struct DueBadge: View {
                 Label(status.label + (task.snoozedUntil == nil ? "" : " (snoozed)"),
                       systemImage: task.isWatering ? "drop.fill" : "calendar")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(status.needsAttention ? Color.orange : Color.secondary)
+                    .foregroundStyle(status.needsAttention ? GH.Palette.terraInk : GH.Palette.ink2)
             }
             if let last = task.lastLog, let at = last.doneAt {
                 Text("\(task.isWatering ? "Watered" : "Done") by \(last.doneBy ?? "someone") \(at.formatted(.relative(presentation: .named)))")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
                     .lineLimit(1)
             }
         }
@@ -316,10 +321,10 @@ struct PlantPhotoView: View {
                 .scaledToFill()
         } else {
             ZStack {
-                Color.green.opacity(0.15)
+                GH.Palette.leafSoft
                 Image(systemName: "leaf.fill")
                     .font(.largeTitle)
-                    .foregroundStyle(.green.opacity(0.6))
+                    .foregroundStyle(GH.Palette.leafInk.opacity(0.6))
             }
         }
     }

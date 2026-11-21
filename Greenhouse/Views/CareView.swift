@@ -39,13 +39,17 @@ struct CareView: View {
                     Section("Due now") {
                         ForEach(due) { TaskRow(task: $0, household: household, onEdit: edit($0), onOpenPlant: openPlant) }
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
                 if !later.isEmpty {
                     Section("Coming up") {
                         ForEach(later) { TaskRow(task: $0, household: household, onEdit: edit($0), onOpenPlant: openPlant) }
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
             }
+            .ghScreen()
+            .ghTabBarClearance()
             .overlay {
                 if sorted.isEmpty {
                     ContentUnavailableView("Nothing scheduled", systemImage: "drop", description: Text("Plants get a watering schedule when you add them. Tap + for other reminders, like a quarterly treatment."))
@@ -54,6 +58,7 @@ struct CareView: View {
             .navigationTitle("Care")
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
+            .navigationDestination(for: CareHistoryRoute.self) { CareHistoryView(plant: $0.plant) }
             .toolbar {
                 Button { showingNew = true } label: { Image(systemName: "plus") }
                     .accessibilityLabel("Add care reminder")
@@ -129,6 +134,7 @@ struct TaskEditorView: View {
                             }
                         }
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
                 Section {
                     if unit != .once {
@@ -143,16 +149,19 @@ struct TaskEditorView: View {
                     .pickerStyle(.segmented)
                     if task == nil || unit == .once {
                         DatePicker(unit == .once ? "Due" : "First due", selection: $firstDue, displayedComponents: .date)
+                        .tint(GH.Palette.leafDeep)
                     }
                 } header: {
                     Text("Repeats")
                 } footer: {
                     Text(CareSchedule.cadence(count: count, unit: unit).capitalizedFirst)
                 }
+                .listRowBackground(GH.Palette.surface)
                 Section("Instructions") {
                     TextField("How to do it (e.g. bottom-water, let it drain)", text: $instructions, axis: .vertical)
                         .lineLimit(2...)
                 }
+                .listRowBackground(GH.Palette.surface)
                 if !isWatering {
                     Section {
                         ForEach(plants) { plant in
@@ -160,10 +169,10 @@ struct TaskEditorView: View {
                                 if selected.contains(plant.objectID) { selected.remove(plant.objectID) } else { selected.insert(plant.objectID) }
                             } label: {
                                 HStack {
-                                    Text(plant.displayName).foregroundStyle(.primary)
+                                    Text(plant.displayName).foregroundStyle(GH.Palette.ink)
                                     Spacer()
                                     if selected.contains(plant.objectID) {
-                                        Image(systemName: "checkmark").foregroundStyle(.tint)
+                                        Image(systemName: "checkmark").foregroundStyle(GH.Palette.leaf)
                                     }
                                 }
                             }
@@ -173,11 +182,13 @@ struct TaskEditorView: View {
                     } footer: {
                         Text(selected.isEmpty ? "No plants picked: it's a household-wide reminder." : "\(selected.count) plant\(selected.count == 1 ? "" : "s")")
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
                 if let task, !isWatering {
                     Section {
                         Button("Delete reminder", role: .destructive) { confirmingDelete = true }
                     }
+                    .listRowBackground(GH.Palette.surface)
                     .confirmationDialog("Delete \(task.name ?? "this reminder")?", isPresented: $confirmingDelete, titleVisibility: .visible) {
                         Button("Delete", role: .destructive) {
                             context.delete(task)
@@ -188,6 +199,7 @@ struct TaskEditorView: View {
                     }
                 }
             }
+            .ghScreen()
             .navigationTitle(task == nil ? "New reminder" : (isWatering ? "Watering" : "Edit reminder"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

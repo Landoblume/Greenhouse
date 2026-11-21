@@ -33,10 +33,12 @@ struct SettingsView: View {
                         Label("How Greenhouse works", systemImage: "questionmark.circle")
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 Section("You") {
                     TextField("Your first name", text: $myName)
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 Section {
                     NavigationLink {
@@ -50,6 +52,7 @@ struct SettingsView: View {
                         Label("Archived collections", systemImage: "archivebox")
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 Section {
                     TextField("Household name", text: Binding(
@@ -84,6 +87,7 @@ struct SettingsView: View {
                         Text("Sends an iCloud link (by Messages, for example). Whoever taps it sees and edits the same plants on their iPhone.")
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 Section {
                     HStack {
@@ -100,10 +104,10 @@ struct SettingsView: View {
                     .disabled(lookingUp)
                     if lookingUp { ProgressView() }
                     if let zoneError {
-                        Text(zoneError).font(.caption).foregroundStyle(.red)
+                        Text(zoneError).font(.caption).foregroundStyle(GH.Palette.terraInk)
                     }
                     if let zoneNote {
-                        Text(zoneNote).font(.caption).foregroundStyle(.secondary)
+                        Text(zoneNote).font(.caption).foregroundStyle(GH.Palette.ink2)
                     }
                     Picker("Zone", selection: Binding(
                         get: { household.hardinessZone ?? "" },
@@ -120,6 +124,7 @@ struct SettingsView: View {
                 } footer: {
                     Text("USDA hardiness zone, from your ZIP code or picked by hand. Outdoor and seasonal plants use it to tell you whether they survive winter outside. Both phones share it.")
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 let others = HouseholdMerge.others(of: household, in: Array(households))
                 if !others.isEmpty {
@@ -132,6 +137,7 @@ struct SettingsView: View {
                     } footer: {
                         Text("Plants you added before joining \(household.name ?? "this household"). Bringing them here moves their photos, reminders and history too.")
                     }
+                    .listRowBackground(GH.Palette.surface)
                 }
 
                 Section {
@@ -143,6 +149,7 @@ struct SettingsView: View {
                             NotificationPlanner.reschedule()
                         }
                     ), displayedComponents: .hourAndMinute)
+                    .tint(GH.Palette.leafDeep)
                     Picker("Photo check-in", selection: $photoCheckInMonths) {
                         ForEach(NotificationPlanner.photoCheckInOptions, id: \.self) { months in
                             Text(months == 0 ? "Off" : "\(months) months").tag(months)
@@ -161,6 +168,7 @@ struct SettingsView: View {
                 } footer: {
                     Text("Care reminders and plant anniversaries arrive at this time on the day they're due. Photo check-in nudges you once a week about a plant with no new photo in that long.")
                 }
+                .listRowBackground(GH.Palette.surface)
 
                 #if DEBUG
                 Section {
@@ -173,12 +181,16 @@ struct SettingsView: View {
                 } footer: {
                     Text("Debug builds only. After this says Ready, deploy the schema to Production in the CloudKit Console so TestFlight builds can sync (see README).")
                 }
+                .listRowBackground(GH.Palette.surface)
                 #endif
 
                 Section {
                     LabeledContent("Version", value: Self.version)
                 }
+                .listRowBackground(GH.Palette.surface)
             }
+            .ghScreen()
+            .ghTabBarClearance()
             .navigationTitle("Settings")
             .onAppear { zip = household.zip ?? "" }
             .task { await refresh() }
@@ -261,7 +273,7 @@ struct SyncStatusRow: View {
         } else if let success = monitor.lastSuccess {
             Label("Synced with iCloud \(success.formatted(.relative(presentation: .named)))", systemImage: "checkmark.icloud")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GH.Palette.ink2)
         }
     }
 }
@@ -274,7 +286,7 @@ struct ErrorText: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(text)
                 .font(.caption.monospaced())
-                .foregroundStyle(.red)
+                .foregroundStyle(GH.Palette.terraInk)
                 .textSelection(.enabled)
             Button("Copy details") { UIPasteboard.general.string = text }
                 .font(.caption)
@@ -297,7 +309,7 @@ struct OtherHouseholdRow: View {
             Text(source.name ?? "Untitled household")
             Text("\(count) plant\(count == 1 ? "" : "s")" + (joined > 0 ? " · \(joined) other \(joined == 1 ? "person" : "people") joined it" : ""))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GH.Palette.ink2)
             Button("Bring \(count == 1 ? "it" : "them") into \(target.name ?? "this household")") { confirming = true }
                 .buttonStyle(.bordered)
                 .controlSize(.small)

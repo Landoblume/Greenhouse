@@ -67,6 +67,7 @@ struct HelpView: View {
             If something seems stuck, Settings shows the last sync result, with a Copy details button for anything that went wrong.
             """)
         }
+        .ghScreen()
         .navigationTitle("How Greenhouse works")
     }
 
@@ -77,5 +78,6 @@ struct HelpView: View {
         } header: {
             Label(title, systemImage: icon)
         }
+        .listRowBackground(GH.Palette.surface)
     }
 }

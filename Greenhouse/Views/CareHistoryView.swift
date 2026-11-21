@@ -23,7 +23,7 @@ struct CareHistoryView: View {
                         .padding(.bottom, 8)
                 } else {
                     Text("Nothing's been done for \(plant.displayName) yet. Marking a reminder done adds it here.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(GH.Palette.ink2)
                         .padding()
                 }
                 ForEach(timeline.rows) { row in
@@ -32,6 +32,7 @@ struct CareHistoryView: View {
                 }
             }
         }
+        .background(GH.Palette.paper.ignoresSafeArea())
         .navigationTitle("Care history")
         .navigationBarTitleDisplayMode(.inline)
         .redrawsOnCareLogChanges(plant)
@@ -49,20 +50,20 @@ struct CareStatsHeader: View {
             if let others = stats.others {
                 Text(others)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(GH.Palette.surface, in: RoundedRectangle(cornerRadius: GH.Radius.card, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
 
-/// Lane colors: system colors, so they adapt to dark mode. The source plant's
+/// Lane colors: the theme thread palette, which adapts to dark mode. The source plant's
 /// name is always written out too, so color is never the only cue.
 enum ThreadPalette {
-    static let colors: [Color] = [.green, .blue, .orange, .pink, .purple, .teal]
+    static let colors: [Color] = GH.threads
     static func color(_ lane: Int) -> Color { colors[lane % colors.count] }
 }
 
@@ -98,7 +99,7 @@ struct CareHistoryRow: View {
         case .month(let date):
             Text(date.map { $0.formatted(.dateTime.month(.wide).year()) } ?? "Unknown date")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GH.Palette.ink2)
                 .textCase(.uppercase)
         case .log(let entry):
             LogContent(entry: entry, viewedPlant: viewedPlant)
@@ -129,18 +130,18 @@ private struct LogContent: View {
                 if let who = log.doneBy?.trimmingCharacters(in: .whitespacesAndNewlines), !who.isEmpty {
                     Text("by \(who)")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(GH.Palette.ink2)
                 }
                 if source != viewedPlant {
                     Text("For \(entry.sourceLabel)")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(GH.Palette.ink2)
                 }
             }
             Spacer()
             Text(log.doneAt.map(Lineage.format) ?? "Unknown date")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GH.Palette.ink2)
         }
     }
 }
@@ -162,12 +163,12 @@ private struct MergeContent: View {
                      ? merge.inputs.map(\.displayName).joined(separator: " + ") + " → " + output.displayName
                      : (merge.inputs.first?.displayName ?? "A plant") + " → " + output.displayName)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
             }
             Spacer()
             Text(merge.date.map(Lineage.format) ?? "Unknown date")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(GH.Palette.ink2)
         }
     }
 }

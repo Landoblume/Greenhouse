@@ -83,6 +83,7 @@ struct ProjectDetailView: View {
                     LabeledContent("Collection", value: collection)
                 }
             }
+            .listRowBackground(GH.Palette.surface)
 
             let plants = (project.plants ?? []).filter(\.isActive).sorted { $0.displayName < $1.displayName }
             if !plants.isEmpty {
@@ -92,12 +93,13 @@ struct ProjectDetailView: View {
                             HStack {
                                 PlantPhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 120)
                                     .frame(width: 36, height: 36)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
                                 Text(plant.displayName)
                             }
                         }
                     }
                 }
+                .listRowBackground(GH.Palette.surface)
             }
 
             Section {
@@ -115,6 +117,7 @@ struct ProjectDetailView: View {
                 let progress = Plans.stepProgress(of: project)
                 Text(progress.total > 0 ? "Steps (\(progress.done) of \(progress.total) done)" : "Steps")
             }
+            .listRowBackground(GH.Palette.surface)
 
             Section {
                 ForEach(Plans.items(.supply, of: project)) { supply in
@@ -136,13 +139,16 @@ struct ProjectDetailView: View {
             } footer: {
                 costFooter
             }
+            .listRowBackground(GH.Palette.surface)
 
             Section("Notes") {
                 TextField("Ideas, measurements, colors, what worked…", text: $notes, axis: .vertical)
                     .lineLimit(4...)
                     .focused($notesFocused)
             }
+            .listRowBackground(GH.Palette.surface)
         }
+        .ghScreen()
         .navigationTitle(project.title ?? "Project")
         .toolbar {
             ToolbarItem(placement: .primaryAction) { Button("Edit") { editing = true } }
@@ -175,7 +181,7 @@ struct ProjectDetailView: View {
                     Text(left >= 0
                          ? "Budget \(ProjectSummary.money(project.budget)): \(ProjectSummary.money(left)) to spare."
                          : "Budget \(ProjectSummary.money(project.budget)): \(ProjectSummary.money(-left)) over.")
-                        .foregroundStyle(left >= 0 ? Color.secondary : Color.orange)
+                        .foregroundStyle(left >= 0 ? GH.Palette.ink2 : GH.Palette.terraInk)
                 }
             }
         } else {
@@ -222,17 +228,17 @@ private struct ItemRow: View {
                 Persistence.shared.save(context)
             } label: {
                 Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(item.isDone ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(item.isDone ? GH.Palette.leaf : GH.Palette.ink2)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(item.isDone ? "Mark not done" : (item.kindValue == .supply ? "Mark bought" : "Mark done"))
             Text(item.title ?? "")
                 .strikethrough(item.isDone)
-                .foregroundStyle(item.isDone ? .secondary : .primary)
+                .foregroundStyle(item.isDone ? GH.Palette.ink2 : GH.Palette.ink)
             Spacer()
             if item.kindValue == .supply, item.cost > 0 {
                 Text(ProjectSummary.money(item.cost))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(GH.Palette.ink2)
             }
         }
     }
