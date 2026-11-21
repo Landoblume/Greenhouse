@@ -90,6 +90,7 @@ struct MilestoneEditorView: View {
                         MilestoneSuggestions(title: $title, household: household)
                     }
                     DatePicker("Date", selection: $date, in: ...Date(), displayedComponents: .date)
+                    .tint(GH.Palette.leafDeep)
                     TextField("Note (optional, e.g. where the pot's from)", text: $notes, axis: .vertical)
                 } footer: {
                     if let by = milestone?.addedBy {

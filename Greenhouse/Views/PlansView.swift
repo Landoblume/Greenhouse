@@ -63,6 +63,7 @@ struct PlansView: View {
                 }
             }
             .ghScreen()
+            .ghTabBarClearance()
             .overlay { emptyState }
             .navigationTitle("Plans")
             .toolbar {
@@ -370,6 +371,7 @@ struct ProjectEditorView: View {
                     Toggle("Target date", isOn: $hasTarget)
                     if hasTarget {
                         DatePicker("By", selection: $target, displayedComponents: .date)
+                        .tint(GH.Palette.leafDeep)
                     }
                 }
                 .listRowBackground(GH.Palette.surface)

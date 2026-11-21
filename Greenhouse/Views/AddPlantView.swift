@@ -64,6 +64,7 @@ struct AddPlantView: View {
                 Section("About") {
                     TextField("Nickname (optional)", text: $nickname)
                     DatePicker("Got it on", selection: $acquired, in: ...Date(), displayedComponents: .date)
+                    .tint(GH.Palette.leafDeep)
                     TextField("Where it lives (e.g. kitchen window)", text: $location)
                     Picker("Lives", selection: $setting) {
                         ForEach(PlantSetting.allCases) { Text($0.label).tag($0) }

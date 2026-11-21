@@ -67,11 +67,11 @@ struct TaskRow: View {
         }
         .swipeActions(edge: .leading) {
             Button(action: onEdit) { Label("Edit", systemImage: "pencil") }
-                .tint(GH.Palette.leaf)
+                .tint(GH.Palette.swipeLeaf)
         }
         .swipeActions(edge: .trailing) {
             Button { choosingSnooze = true } label: { Label("Snooze", systemImage: "moon.zzz") }
-                .tint(GH.Palette.sky)
+                .tint(GH.Palette.swipeSky)
         }
         .contextMenu {
             Button(action: onEdit) { Label("Edit reminder", systemImage: "pencil") }

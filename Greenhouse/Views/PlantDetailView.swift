@@ -149,7 +149,7 @@ struct PlantDetailView: View {
                     .foregroundStyle(GH.Palette.ink)
                     .swipeActions(edge: .leading) {
                         Button { editingMilestone = item.milestone } label: { Label("Edit", systemImage: "pencil") }
-                            .tint(GH.Palette.leaf)
+                            .tint(GH.Palette.swipeLeaf)
                     }
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {

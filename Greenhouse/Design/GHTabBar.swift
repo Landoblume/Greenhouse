@@ -50,8 +50,13 @@ struct GHTabBar: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(item.title)
                 .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+                .accessibilityShowsLargeContentViewer {
+                    Label(item.title, systemImage: selected ? item.selectedIcon : item.icon)
+                }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isTabBar)
         .padding(6)
         // Like the system bar, stop growing at the largest regular text size:
         // four labels don't fit side by side beyond that.
@@ -62,6 +67,43 @@ struct GHTabBar: View {
         .padding(.horizontal, GH.Space.screen)
         .padding(.bottom, GH.Space.xs)
         .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+private struct TabBarInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    /// Height a tab's scroll content leaves at the bottom for the floating bar.
+    var ghTabBarInset: CGFloat {
+        get { self[TabBarInsetKey.self] }
+        set { self[TabBarInsetKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Tells a tab's screen how much room the floating bar needs. Pass 0 while
+    /// the keyboard is up.
+    func ghTabBarInset(_ height: CGFloat) -> some View {
+        environment(\.ghTabBarInset, height)
+    }
+
+    /// Put on a tab's List, Form or ScrollView: its last row can scroll clear
+    /// of the floating bar. The change is never animated, so content doesn't
+    /// glide by the bar's height when the keyboard comes and goes.
+    func ghTabBarClearance() -> some View {
+        modifier(TabBarClearance())
+    }
+}
+
+private struct TabBarClearance: ViewModifier {
+    @Environment(\.ghTabBarInset) private var inset
+
+    func body(content: Content) -> some View {
+        content
+            .safeAreaPadding(.bottom, inset)
+            .transaction(value: inset) { $0.animation = nil }
     }
 }
 

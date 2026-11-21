@@ -24,8 +24,9 @@ struct GHProminentButtonStyle: ButtonStyle {
         configuration.label
             .font(compact ? .ghRounded(.subheadline, weight: .bold) : .ghRounded(.body, weight: .bold))
             .foregroundStyle(GH.Palette.onLeaf)
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
+            .lineLimit(compact ? 1 : nil)
+            .fixedSize(horizontal: compact, vertical: false)
+            .multilineTextAlignment(.center)
             .padding(.horizontal, compact ? GH.Space.m : GH.Space.l)
             .padding(.vertical, compact ? GH.Space.xs : GH.Space.s)
             .frame(minHeight: 44)
@@ -43,7 +44,11 @@ extension ButtonStyle where Self == GHProminentButtonStyle {
 /// App-wide chrome that SwiftUI can't style from the view tree.
 enum GHAppearance {
     /// Large and inline navigation titles in rounded heavy, scaling with Dynamic Type.
+    private static var applied = false
+
     static func apply() {
+        guard !applied else { return }
+        applied = true
         func rounded(_ style: UIFont.TextStyle, size: CGFloat) -> UIFont {
             let base = UIFont.systemFont(ofSize: size, weight: .heavy)
             let descriptor = base.fontDescriptor.withDesign(.rounded) ?? base.fontDescriptor

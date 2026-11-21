@@ -149,6 +149,7 @@ struct SettingsView: View {
                             NotificationPlanner.reschedule()
                         }
                     ), displayedComponents: .hourAndMinute)
+                    .tint(GH.Palette.leafDeep)
                     Picker("Photo check-in", selection: $photoCheckInMonths) {
                         ForEach(NotificationPlanner.photoCheckInOptions, id: \.self) { months in
                             Text(months == 0 ? "Off" : "\(months) months").tag(months)
@@ -189,6 +190,7 @@ struct SettingsView: View {
                 .listRowBackground(GH.Palette.surface)
             }
             .ghScreen()
+            .ghTabBarClearance()
             .navigationTitle("Settings")
             .onAppear { zip = household.zip ?? "" }
             .task { await refresh() }

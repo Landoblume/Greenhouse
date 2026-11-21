@@ -26,6 +26,7 @@ struct AddPhotoSheet: View {
                 .listRowBackground(GH.Palette.surface)
                 Section {
                     DatePicker("Taken on", selection: $takenAt, in: ...Date(), displayedComponents: .date)
+                    .tint(GH.Palette.leafDeep)
                     TextField("Caption (optional)", text: $caption)
                 } footer: {
                     if dateFromPhoto {
@@ -138,6 +139,7 @@ struct CombineSheet: View {
                 Section("New plant") {
                     TextField("Nickname (optional)", text: $nickname)
                     DatePicker("Combined on", selection: $date, in: ...Date(), displayedComponents: .date)
+                    .tint(GH.Palette.leafDeep)
                 }
                 .listRowBackground(GH.Palette.surface)
             }
@@ -187,6 +189,7 @@ struct CuttingSheet: View {
                 Section {
                     TextField("Nickname (optional)", text: $nickname)
                     DatePicker("Taken on", selection: $date, in: ...Date(), displayedComponents: .date)
+                    .tint(GH.Palette.leafDeep)
                 } footer: {
                     Text(footer)
                 }
@@ -345,6 +348,7 @@ struct EditPhotoSheet: View {
             Form {
                 Section {
                     DatePicker("Taken on", selection: $takenAt, in: ...Date(), displayedComponents: .date)
+                    .tint(GH.Palette.leafDeep)
                     TextField("Caption", text: $caption, axis: .vertical)
                 }
                 .listRowBackground(GH.Palette.surface)
@@ -406,6 +410,7 @@ struct EditPlantView: View {
                     TextField("Nickname", text: $nickname)
                     TextField("Where it lives", text: $location)
                     DatePicker("Got it on", selection: $acquired, in: ...Date(), displayedComponents: .date)
+                    .tint(GH.Palette.leafDeep)
                     Picker("Lives", selection: $setting) {
                         ForEach(PlantSetting.allCases) { Text($0.label).tag($0) }
                     }

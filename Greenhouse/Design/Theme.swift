@@ -46,6 +46,11 @@ enum GH {
         static let sky       = Color(light: 0x3A82B8, dark: 0x86BEE8) // water, care
         static let skySoft   = Color(light: 0xDAE9F4, dark: 0x16293A)
         static let skyInk    = Color(light: 0x235C87, dark: 0xA9D2F2)
+        /// Deeper leaf and sky that hold a white label at 4.5:1 in both modes. Only for
+        /// things with a fixed white label: swipe actions, and the selected day in a date picker.
+        static let leafDeep  = Color(light: 0x2E6A46, dark: 0x2E6A46)
+        static let swipeLeaf = leafDeep
+        static let swipeSky  = Color(light: 0x235C87, dark: 0x235C87)
         static let line      = Color(light: 0x1B3125, dark: 0xE6EEE2).opacity(0.12)
     }
 

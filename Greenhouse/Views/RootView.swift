@@ -33,6 +33,8 @@ struct MainTabView: View {
     @State private var checkInPlant: Plant?
     @State private var checkInAskedAt = Date.distantPast
     @StateObject private var keyboard = KeyboardWatcher()
+    /// Measured height of the floating tab bar, including its bottom padding.
+    @State private var tabBarHeight: CGFloat = 0
     #if DEBUG
     @State private var tab = DemoData.openTab
     #else
@@ -49,29 +51,38 @@ struct MainTabView: View {
     var body: some View {
         // A TabView still holds the four screens (each keeps its scroll
         // position and navigation stack); its own bar is hidden and the
-        // floating glass bar below drives the selection instead.
+        // floating glass bar below drives the selection instead. Each screen
+        // reserves the bar's height at its own bottom edge.
+        let inset = keyboard.isVisible ? 0 : tabBarHeight
         TabView(selection: $tab) {
             PlantsView(household: household)
+                .ghTabBarInset(inset)
                 .toolbar(.hidden, for: .tabBar)
                 .tag(0)
             CareView(household: household)
+                .ghTabBarInset(inset)
                 .toolbar(.hidden, for: .tabBar)
                 .tag(1)
             PlansView(household: household)
+                .ghTabBarInset(inset)
                 .toolbar(.hidden, for: .tabBar)
                 .tag(2)
             SettingsView(household: household)
+                .ghTabBarInset(inset)
                 .toolbar(.hidden, for: .tabBar)
                 .tag(3)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            // Steps aside while typing so it never rides on top of the keyboard.
-            if !keyboard.isVisible {
-                GHTabBar(items: Self.tabs, selection: $tab)
-                    .transition(.opacity)
-            }
+        .overlay(alignment: .bottom) {
+            // Fades out while typing so it never rides on top of the keyboard.
+            // Only the bar animates; the screens above it don't.
+            GHTabBar(items: Self.tabs, selection: $tab)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { tabBarHeight = $0 }
+                .opacity(keyboard.isVisible ? 0 : 1)
+                .allowsHitTesting(!keyboard.isVisible)
+                .accessibilityHidden(keyboard.isVisible)
+                .animation(.easeOut(duration: 0.2), value: keyboard.isVisible)
+                .ignoresSafeArea(.keyboard)
         }
-        .animation(.easeOut(duration: 0.2), value: keyboard.isVisible)
         .onAppear {
             NotificationPlanner.requestAuthorization()
             NotificationPlanner.reschedule()

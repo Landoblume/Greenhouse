@@ -49,6 +49,7 @@ struct CareView: View {
                 }
             }
             .ghScreen()
+            .ghTabBarClearance()
             .overlay {
                 if sorted.isEmpty {
                     ContentUnavailableView("Nothing scheduled", systemImage: "drop", description: Text("Plants get a watering schedule when you add them. Tap + for other reminders, like a quarterly treatment."))
@@ -148,6 +149,7 @@ struct TaskEditorView: View {
                     .pickerStyle(.segmented)
                     if task == nil || unit == .once {
                         DatePicker(unit == .once ? "Due" : "First due", selection: $firstDue, displayedComponents: .date)
+                        .tint(GH.Palette.leafDeep)
                     }
                 } header: {
                     Text("Repeats")

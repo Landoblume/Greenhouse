@@ -66,6 +66,7 @@ struct PlantsView: View {
                 .padding()
             }
             .background(GH.Palette.paper.ignoresSafeArea())
+            .ghTabBarClearance()
             .overlay {
                 if allPlants.isEmpty {
                     ContentUnavailableView("No plants yet", systemImage: "leaf", description: Text("Tap + to add your first plant."))
