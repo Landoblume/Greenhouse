@@ -36,6 +36,8 @@ enum NotificationPlanner {
     /// Weekly check-ins planned ahead per plant. Every launch and sync plans
     /// again, so a month ahead is plenty.
     static let checkInsPerPlant = 4
+    /// At most this many check-ins on one day; the rest wait for the next days.
+    static let checkInsPerDay = 2
 
     static func photoCheckInMonths(in defaults: UserDefaults = .standard) -> Int {
         defaults.object(forKey: photoCheckInKey) as? Int ?? defaultPhotoCheckInMonths
@@ -95,56 +97,99 @@ enum NotificationPlanner {
         // over, even when they'd fire sooner.
         let free = limit - reminders.count
         guard free > 0, photoCheckInMonths > 0 else { return reminders }
-        let checkIns = (household.plants ?? []).filter(\.isActive).flatMap {
-            photoCheckIns(for: $0, months: photoCheckInMonths, after: now, hour: hour, minute: minute, calendar: calendar)
-        }
+        let checkIns = photoCheckIns(for: (household.plants ?? []).filter(\.isActive), months: photoCheckInMonths,
+                                     after: now, hour: hour, minute: minute, calendar: calendar)
         let sortedCheckIns = checkIns.sorted { ($0.date, $0.id) < ($1.date, $1.id) }
         return (reminders + sortedCheckIns.prefix(free)).sorted { $0.date < $1.date }
     }
 
-    /// When a plant's check-ins start: `months` after its newest photo (by
-    /// takenAt, including photos inherited from the plants it was combined
-    /// from), or after it was acquired (or added) when it has none.
+    /// When a plant's check-ins start: `months` after it was last seen, which
+    /// is its newest photo (by takenAt, including photos inherited from the
+    /// plants it was combined from) or when it was acquired (or added),
+    /// whichever is later. A new plant whose only photo is an old one from the
+    /// library isn't nudged right away.
     static func photoCheckInStart(for plant: Plant, months: Int, calendar: Calendar) -> Date? {
-        let lastSeen = Lineage.timeline(for: plant).compactMap(\.photo.takenAt).max()
-            ?? plant.acquiredDate ?? plant.createdAt
-        guard let lastSeen else { return nil }
+        let newestPhoto = Lineage.timeline(for: plant).compactMap(\.photo.takenAt).max()
+        let arrived = plant.acquiredDate ?? plant.createdAt
+        guard let lastSeen = [newestPhoto, arrived].compactMap({ $0 }).max() else { return nil }
         return calendar.date(byAdding: .month, value: months, to: calendar.startOfDay(for: lastSeen))
+            .map(calendar.startOfDay)
     }
 
-    /// "Haven't seen Aloe in a while" on the threshold day, then every 7 days
-    /// from it. The dates come from the threshold, not from today, so each
-    /// reschedule (on either phone) plans the same notifications.
+    /// "Haven't seen Aloe in a while" from each plant's threshold day, then
+    /// every 7 days, at most `checkInsPerDay` a day. When more are due on one
+    /// day, the rest roll to the next days (longest waiting first, ties by
+    /// plant id), and each plant's next one comes 7 days after the day it got.
+    ///
+    /// The days are worked out from the thresholds forward, never from today,
+    /// so every reschedule (on either phone) plans the same notifications;
+    /// `now` only decides which of them are still ahead.
     static func photoCheckIns(
-        for plant: Plant,
+        for plants: [Plant],
         months: Int,
         after now: Date,
         hour: Int,
         minute: Int,
         calendar: Calendar
     ) -> [PlannedNotification] {
-        guard months > 0, let start = photoCheckInStart(for: plant, months: months, calendar: calendar) else { return [] }
-        func fire(week: Int) -> Date? {
-            calendar.date(byAdding: .day, value: week * 7, to: start)
-                .flatMap { calendar.date(bySettingHour: hour, minute: minute, second: 0, of: $0) }
+        guard months > 0 else { return [] }
+        struct Waiting {
+            let plant: Plant
+            let key: String
+            var due: Date
+            var planned = 0
         }
-        // Jump close to today instead of walking every week since the threshold.
-        let daysSince = calendar.dateComponents([.day], from: start, to: calendar.startOfDay(for: now)).day ?? 0
-        var week = max(0, daysSince / 7 - 1)
-        while let date = fire(week: week), date <= now { week += 1 }
+        var waiting = plants.compactMap { plant in
+            photoCheckInStart(for: plant, months: months, calendar: calendar)
+                .map { Waiting(plant: plant, key: plant.uuid?.uuidString ?? "", due: $0) }
+        }
+        var result: [PlannedNotification] = []
+        var today = waiting.map(\.due).min()
 
-        let id = plant.uuid?.uuidString ?? ""
-        let body = "Haven't seen \(plant.displayName) in a while, how's it coming? 📸"
-        return (week..<(week + checkInsPerPlant)).compactMap { week in
-            guard let date = fire(week: week) else { return nil }
-            return PlannedNotification(
-                id: "\(photoCheckInPrefix)\(id)-\(Int(date.timeIntervalSince1970))",
-                date: date,
-                title: "Photo check-in",
-                body: body,
-                plantID: plant.uuid
-            )
+        // Plants that already have enough planned keep their place in line,
+        // so how the days roll over never depends on how far ahead we look.
+        while let day = today, waiting.contains(where: { $0.planned < checkInsPerPlant }) {
+            let due = waiting.indices.filter { waiting[$0].due <= day }
+                .sorted { (waiting[$0].due, waiting[$0].key) < (waiting[$1].due, waiting[$1].key) }
+            guard !due.isEmpty else {
+                // Nothing due: skip ahead to the next day something is.
+                today = waiting.map(\.due).min()
+                continue
+            }
+            let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
+            for index in due.prefix(checkInsPerDay) {
+                if let fire, fire > now, waiting[index].planned < checkInsPerPlant {
+                    let plant = waiting[index].plant
+                    result.append(PlannedNotification(
+                        id: "\(photoCheckInPrefix)\(waiting[index].key)-\(Int(fire.timeIntervalSince1970))",
+                        date: fire,
+                        title: "Photo check-in",
+                        body: "Haven't seen \(plant.displayName) in a while, how's it coming? 📸",
+                        plantID: plant.uuid
+                    ))
+                    waiting[index].planned += 1
+                }
+                waiting[index].due = calendar.date(byAdding: .day, value: 7, to: day) ?? day
+            }
+            today = calendar.date(byAdding: .day, value: 1, to: day)
         }
+        return result
+    }
+
+    /// The plant a tapped check-in should open Add photo for: the plant
+    /// itself while it's active, otherwise the active plant it was combined
+    /// into (following later combines too). Nil when it's gone, or was split
+    /// into several so there's no one plant to pick.
+    static func photoCheckInTarget(plantID: UUID, in household: Household) -> Plant? {
+        var plant = (household.plants ?? []).first { $0.uuid == plantID }
+        var seen: Set<NSManagedObjectID> = []
+        while let current = plant, !current.isActive {
+            guard seen.insert(current.objectID).inserted,
+                  let event = current.consumedBy, event.kindValue == .staple,
+                  let outputs = event.outputs, outputs.count == 1 else { return nil }
+            plant = outputs.first
+        }
+        return plant
     }
 
     /// "Time for your quarterly hydrogen peroxide treatment: Aloe, Pothos"
