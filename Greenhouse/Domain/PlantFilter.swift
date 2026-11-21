@@ -22,20 +22,37 @@ struct PlantFilter: Equatable {
     /// Empty means every setting.
     var settings: Set<PlantSetting> = []
     var needsWater = false
+    /// Nil means every genus.
+    var genus: String?
     var sort: Sort = .added
 
     /// Whether anything in the filter menu differs from the default (the
     /// search text has its own field).
-    var isFiltering: Bool { !settings.isEmpty || needsWater || sort != .added }
+    var isFiltering: Bool { !settings.isEmpty || needsWater || genus != nil || sort != .added }
 
     func apply(to plants: [Plant], now: Date = .now) -> [Plant] {
         let words = query.split(separator: " ").map(String.init)
         let kept = plants.filter { plant in
             (settings.isEmpty || settings.contains(plant.settingValue))
+                && (genus == nil || Self.genus(of: plant) == genus)
                 && (!needsWater || Self.needsWater(plant, now: now))
                 && words.allSatisfy { Self.matches(plant, $0) }
         }
         return sorted(kept)
+    }
+
+    /// The plant's genus: the first word of its scientific name, capitalized
+    /// ("aloe vera" and "Aloe barbadensis" are both "Aloe"). Nil when there's
+    /// no scientific name, so those plants never match a genus filter.
+    static func genus(of plant: Plant) -> String? {
+        guard let word = plant.scientificName?.split(whereSeparator: \.isWhitespace).first else { return nil }
+        return word.prefix(1).uppercased() + word.dropFirst().lowercased()
+    }
+
+    /// The genera present in these plants, sorted, for the filter menu.
+    static func genera(in plants: [Plant]) -> [String] {
+        Array(Set(plants.compactMap { genus(of: $0) }))
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     /// Watering due today or overdue.
