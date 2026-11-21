@@ -24,6 +24,9 @@ struct RootView: View {
 
 struct MainTabView: View {
     @ObservedObject var household: Household
+    @ObservedObject private var router = NotificationRouter.shared
+    /// The plant a tapped photo check-in is asking for a photo of.
+    @State private var checkInPlant: Plant?
     #if DEBUG
     @State private var tab = DemoData.openTab
     #else
@@ -51,7 +54,18 @@ struct MainTabView: View {
             if PlantPhotos.saveMissingCovers(in: household) > 0, let context = household.managedObjectContext {
                 Persistence.shared.save(context)
             }
+            openPhotoCheckIn()
         }
+        .onChange(of: router.photoCheckInPlantID) { openPhotoCheckIn() }
+        .sheet(item: $checkInPlant) { AddPhotoSheet(plant: $0, household: household) }
+    }
+
+    /// Opens Add photo for the plant a tapped check-in named, if it's still
+    /// here and active (it may have been combined since).
+    private func openPhotoCheckIn() {
+        guard let id = router.photoCheckInPlantID else { return }
+        router.photoCheckInPlantID = nil
+        checkInPlant = (household.plants ?? []).first { $0.uuid == id && $0.isActive }
     }
 }
 

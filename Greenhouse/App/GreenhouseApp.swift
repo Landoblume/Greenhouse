@@ -11,6 +11,7 @@ struct GreenhouseApp: App {
     init() {
         guard !Persistence.isRunningTests else { return }
         RemoteChangeObserver.shared.start()
+        PhotoChangeObserver.shared.start()
         persistence.initializeCloudKitSchemaIfNeeded()
         #if DEBUG
         DemoData.seedIfRequested()
@@ -55,6 +56,26 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .sound]
     }
+
+    // A tapped photo check-in opens the camera for that plant. This also runs
+    // when the tap launched the app, before any screen is up, so the plant
+    // waits in the router until MainTabView picks it up.
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let request = response.notification.request
+        guard response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+              request.identifier.hasPrefix(NotificationPlanner.photoCheckInPrefix),
+              let raw = request.content.userInfo[NotificationPlanner.plantIDKey] as? String,
+              let plantID = UUID(uuidString: raw) else { return }
+        await MainActor.run { NotificationRouter.shared.photoCheckInPlantID = plantID }
+    }
+}
+
+/// Hands a tapped notification's plant from the app delegate to the screens.
+@MainActor
+final class NotificationRouter: ObservableObject {
+    static let shared = NotificationRouter()
+    /// Set by a tapped photo check-in; MainTabView clears it once the sheet is up.
+    @Published var photoCheckInPlantID: UUID?
 }
 
 /// Receives the household invite when someone taps the iCloud link. iOS hands
