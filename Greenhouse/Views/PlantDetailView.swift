@@ -76,6 +76,9 @@ struct PlantDetailView: View {
                     Button { showingNewTask = true } label: {
                         Label("Add a care reminder", systemImage: "plus")
                     }
+                    NavigationLink(value: CareHistoryRoute(plant: plant)) {
+                        Label("Care history", systemImage: "clock.arrow.circlepath")
+                    }
                 }
             }
 
@@ -180,6 +183,15 @@ struct PlantDetailView: View {
                 }
             }
 
+            if !plant.isActive {
+                // Retired plants have no Care section; their history is still worth reading.
+                Section {
+                    NavigationLink(value: CareHistoryRoute(plant: plant)) {
+                        Label("Care history", systemImage: "clock.arrow.circlepath")
+                    }
+                }
+            }
+
             if plant.isActive {
                 Section {
                     Button { showingCombine = true } label: {
@@ -192,6 +204,7 @@ struct PlantDetailView: View {
             }
         }
         .navigationTitle(plant.displayName)
+        .navigationDestination(for: CareHistoryRoute.self) { CareHistoryView(plant: $0.plant) }
         .toolbar {
             if plant.isActive {
                 Button("Edit") { showingEdit = true }
