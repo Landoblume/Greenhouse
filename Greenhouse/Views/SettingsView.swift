@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.myName) private var myName = ""
     @AppStorage(NotificationPlanner.hourKey) private var notifyHour = 9
     @AppStorage(NotificationPlanner.minuteKey) private var notifyMinute = 0
+    @AppStorage(NotificationPlanner.photoCheckInKey) private var photoCheckInMonths = NotificationPlanner.defaultPhotoCheckInMonths
     @AppStorage(Persistence.schemaStatusKey) private var schemaStatus = "Not run"
 
     @State private var zip = ""
@@ -142,6 +143,12 @@ struct SettingsView: View {
                             NotificationPlanner.reschedule()
                         }
                     ), displayedComponents: .hourAndMinute)
+                    Picker("Photo check-in", selection: $photoCheckInMonths) {
+                        ForEach(NotificationPlanner.photoCheckInOptions, id: \.self) { months in
+                            Text(months == 0 ? "Off" : "\(months) months").tag(months)
+                        }
+                    }
+                    .onChange(of: photoCheckInMonths) { NotificationPlanner.reschedule() }
                     if notificationsAllowed == false {
                         Button("Turn on notifications in Settings") {
                             if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
@@ -152,7 +159,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Reminders")
                 } footer: {
-                    Text("Care reminders and plant anniversaries arrive at this time on the day they're due.")
+                    Text("Care reminders and plant anniversaries arrive at this time on the day they're due. Photo check-in nudges you once a week about a plant with no new photo in that long.")
                 }
 
                 #if DEBUG

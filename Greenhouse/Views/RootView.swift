@@ -24,6 +24,11 @@ struct RootView: View {
 
 struct MainTabView: View {
     @ObservedObject var household: Household
+    @ObservedObject private var router = NotificationRouter.shared
+    @Environment(\.scenePhase) private var scenePhase
+    /// The plant a tapped photo check-in is asking for a photo of.
+    @State private var checkInPlant: Plant?
+    @State private var checkInAskedAt = Date.distantPast
     #if DEBUG
     @State private var tab = DemoData.openTab
     #else
@@ -50,6 +55,43 @@ struct MainTabView: View {
             NotificationPlanner.reschedule()
             if PlantPhotos.saveMissingCovers(in: household) > 0, let context = household.managedObjectContext {
                 Persistence.shared.save(context)
+            }
+            openPhotoCheckIn()
+        }
+        .onChange(of: router.photoCheckInPlantID) { openPhotoCheckIn() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { openPhotoCheckIn() }
+        }
+        .sheet(item: $checkInPlant) { plant in
+            AddPhotoSheet(plant: plant, household: household)
+                // Only now is the tap handled. Until the sheet is really up
+                // (another sheet was open, or this view was being rebuilt),
+                // the plant stays in the router for the next try.
+                .onAppear { router.photoCheckInPlantID = nil }
+        }
+    }
+
+    /// Opens Add photo for the plant a tapped check-in named, or for the plant
+    /// it was combined into since. Tried again when this view appears and
+    /// when the app comes forward, in case the sheet couldn't show the first
+    /// time.
+    private func openPhotoCheckIn() {
+        guard let id = router.photoCheckInPlantID else { return }
+        guard let plant = NotificationPlanner.photoCheckInTarget(plantID: id, in: household) else {
+            router.photoCheckInPlantID = nil  // deleted, or split: nothing to open
+            return
+        }
+        if checkInPlant == nil {
+            checkInPlant = plant
+            checkInAskedAt = .now
+        } else if Date.now.timeIntervalSince(checkInAskedAt) > 2 {
+            // Asked for a while ago but never shown (showing clears the
+            // router), e.g. another sheet was up: reset so it presents again.
+            // A sheet still sliding up is left alone.
+            checkInPlant = nil
+            DispatchQueue.main.async {
+                checkInPlant = plant
+                checkInAskedAt = .now
             }
         }
     }
