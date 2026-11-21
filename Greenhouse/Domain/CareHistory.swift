@@ -334,16 +334,22 @@ enum CareHistory {
         /// (unnamed ones count) before the line credits them.
         static let clearMajority = 0.6
 
-        /// "mostly by Sam 💚" when one person did a clear majority of all the
-        /// logs, "mostly by you 💚" when that's the viewer, "shared care 💚"
-        /// when the named logs are spread around. Nil when nobody's name was
-        /// set on any log, since then there's nothing to say.
+        /// Nobody is credited before this many logs; two waterings aren't a pattern.
+        static let minimumLogs = 3
+
+        /// "all by Sam 💚" when every log is theirs, "mostly by Sam 💚" when
+        /// they did a clear majority of all the logs, and "you" for the
+        /// viewer in either. "shared care 💚" when the named logs are spread
+        /// around. Nil when nobody's name was set on any log, or there are
+        /// fewer than `minimumLogs`, since then there's nothing to say.
         func byline(viewerName: String? = nil) -> String? {
-            guard let mostlyBy else { return nil }
-            guard Double(mostlyByCount) > Double(total) * Self.clearMajority else { return "shared care 💚" }
+            guard let mostlyBy, total >= Self.minimumLogs else { return nil }
             let viewer = viewerName?.trimmingCharacters(in: .whitespacesAndNewlines)
             let isViewer = viewer.map { !$0.isEmpty && $0.caseInsensitiveCompare(mostlyBy) == .orderedSame } ?? false
-            return "mostly by \(isViewer ? "you" : mostlyBy) 💚"
+            let who = isViewer ? "you" : mostlyBy
+            if mostlyByCount == total { return "all by \(who) 💚" }
+            guard Double(mostlyByCount) > Double(total) * Self.clearMajority else { return "shared care 💚" }
+            return "mostly by \(who) 💚"
         }
 
         /// "Watered 23 times since May 2023 · mostly by Sam 💚"

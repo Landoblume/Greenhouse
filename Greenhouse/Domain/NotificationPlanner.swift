@@ -51,7 +51,8 @@ enum NotificationPlanner {
         hour: Int = 9,
         minute: Int = 0,
         photoCheckInMonths: Int = defaultPhotoCheckInMonths,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        lastNudged: [String: Date] = [:]
     ) -> [PlannedNotification] {
         func at(_ day: Date) -> Date? {
             calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
@@ -100,88 +101,148 @@ enum NotificationPlanner {
         let free = limit - reminders.count
         guard free > 0, photoCheckInMonths > 0 else { return reminders }
         let checkIns = photoCheckIns(for: (household.plants ?? []).filter(\.isActive), months: photoCheckInMonths,
-                                     after: now, hour: hour, minute: minute, calendar: calendar)
+                                     after: now, hour: hour, minute: minute, calendar: calendar,
+                                     lastNudged: lastNudged)
         let sortedCheckIns = checkIns.sorted { ($0.date, $0.id) < ($1.date, $1.id) }
         return (reminders + sortedCheckIns.prefix(free)).sorted { $0.date < $1.date }
     }
 
     /// When a plant was last seen: its newest photo (by takenAt, including
     /// photos inherited from the plants it was combined from) or when it was
-    /// acquired (or added), whichever is later. A new plant whose only photo
-    /// is an old one from the library counts from when it arrived.
-    static func lastSeen(of plant: Plant) -> Date? {
+    /// acquired (or added), whichever is later, as a day. A new plant whose
+    /// only photo is an old one from the library counts from when it arrived.
+    /// `hasPhoto` says whether it has any photo at all, for the wording.
+    static func lastSeen(of plant: Plant, calendar: Calendar = .current) -> (date: Date, hasPhoto: Bool)? {
         let newestPhoto = Lineage.timeline(for: plant).compactMap(\.photo.takenAt).max()
         let arrived = plant.acquiredDate ?? plant.createdAt
-        return [newestPhoto, arrived].compactMap({ $0 }).max()
+        guard let seen = [newestPhoto, arrived].compactMap({ $0 }).max() else { return nil }
+        return (calendar.startOfDay(for: seen), newestPhoto != nil)
     }
 
     /// When a plant's check-ins start: `months` after it was last seen.
     static func photoCheckInStart(for plant: Plant, months: Int, calendar: Calendar) -> Date? {
-        guard let lastSeen = lastSeen(of: plant) else { return nil }
-        return calendar.date(byAdding: .month, value: months, to: calendar.startOfDay(for: lastSeen))
-            .map(calendar.startOfDay)
+        lastSeen(of: plant, calendar: calendar).flatMap { checkInStart(lastSeen: $0.date, months: months, calendar: calendar) }
     }
 
-    /// The household's check-ins: one on each slot day (`checkInSlotWeekdays`,
-    /// so about 3 a week), for the plant that's been waiting longest. A plant
-    /// is waiting from its threshold day (see `photoCheckInStart`) and goes
-    /// to the back of the line 7 days after the day it got, so a backlog (30
-    /// plants with no photo for years, say) is spread over the following
-    /// weeks and then comes round again, and a lone plant hears weekly.
+    private static func checkInStart(lastSeen: Date, months: Int, calendar: Calendar) -> Date? {
+        calendar.date(byAdding: .month, value: months, to: lastSeen).map(calendar.startOfDay)
+    }
+
+    // MARK: Check-in ledger
+
+    /// Per phone: for each plant (by id), the day of its next check-in on
+    /// this phone, or the last one once that day has passed. It's what lets a
+    /// reschedule keep what's already planned, and keeps a plant from being
+    /// nudged again within 7 days of its last nudge whatever else changes
+    /// (a photo, a new plant). Both phones plan their own, so it never syncs.
+    static let lastNudgedKey = "photoCheckInLastNudged"
+
+    static func lastNudged(in defaults: UserDefaults = .standard) -> [String: Date] {
+        (defaults.dictionary(forKey: lastNudgedKey) as? [String: Double] ?? [:])
+            .mapValues(Date.init(timeIntervalSince1970:))
+    }
+
+    static func saveLastNudged(_ ledger: [String: Date], in defaults: UserDefaults = .standard) {
+        defaults.set(ledger.mapValues(\.timeIntervalSince1970), forKey: lastNudgedKey)
+    }
+
+    /// The ledger after a plan: each plant that has check-ins planned gets the
+    /// day of its earliest one; everyone else keeps their entry (the last
+    /// nudge that fired). Plants that are gone are dropped.
+    static func updatedLastNudged(
+        _ ledger: [String: Date],
+        scheduled: [PlannedNotification],
+        activePlantIDs: Set<UUID>,
+        calendar: Calendar = .current
+    ) -> [String: Date] {
+        let active = Set(activePlantIDs.map(\.uuidString))
+        var result = ledger.filter { active.contains($0.key) }
+        var earliest: [String: Date] = [:]
+        for item in scheduled where item.id.hasPrefix(photoCheckInPrefix) {
+            guard let key = item.plantID?.uuidString else { continue }
+            earliest[key] = min(earliest[key] ?? item.date, item.date)
+        }
+        for (key, date) in earliest { result[key] = calendar.startOfDay(for: date) }
+        return result
+    }
+
+    /// The household's check-ins, planned forward from today: one on each
+    /// slot day (`checkInSlotWeekdays`, so about 3 a week) for the plant
+    /// that's been waiting longest, ties by plant id. A plant is waiting from
+    /// its threshold day (see `photoCheckInStart`), and again 7 days after
+    /// each nudge, so a backlog (30 plants with no photo for years, say) is
+    /// spread over the following weeks and then comes round again, and a lone
+    /// plant hears weekly.
     ///
-    /// The days are worked out from the thresholds forward, never from today,
-    /// and ties go to the plant id, so every reschedule (on either phone)
-    /// plans the same notifications; `now` only decides which of them are
-    /// still ahead, and how far ahead (`checkInWeeksAhead`).
+    /// `lastNudged` is this phone's ledger (see `lastNudgedKey`). A check-in
+    /// it still has ahead stays on its day, so a photo or a new plant doesn't
+    /// move what's planned, and a plant is never planned within 7 days of its
+    /// ledger day. `now` and the ledger are the only inputs besides the
+    /// plants, so it's pure.
     static func photoCheckIns(
         for plants: [Plant],
         months: Int,
         after now: Date,
         hour: Int,
         minute: Int,
-        calendar: Calendar
+        calendar: Calendar,
+        lastNudged: [String: Date] = [:]
     ) -> [PlannedNotification] {
-        guard months > 0 else { return [] }
+        guard months > 0,
+              let horizon = calendar.date(byAdding: .day, value: checkInWeeksAhead * 7, to: now).map(calendar.startOfDay)
+        else { return [] }
         struct Waiting {
             let plant: Plant
             let key: String
-            let lastSeen: Date
+            let seen: (date: Date, hasPhoto: Bool)
             var due: Date
         }
-        var waiting: [Waiting] = plants.compactMap { plant in
-            guard let seen = lastSeen(of: plant),
-                  let due = photoCheckInStart(for: plant, months: months, calendar: calendar) else { return nil }
-            return Waiting(plant: plant, key: plant.uuid?.uuidString ?? "", lastSeen: calendar.startOfDay(for: seen), due: due)
+        func fireTime(on day: Date) -> Date? {
+            calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
         }
-        guard var day = waiting.map(\.due).min(),
-              let horizon = calendar.date(byAdding: .day, value: checkInWeeksAhead * 7, to: now).map(calendar.startOfDay)
-        else { return [] }
+        func weekLater(_ day: Date) -> Date { calendar.date(byAdding: .day, value: 7, to: day) ?? day }
 
         var result: [PlannedNotification] = []
-        while day <= horizon {
-            let waitingToday = waiting.indices.filter { waiting[$0].due <= day }
-            guard !waitingToday.isEmpty else {
-                // Nothing waiting: skip ahead to the next day something is.
-                guard let next = waiting.map(\.due).min(), next > day else { break }
-                day = next
-                continue
-            }
-            if checkInSlotWeekdays.contains(calendar.component(.weekday, from: day)),
-               let index = waitingToday.min(by: { (waiting[$0].due, waiting[$0].key) < (waiting[$1].due, waiting[$1].key) }) {
-                if let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day), fire > now {
-                    let entry = waiting[index]
-                    let gap = calendar.dateComponents([.month], from: entry.lastSeen, to: day).month ?? months
-                    let week = (calendar.ordinality(of: .day, in: .era, for: day) ?? 0) / 7
-                    result.append(PlannedNotification(
-                        id: "\(photoCheckInPrefix)\(entry.key)-\(Int(fire.timeIntervalSince1970))",
-                        date: fire,
-                        title: photoCheckInTitle,
-                        body: photoCheckInBody(plantName: entry.plant.displayName, gapMonths: gap,
-                                               variant: photoCheckInVariant(key: entry.key, week: week)),
-                        plantID: entry.plant.uuid
-                    ))
+        func add(_ entry: Waiting, on day: Date, at fire: Date) {
+            let gap = calendar.dateComponents([.month], from: entry.seen.date, to: day).month ?? months
+            let week = (calendar.ordinality(of: .day, in: .era, for: day) ?? 0) / 7
+            result.append(PlannedNotification(
+                id: "\(photoCheckInPrefix)\(entry.key)-\(Int(fire.timeIntervalSince1970))",
+                date: fire,
+                title: photoCheckInTitle,
+                body: photoCheckInBody(plantName: entry.plant.displayName, gapMonths: gap, hasPhoto: entry.seen.hasPhoto,
+                                       variant: photoCheckInVariant(key: entry.key, week: week,
+                                                                    count: entry.seen.hasPhoto ? photoCheckInPhrasingCount : photoCheckInNoPhotoPhrasingCount)),
+                plantID: entry.plant.uuid
+            ))
+        }
+
+        var waiting: [Waiting] = []
+        var taken: Set<Date> = []
+        for plant in plants {
+            guard let seen = lastSeen(of: plant, calendar: calendar),
+                  let threshold = checkInStart(lastSeen: seen.date, months: months, calendar: calendar) else { continue }
+            var entry = Waiting(plant: plant, key: plant.uuid?.uuidString ?? "", seen: seen, due: threshold)
+            if let last = lastNudged[entry.key].map(calendar.startOfDay) {
+                // Still ahead and still due (no newer photo since): keep it
+                // where it was. Otherwise it's behind us, and a week must pass.
+                if last >= threshold, let fire = fireTime(on: last), fire > now {
+                    add(entry, on: last, at: fire)
+                    taken.insert(last)
                 }
-                waiting[index].due = calendar.date(byAdding: .day, value: 7, to: day) ?? day
+                entry.due = max(threshold, weekLater(last))
+            }
+            waiting.append(entry)
+        }
+
+        var day = calendar.startOfDay(for: now)
+        while day <= horizon {
+            if checkInSlotWeekdays.contains(calendar.component(.weekday, from: day)), !taken.contains(day),
+               let fire = fireTime(on: day), fire > now,
+               let index = waiting.indices.filter({ waiting[$0].due <= day })
+                   .min(by: { (waiting[$0].due, waiting[$0].key) < (waiting[$1].due, waiting[$1].key) }) {
+                add(waiting[index], on: day, at: fire)
+                waiting[index].due = weekLater(day)
             }
             guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
             day = next
@@ -191,28 +252,36 @@ enum NotificationPlanner {
 
     // MARK: Check-in wording
 
-    /// How many phrasings the body rotates through.
+    /// How many phrasings the body rotates through, for plants with a photo
+    /// and for plants without one.
     static let photoCheckInPhrasingCount = 4
+    static let photoCheckInNoPhotoPhrasingCount = 3
 
     /// Which phrasing a plant gets in a given week: the same on every
-    /// reschedule and on both phones (so no `hashValue`, which changes per launch).
-    static func photoCheckInVariant(key: String, week: Int) -> Int {
+    /// reschedule and on both phones (so no `hashValue`, which changes per
+    /// launch), and different from one nudge to the next.
+    static func photoCheckInVariant(key: String, week: Int, count: Int = photoCheckInPhrasingCount) -> Int {
         var hash: UInt64 = 14_695_981_039_346_656_037  // FNV-1a
-        for byte in key.utf8 {
+        for byte in "\(key)#\(week)".utf8 {
             hash = (hash ^ UInt64(byte)) &* 1_099_511_628_211
         }
-        return Int((hash &+ UInt64(truncatingIfNeeded: week)) % UInt64(photoCheckInPhrasingCount))
+        return Int(hash % UInt64(max(count, 1)))
     }
 
     /// "It's been 7 months since Aloe's last close-up. Show off the new growth? 📸"
-    static func photoCheckInBody(plantName: String, gapMonths: Int, variant: Int) -> String {
+    /// or, for a plant with no photo, "You've had Aloe 7 months and no close-up yet. Show it off? 📸"
+    static func photoCheckInBody(plantName: String, gapMonths: Int, hasPhoto: Bool = true, variant: Int) -> String {
         let gap = gapText(months: gapMonths)
         let possessive = plantName.hasSuffix("s") ? "\(plantName)'" : "\(plantName)'s"
-        switch ((variant % photoCheckInPhrasingCount) + photoCheckInPhrasingCount) % photoCheckInPhrasingCount {
-        case 0: return "It's been \(gap) since \(possessive) last close-up. Show off the new growth? 📸"
-        case 1: return "\(plantName) hasn't had a photo in \(gap). How's it looking? 📸"
-        case 2: return "\(gap.prefix(1).uppercased() + gap.dropFirst()) since \(possessive) last portrait. Time for a fresh one? 📸"
-        default: return "Say cheese, \(plantName)! The last photo was \(gap) ago. 📸"
+        let count = hasPhoto ? photoCheckInPhrasingCount : photoCheckInNoPhotoPhrasingCount
+        switch (hasPhoto, ((variant % count) + count) % count) {
+        case (true, 0): return "It's been \(gap) since \(possessive) last close-up. Show off the new growth? 📸"
+        case (true, 1): return "\(plantName) hasn't had a photo in \(gap). How's it looking? 📸"
+        case (true, 2): return "\(gap.prefix(1).uppercased() + gap.dropFirst()) since \(possessive) last portrait. Time for a fresh one? 📸"
+        case (true, _): return "Say cheese, \(plantName)! The last photo was \(gap) ago. 📸"
+        case (false, 0): return "You've had \(plantName) \(gap) and no close-up yet. Show it off? 📸"
+        case (false, 1): return "\(plantName) has been with you \(gap) without a single photo. Time for its first? 📸"
+        case (false, _): return "No photos of \(plantName) yet after \(gap). Snap one? 📸"
         }
     }
 
@@ -328,8 +397,15 @@ enum NotificationPlanner {
             center.removeAllPendingNotificationRequests()
             guard let household = persistence.currentHousehold(in: context) else { return }
             let calendar = Calendar.current
-            for item in plan(household: household, hour: hour, minute: minute,
-                             photoCheckInMonths: checkInMonths, calendar: calendar) {
+            let ledger = lastNudged(in: defaults)
+            let planned = plan(household: household, hour: hour, minute: minute,
+                               photoCheckInMonths: checkInMonths, calendar: calendar, lastNudged: ledger)
+            saveLastNudged(updatedLastNudged(
+                ledger, scheduled: planned,
+                activePlantIDs: Set((household.plants ?? []).filter(\.isActive).compactMap(\.uuid)),
+                calendar: calendar
+            ), in: defaults)
+            for item in planned {
                 let content = UNMutableNotificationContent()
                 content.title = item.title
                 content.body = item.body

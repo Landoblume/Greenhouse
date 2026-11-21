@@ -318,6 +318,7 @@ final class CareHistoryTests: XCTestCase {
         XCTAssertEqual(stats?.byline(), "mostly by Sam \u{1F49A}")
         XCTAssertEqual(stats?.byline(viewerName: "Alex"), "mostly by Sam \u{1F49A}")
         XCTAssertTrue(stats?.headline.hasSuffix(" \u{00B7} mostly by Sam \u{1F49A}") ?? false)
+        XCTAssertEqual(statsFor(["Sam", "Sam", "Alex"])?.byline(), "mostly by Sam \u{1F49A}", "2 of 3 is over 60%")
     }
 
     func testViewerWhoIsTheTopPersonReadsYou() {
@@ -328,8 +329,27 @@ final class CareHistoryTests: XCTestCase {
         XCTAssertEqual(stats?.byline(viewerName: ""), "mostly by Sam \u{1F49A}", "an empty name is nobody")
     }
 
+    func testEveryLogByOnePersonSaysAll() {
+        let stats = statsFor(["Sam", "Sam", "Sam"])
+        XCTAssertEqual(stats?.byline(), "all by Sam \u{1F49A}")
+        XCTAssertEqual(stats?.byline(viewerName: "Alex"), "all by Sam \u{1F49A}")
+        XCTAssertEqual(stats?.byline(viewerName: "Sam"), "all by you \u{1F49A}")
+        XCTAssertTrue(stats?.headline(viewerName: "sam").hasSuffix(" \u{00B7} all by you \u{1F49A}") ?? false)
+        // An unnamed log means it isn't all by anyone.
+        XCTAssertEqual(statsFor(["Sam", "Sam", "Sam", ""])?.byline(), "mostly by Sam \u{1F49A}")
+    }
+
+    func testNobodyIsCreditedBeforeThreeLogs() {
+        for names in [["Sam"], ["Sam", "Sam"], ["Sam", "Alex"]] {
+            let stats = statsFor(names)
+            XCTAssertNil(stats?.byline(), "\(names)")
+            XCTAssertNil(stats?.byline(viewerName: "Sam"), "\(names)")
+            XCTAssertFalse(stats?.headline.contains("\u{1F49A}") ?? true, "\(names)")
+        }
+    }
+
     func testSplitCareIsShared() {
-        for names in [["Sam", "Alex"], ["Sam", "Sam", "Alex", "Alex"], ["Sam", "Sam", "Sam", "Alex", "Alex"]] {
+        for names in [["Sam", "Alex", "Sam", "Alex"], ["Sam", "Sam", "Alex", "Alex"], ["Sam", "Sam", "Sam", "Alex", "Alex"]] {
             let stats = statsFor(names)
             XCTAssertEqual(stats?.byline(), "shared care \u{1F49A}", "\(names)")
             XCTAssertEqual(stats?.byline(viewerName: "Sam"), "shared care \u{1F49A}", "\(names)")
@@ -344,13 +364,8 @@ final class CareHistoryTests: XCTestCase {
         XCTAssertEqual(statsFor(["Sam", "Sam", "Sam", "Sam", ""])?.byline(), "mostly by Sam \u{1F49A}")
     }
 
-    func testOnePersonDoingEverythingIsCredited() {
-        XCTAssertEqual(statsFor(["Sam"])?.byline(), "mostly by Sam \u{1F49A}")
-        XCTAssertEqual(statsFor(["Sam"])?.byline(viewerName: "Sam"), "mostly by you \u{1F49A}")
-    }
-
     func testNoNamesMeansNoBylineAtAll() {
-        let stats = statsFor(["", ""])
+        let stats = statsFor(["", "", ""])
         XCTAssertNil(stats?.byline())
         XCTAssertFalse(stats?.headline.contains("\u{1F49A}") ?? true)
     }
