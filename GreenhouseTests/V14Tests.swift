@@ -249,7 +249,7 @@ final class V14Tests: XCTestCase {
         XCTAssertTrue(CareSchedule.canUndoDone(task, now: day(2026, 10, 25)))
         XCTAssertFalse(CareSchedule.canUndoDone(task, now: day(2026, 10, 26)))
 
-        CareSchedule.undoDone(task, context: store.context)
+        XCTAssertTrue(CareSchedule.undoDone(task.lastLog!, now: day(2026, 10, 25), context: store.context))
         store.save()
         XCTAssertNil(task.lastLog)
         XCTAssertEqual(CareSchedule.nextDue(for: task), sod(day(2026, 10, 25)))
@@ -262,7 +262,7 @@ final class V14Tests: XCTestCase {
         done(task, at: day(2026, 11, 1), store)
         store.save()
 
-        CareSchedule.undoDone(task, context: store.context)
+        CareSchedule.undoDone(task.lastLog!, now: day(2026, 11, 1), context: store.context)
         store.save()
         XCTAssertEqual(CareSchedule.nextDue(for: task), sod(day(2026, 11, 1)))
     }

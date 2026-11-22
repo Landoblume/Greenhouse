@@ -7,6 +7,7 @@ struct CareView: View {
     @AppStorage(Collections.selectedKey) private var selectedCollection = ""
     @FetchRequest private var tasks: FetchedResults<CareTask>
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingNew = false
     @State private var editing: CareTask?
     /// Lets a plant name under a reminder push that plant onto the stack.
@@ -14,6 +15,14 @@ struct CareView: View {
     /// Tasks just marked done stay in their old section for a moment, so the
     /// check, the ripples and the tint play in place before the row moves on.
     @State private var pinned: [NSManagedObjectID: (section: CareSection, due: Date)] = [:]
+    /// The latest pin for each task, so an older pin's timer (Done, undo, Done
+    /// again within the four seconds) can't end the newer celebration early.
+    @State private var pinTokens: [NSManagedObjectID: UUID] = [:]
+    /// Where the visible list ends on screen (the top of the floating tab bar),
+    /// so rows start to soften above the bar rather than behind it.
+    @State private var visibleBottom: CGFloat = .infinity
+    /// Bumped at midnight so tasks move into their new sections.
+    @State private var clock = Date.now
     /// True for the first second after the tab loads: only then do rows grow in.
     @State private var loading = true
 
@@ -42,6 +51,10 @@ struct CareView: View {
                         .listRowSeparator(.hidden)
                 }
             }
+            // Inside the tab bar clearance, so the bottom safe area includes the bar.
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY - $0.safeAreaInsets.bottom } action: {
+                visibleBottom = $0
+            }
             .listStyle(.plain)
             .ghScreen()
             .ghTabBarClearance()
@@ -56,6 +69,9 @@ struct CareView: View {
             .sheet(isPresented: $showingNew) { TaskEditorView(household: household, task: nil, preselected: []) }
             .sheet(item: $editing) { TaskEditorView(household: household, task: $0, preselected: []) }
             .redrawsOnCollectionChanges(household)
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                clock = .now
+            }
             .task {
                 #if DEBUG
                 CareDemo.applyIfRequested(household: household, context: context)
@@ -90,7 +106,7 @@ struct CareView: View {
     }
 
     private func listItems(for all: [CareTask]) -> [Item] {
-        let groups = CareAgenda.group(all, overrides: pinned)
+        let groups = CareAgenda.group(all, now: max(clock, .now), overrides: pinned)
         func count(_ section: CareSection) -> Int { groups.first { $0.section == section }?.tasks.count ?? 0 }
         var items: [Item] = [.filters]
         if let summary = CareAgenda.summary(overdue: count(.overdue), today: count(.today)) {
@@ -131,7 +147,7 @@ struct CareView: View {
         case .task(let task):
             TaskRow(task: task, household: household, onEdit: edit(task), onOpenPlant: openPlant, layout: .card, onDone: pin)
                 .careEnter(index: index, active: loading)
-                .careSoftening()
+                .careSoftening(visibleBottom: visibleBottom)
         case .caughtUp(let hasTasks):
             caughtUp(hasTasks: hasTasks)
         case .nextUp(let task):
@@ -166,15 +182,20 @@ struct CareView: View {
         { editing = task }
     }
 
-    /// Keeps a just-finished row where it is for about four seconds.
+    /// Keeps a just-finished row where it is while it celebrates.
     private func pin(_ task: CareTask) {
         guard let due = CareSchedule.nextDue(for: task) else { return }
         let status = CareSchedule.status(nextDue: due)
         let id = task.objectID
-        pinned[id] = (CareAgenda.section(for: status), due)
+        let token = UUID()
+        // A row pinned again (done, undone, done) keeps its first place.
+        if pinned[id] == nil { pinned[id] = (CareAgenda.section(for: status), due) }
+        pinTokens[id] = token
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(4))
-            withAnimation(GH.Motion.enter) { pinned[id] = nil }
+            try? await Task.sleep(for: TaskRow.celebration)
+            guard pinTokens[id] == token else { return }
+            pinTokens[id] = nil
+            withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.enter) { pinned[id] = nil }
         }
     }
 }

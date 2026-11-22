@@ -63,28 +63,41 @@ enum CareAgenda {
         .min { $0.1 != $1.1 ? $0.1 < $1.1 : $0.0.title < $1.0.title }?.0
     }
 
-    /// The name that most often marked this task done. Ties go to whoever did it
-    /// most recently, then alphabetically, so it never flickers between phones.
-    static func usualDoer(of task: CareTask) -> String? {
+    /// The name that most often marked this task done, or "you" when that's
+    /// `viewer` (this phone's own name). Nil until the task has
+    /// `usualMinimumLogs` named entries. Ties go to whoever did it most
+    /// recently, then alphabetically, so it never flickers between phones.
+    static func usualDoer(of task: CareTask, viewer: String? = nil) -> String? {
         var counts: [String: (count: Int, latest: Date)] = [:]
+        var total = 0
         for log in task.logs ?? [] {
             guard let name = log.doneBy?.trimmingCharacters(in: .whitespaces), !name.isEmpty else { continue }
             let when = log.doneAt ?? .distantPast
             let old = counts[name]
             counts[name] = ((old?.count ?? 0) + 1, max(old?.latest ?? .distantPast, when))
+            total += 1
         }
-        return counts.min {
+        // One entry isn't a habit.
+        guard total >= usualMinimumLogs else { return nil }
+        let top = counts.min {
             if $0.value.count != $1.value.count { return $0.value.count > $1.value.count }
             if $0.value.latest != $1.value.latest { return $0.value.latest > $1.value.latest }
             return $0.key < $1.key
         }?.key
+        guard let top else { return nil }
+        let me = viewer?.trimmingCharacters(in: .whitespaces) ?? ""
+        return !me.isEmpty && me.caseInsensitiveCompare(top) == .orderedSame ? "you" : top
     }
 
+    /// "Usually" shows once a task has this many named entries.
+    static let usualMinimumLogs = 2
+
     /// "Just now · Sam · hold to undo", or the time of day once it's been a while.
-    static func doneLine(doneAt: Date, by name: String?, now: Date = .now) -> String {
+    /// The hint is left off when the row can't undo this entry.
+    static func doneLine(doneAt: Date, by name: String?, canUndo: Bool = true, now: Date = .now) -> String {
         let when = now.timeIntervalSince(doneAt) < 90 ? "Just now" : doneAt.formatted(date: .omitted, time: .shortened)
         let who = name?.trimmingCharacters(in: .whitespaces) ?? ""
-        return [when, who.isEmpty ? nil : who, "hold to undo"].compactMap { $0 }.joined(separator: " · ")
+        return [when, who.isEmpty ? nil : who, canUndo ? "hold to undo" : nil].compactMap { $0 }.joined(separator: " · ")
     }
 
     /// "1 overdue · 3 today", or nil when neither applies.
