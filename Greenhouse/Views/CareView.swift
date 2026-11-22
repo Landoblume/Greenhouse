@@ -51,8 +51,9 @@ struct CareView: View {
                         .listRowSeparator(.hidden)
                 }
             }
-            // Inside the tab bar clearance, so the bottom safe area includes the bar.
-            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY - $0.safeAreaInsets.bottom } action: {
+            // Inside the tab bar clearance: the List's frame stops at the top of
+            // the bar (its rows still scroll on underneath).
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
                 visibleBottom = $0
             }
             .listStyle(.plain)
