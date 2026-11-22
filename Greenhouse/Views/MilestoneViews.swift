@@ -18,9 +18,17 @@ struct MilestoneRow: View {
         HStack(alignment: .firstTextBaseline) {
             Image(systemName: "flag.fill")
                 .font(.caption)
-                .foregroundStyle(GH.Palette.leaf)
+                .foregroundStyle(GH.Palette.terra)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(milestone.title ?? "Milestone")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(GH.Palette.ink)
+                if let by = milestone.addedBy {
+                    Text("by \(by)")
+                        .font(.caption)
+                        .foregroundStyle(GH.Palette.ink2)
+                }
                 if let notes = milestone.notes {
                     Text(notes)
                         .font(.caption)

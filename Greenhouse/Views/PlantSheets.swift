@@ -65,32 +65,49 @@ struct ThenNowView: View {
     var body: some View {
         let timeline = Lineage.timeline(for: plant)
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: GH.Space.m) {
                 if let since = Lineage.effectiveAcquiredDate(of: plant) {
                     Text("\(PlantDetailView.age(since: since).capitalizedFirst) since you got it")
-                        .font(.title2.bold())
+                        .font(.ghRounded(.title2))
+                        .foregroundStyle(GH.Palette.ink)
+                        .multilineTextAlignment(.center)
+                        .growIn()
                 }
-                HStack(alignment: .top, spacing: 12) {
-                    column("Then", timeline.first)
-                    column("Now", timeline.last)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: GH.Space.s) {
+                        column("Then", timeline.first, index: 1)
+                        column("Now", timeline.last, index: 2)
+                    }
+                    VStack(spacing: GH.Space.m) {
+                        column("Then", timeline.first, index: 1)
+                        column("Now", timeline.last, index: 2)
+                    }
                 }
             }
-            .padding()
+            .padding(GH.Space.screen)
         }
+        .ghTabBarClearance()
+        .background(GH.Palette.paper.ignoresSafeArea())
         .navigationTitle("Then vs now")
     }
 
-    private func column(_ title: String, _ item: Lineage.TimelinePhoto?) -> some View {
+    private func column(_ title: String, _ item: Lineage.TimelinePhoto?, index: Int) -> some View {
         VStack(spacing: 6) {
-            Text(title).font(.headline)
-            PlantPhotoView(photo: item?.photo, maxPixel: 1200)
+            Text(title)
+                .font(.ghRounded(.headline))
+                .foregroundStyle(GH.Palette.ink)
+            Color.clear
+                .frame(minWidth: 140, maxWidth: .infinity)
                 .frame(height: 260)
-                .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
+                .overlay { PlantPhotoView(photo: item?.photo, maxPixel: 1200) }
+                .clipShape(RoundedRectangle(cornerRadius: GH.Radius.tile, style: .continuous))
+                .ghCard(radius: GH.Radius.tile)
             Text(item?.photo.takenAt.map(Lineage.format) ?? "")
                 .font(.caption)
                 .foregroundStyle(GH.Palette.ink2)
         }
+        .accessibilityElement(children: .combine)
+        .growIn(index: index)
     }
 }
 
@@ -214,108 +231,6 @@ struct CuttingSheet: View {
 
     private var footer: String {
         "\(plant.displayName) stays as it is. The cutting gets its own tile and watering schedule, counts from the day it was taken, and each links to the other in History."
-    }
-}
-
-/// A plant's photos full size, starting at the one tapped; swipe left and
-/// right for the others. The ••• menu edits whichever photo is showing.
-struct PhotoDetailView: View {
-    @ObservedObject var plant: Plant
-    @Environment(\.managedObjectContext) private var context
-    @Environment(\.dismiss) private var dismiss
-    @State private var current: NSManagedObjectID
-    @State private var editing = false
-    @State private var cropping = false
-    @State private var confirmingDelete = false
-
-    init(photo: Photo, plant: Plant) {
-        _plant = ObservedObject(wrappedValue: plant)
-        _current = State(initialValue: photo.objectID)
-    }
-
-    /// Same order as the plant page's Photos list.
-    private var photos: [Photo] { Lineage.timeline(for: plant).map(\.photo) }
-    private var photo: Photo? { photos.first { $0.objectID == current } }
-
-    var body: some View {
-        TabView(selection: $current) {
-            ForEach(photos) { photo in
-                PhotoPage(photo: photo, plant: plant).tag(photo.objectID)
-            }
-        }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .navigationTitle(photo?.takenAt.map(Lineage.format) ?? "Photo")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if let photo {
-                Menu {
-                    Button { editing = true } label: { Label("Edit date, caption or milestone", systemImage: "pencil") }
-                    Button { cropping = true } label: { Label("Crop photo", systemImage: "crop") }
-                    if !PlantPhotos.isCover(photo, of: plant) {
-                        Button {
-                            PlantPhotos.setCover(photo, of: plant)
-                            Persistence.shared.save(context)
-                        } label: { Label("Use as main photo", systemImage: "star") }
-                    }
-                    Button(role: .destructive) { confirmingDelete = true } label: { Label("Delete photo", systemImage: "trash") }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .accessibilityLabel("Photo options")
-            }
-        }
-        .sheet(isPresented: $editing) {
-            if let photo { EditPhotoSheet(photo: photo, plant: plant) }
-        }
-        .fullScreenCover(isPresented: $cropping) {
-            if let photo, let data = photo.imageData, let image = UIImage(data: data) {
-                CropView(image: image) { cropped in
-                    PlantPhotos.replaceImage(of: photo, with: cropped)
-                    Persistence.shared.save(context)
-                }
-            }
-        }
-        .confirmationDialog("Delete this photo?", isPresented: $confirmingDelete, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
-                guard let photo else { return }
-                dismiss()
-                PlantPhotos.delete(photo, context: context)
-                Persistence.shared.save(context)
-            }
-        } message: {
-            Text("It's removed from both phones.")
-        }
-        .redrawsOnRelatedChanges(plant)
-    }
-}
-
-/// One photo full size with its caption, milestone and main-photo star.
-private struct PhotoPage: View {
-    @ObservedObject var photo: Photo
-    let plant: Plant
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                PlantPhotoView(photo: photo, maxPixel: 2048)
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
-                if let caption = photo.caption {
-                    Text(caption).font(.body)
-                }
-                if let milestone = photo.milestone {
-                    Label(milestone.title ?? "Milestone", systemImage: "flag.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(GH.Palette.leaf)
-                }
-                if PlantPhotos.isCover(photo, of: plant) {
-                    Label("Main photo", systemImage: "star.fill")
-                        .font(.caption)
-                        .foregroundStyle(GH.Palette.ink2)
-                }
-            }
-            .padding()
-        }
     }
 }
 
