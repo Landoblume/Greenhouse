@@ -3,9 +3,11 @@ import SwiftUI
 
 /// Pushed by a Plants-tab tile. Other links to a plant (the throwback card,
 /// a family line, a project) push the `Plant` itself, so only a tile's push
-/// morphs, and only back into a tile that's there.
+/// morphs, and only back into a tile that's there. It carries how the page's
+/// hero comes in, decided by what the tap actually did (a flight or not).
 struct PlantTileRoute: Hashable {
     let plant: Plant
+    var entrance = PlantHero.Entrance.fadeIn
 }
 
 /// How a tile opens its plant page (HANDOFF motion table, "Tile → plant page").
@@ -113,7 +115,9 @@ struct TileFlightOverlay: View {
                 // A clear base takes the slot's size; the fill photo only
                 // draws over it, so it can't grow the frame.
                 Color.clear
-                    .overlay { PlantPhotoView(photo: flight.photo, maxPixel: 600) }
+                    // The tile's own size, so the first frame reuses the
+                    // tile's cached picture instead of decoding on main.
+                    .overlay { TilePhotoView(photo: flight.photo, maxPixel: PlantTile.photoMaxPixel) }
                     .clipShape(RoundedRectangle(cornerRadius: flight.landed ? 0 : GH.Radius.tile, style: .continuous))
                     .matchedGeometryEffect(id: "slot", in: space, isSource: false)
             }

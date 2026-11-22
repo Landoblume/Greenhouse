@@ -7,6 +7,9 @@ struct PlantTile: View {
     @ObservedObject var plant: Plant
     /// Set on the Plants tab, where tapping the tile morphs it into the page.
     var morph: TileMorphSource? = nil
+    /// The tile photo's decode size; the iOS 17 morph's flying copy uses it
+    /// too, to hit the same cached picture.
+    static let photoMaxPixel: CGFloat = 600
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var photoHeight: CGFloat { PlantTileStyle.photoHeight(forID: plant.uuid) }
@@ -63,7 +66,7 @@ struct PlantTile: View {
                 // -12...+12 pt as the tile crosses the screen without ever
                 // showing an edge. Reduce Motion keeps it still.
                 let drift = !reduceMotion
-                TilePhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 600)
+                TilePhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: Self.photoMaxPixel)
                     .frame(height: photoHeight + 24)
                     .visualEffect { content, proxy in
                         content.offset(y: drift ? Self.parallax(proxy) : 0)

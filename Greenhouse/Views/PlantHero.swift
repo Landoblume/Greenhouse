@@ -26,7 +26,7 @@ final class PlantHeroScroll {
 /// Motion keeps only the fade: no scale, drift, stretch or blur. Opened from
 /// a tile, the tile's photo becomes the hero, so it skips the fade.
 struct PlantHero: View {
-    enum Entrance: Equatable {
+    enum Entrance: Hashable {
         /// Fades in from 1.06 scale (Reduce Motion: fade only).
         case fadeIn
         /// Already there: the zoom from a tile brought it.
@@ -94,7 +94,7 @@ struct PlantHero: View {
             guard !shown else { return }
             switch entrance {
             case .shown:
-                break
+                shown = true
             case .fadeIn:
                 withAnimation(reduce ? GH.Motion.reduced : .easeOut(duration: 0.8)) { shown = true }
             case .afterFlight:

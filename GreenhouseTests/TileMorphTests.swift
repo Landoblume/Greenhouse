@@ -36,6 +36,8 @@ final class TileMorphTests: XCTestCase {
         let b = store.plant(nickname: "B", acquired: .now)
         XCTAssertEqual(PlantTileRoute(plant: a), PlantTileRoute(plant: a))
         XCTAssertNotEqual(PlantTileRoute(plant: a), PlantTileRoute(plant: b))
+        XCTAssertEqual(PlantTileRoute(plant: a).entrance, .fadeIn, "no flight: the hero fades in on its own")
+        XCTAssertNotEqual(PlantTileRoute(plant: a, entrance: .afterFlight), PlantTileRoute(plant: a, entrance: .fadeIn))
     }
 
     // MARK: ContextChanges

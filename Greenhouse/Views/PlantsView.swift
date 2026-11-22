@@ -74,9 +74,8 @@ struct PlantsView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
             .navigationDestination(for: PlantTileRoute.self) { route in
-                let style = morphStyle
-                PlantDetailView(plant: route.plant, household: household, heroEntrance: style.heroEntrance)
-                    .tileMorphDestination(id: route.plant.objectID, in: morphSpace, enabled: style == .zoom)
+                PlantDetailView(plant: route.plant, household: household, heroEntrance: route.entrance)
+                    .tileMorphDestination(id: route.plant.objectID, in: morphSpace, enabled: morphStyle == .zoom)
             }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
             .navigationDestination(for: CareHistoryRoute.self) { CareHistoryView(plant: $0.plant) }
@@ -130,21 +129,22 @@ struct PlantsView: View {
     /// without the slide and lets the page fade in.
     private func open(_ plant: Plant) {
         guard flight == nil else { return }
-        let route = PlantTileRoute(plant: plant)
         let style = morphStyle
         guard style != .zoom else {
-            path.append(route)
+            path.append(PlantTileRoute(plant: plant, entrance: style.heroEntrance))
             return
         }
         var instant = Transaction()
         instant.disablesAnimations = true
+        // No frame for the tile (not measured yet): no flight, so the hero
+        // fades in on its own rather than waiting for a photo that never lands.
         guard style == .overlay, let from = tileFrames.frames[plant.objectID] else {
-            withTransaction(instant) { path.append(route) }
+            withTransaction(instant) { path.append(PlantTileRoute(plant: plant, entrance: .fadeIn)) }
             return
         }
         withTransaction(instant) {
             flight = TileFlight(plantID: plant.objectID, photo: PlantPhotos.cover(for: plant), from: from)
-            path.append(route)
+            path.append(PlantTileRoute(plant: plant, entrance: style.heroEntrance))
         }
         // Next frame, once the copy is drawn over the tile: fly, then fade.
         DispatchQueue.main.async {
