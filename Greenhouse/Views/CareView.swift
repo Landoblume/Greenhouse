@@ -1,15 +1,21 @@
 import CoreData
 import SwiftUI
 
-/// Every care task in the household, soonest first.
+/// Every care task in the household: Overdue, Today, This week, then Later.
 struct CareView: View {
     @ObservedObject var household: Household
     @AppStorage(Collections.selectedKey) private var selectedCollection = ""
     @FetchRequest private var tasks: FetchedResults<CareTask>
+    @Environment(\.managedObjectContext) private var context
     @State private var showingNew = false
     @State private var editing: CareTask?
     /// Lets a plant name under a reminder push that plant onto the stack.
     @State private var path = NavigationPath()
+    /// Tasks just marked done stay in their old section for a moment, so the
+    /// check, the ripples and the tint play in place before the row moves on.
+    @State private var pinned: [NSManagedObjectID: (section: CareSection, due: Date)] = [:]
+    /// True for the first second after the tab loads: only then do rows grow in.
+    @State private var loading = true
 
     init(household: Household) {
         self.household = household
@@ -19,42 +25,26 @@ struct CareView: View {
         _tasks = FetchRequest(fetchRequest: request)
     }
 
-    private var sorted: [CareTask] {
+    private var relevant: [CareTask] {
         let collection = Collections.find(selectedCollection, in: household)
-        return tasks.filter { $0.isRelevant && Collections.contains(collection, $0) }.sorted {
-            (CareSchedule.nextDue(for: $0) ?? .distantFuture) < (CareSchedule.nextDue(for: $1) ?? .distantFuture)
-        }
+        return tasks.filter { $0.isRelevant && Collections.contains(collection, $0) }
     }
 
     var body: some View {
         NavigationStack(path: $path) {
-            let due = sorted.filter { CareSchedule.status(of: $0)?.needsAttention == true }
-            let later = sorted.filter { CareSchedule.status(of: $0)?.needsAttention != true }
+            let all = relevant
+            let items = listItems(for: all)
             List {
-                CollectionBar(household: household)
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                if !due.isEmpty {
-                    Section("Due now") {
-                        ForEach(due) { TaskRow(task: $0, household: household, onEdit: edit($0), onOpenPlant: openPlant) }
-                    }
-                    .listRowBackground(GH.Palette.surface)
-                }
-                if !later.isEmpty {
-                    Section("Coming up") {
-                        ForEach(later) { TaskRow(task: $0, household: household, onEdit: edit($0), onOpenPlant: openPlant) }
-                    }
-                    .listRowBackground(GH.Palette.surface)
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    row(item, index: index)
+                        .listRowInsets(EdgeInsets(top: 5, leading: GH.Space.m, bottom: 5, trailing: GH.Space.m))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
             }
+            .listStyle(.plain)
             .ghScreen()
             .ghTabBarClearance()
-            .overlay {
-                if sorted.isEmpty {
-                    ContentUnavailableView("Nothing scheduled", systemImage: "drop", description: Text("Plants get a watering schedule when you add them. Tap + for other reminders, like a quarterly treatment."))
-                }
-            }
             .navigationTitle("Care")
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
@@ -65,13 +55,156 @@ struct CareView: View {
             }
             .sheet(isPresented: $showingNew) { TaskEditorView(household: household, task: nil, preselected: []) }
             .sheet(item: $editing) { TaskEditorView(household: household, task: $0, preselected: []) }
+            .redrawsOnCollectionChanges(household)
+            .task {
+                #if DEBUG
+                CareDemo.applyIfRequested(household: household, context: context)
+                #endif
+                try? await Task.sleep(for: .seconds(1))
+                loading = false
+            }
         }
     }
+
+    // MARK: Rows
+
+    private enum Item: Identifiable {
+        case summary(String)
+        case filters
+        case header(CareSection)
+        case task(CareTask)
+        case caughtUp(hasTasks: Bool)
+        case nextUp(CareTask)
+
+        var id: String {
+            switch self {
+            case .summary: "summary"
+            case .filters: "filters"
+            case .header(let section): "header-\(section.rawValue)"
+            case .task(let task): "task-\(task.objectID.uriRepresentation().absoluteString)"
+            case .caughtUp: "caught-up"
+            case .nextUp: "next-up"
+            }
+        }
+    }
+
+    private func listItems(for all: [CareTask]) -> [Item] {
+        let groups = CareAgenda.group(all, overrides: pinned)
+        func count(_ section: CareSection) -> Int { groups.first { $0.section == section }?.tasks.count ?? 0 }
+        var items: [Item] = [.filters]
+        if let summary = CareAgenda.summary(overdue: count(.overdue), today: count(.today)) {
+            items.append(.summary(summary))
+        }
+        if count(.overdue) + count(.today) == 0 {
+            items.append(.caughtUp(hasTasks: !all.isEmpty))
+            if let next = CareAgenda.nextUp(in: all) { items.append(.nextUp(next)) }
+        }
+        for group in groups {
+            items.append(.header(group.section))
+            items += group.tasks.map { .task($0) }
+        }
+        return items
+    }
+
+    @ViewBuilder private func row(_ item: Item, index: Int) -> some View {
+        switch item {
+        case .filters:
+            CollectionBar(household: household)
+                .listRowInsets(EdgeInsets())
+        case .summary(let text):
+            Text(text)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(GH.Palette.ink2)
+                .padding(.horizontal, GH.Space.xxs)
+                .careEnter(index: index, active: loading)
+        case .header(let section):
+            Text(section.title)
+                .font(.ghEyebrow)
+                .textCase(.uppercase)
+                .tracking(0.7)
+                .foregroundStyle(section == .overdue ? GH.Palette.terraInk : GH.Palette.ink2)
+                .padding(.horizontal, GH.Space.xxs)
+                .padding(.top, GH.Space.xs)
+                .accessibilityAddTraits(.isHeader)
+                .careEnter(index: index, active: loading)
+        case .task(let task):
+            TaskRow(task: task, household: household, onEdit: edit(task), onOpenPlant: openPlant, layout: .card, onDone: pin)
+                .careEnter(index: index, active: loading)
+                .scrollSoftening()
+        case .caughtUp(let hasTasks):
+            caughtUp(hasTasks: hasTasks)
+        case .nextUp(let task):
+            CareNextUpCard(task: task, onOpen: edit(task))
+                .careEnter(index: index, active: loading)
+        }
+    }
+
+    private func caughtUp(hasTasks: Bool) -> some View {
+        VStack(spacing: GH.Space.s) {
+            CareEmptyArt(name: "EmptyWateringCan")
+            Text(hasTasks ? "All caught up" : "Nothing scheduled")
+                .font(.ghRounded(.title2))
+                .foregroundStyle(GH.Palette.ink)
+            Text(hasTasks
+                 ? "Nothing needs water or care today."
+                 : "Plants get a watering schedule when you add them. Tap + for other reminders, like a quarterly treatment.")
+                .font(.subheadline)
+                .foregroundStyle(GH.Palette.ink2)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, GH.Space.m)
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Actions
 
     private func openPlant(_ plant: Plant) { path.append(plant) }
 
     private func edit(_ task: CareTask) -> () -> Void {
         { editing = task }
+    }
+
+    /// Keeps a just-finished row where it is for about three seconds.
+    private func pin(_ task: CareTask) {
+        guard let due = CareSchedule.nextDue(for: task) else { return }
+        let status = CareSchedule.status(nextDue: due)
+        let id = task.objectID
+        pinned[id] = (CareAgenda.section(for: status), due)
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            withAnimation(GH.Motion.enter) { pinned[id] = nil }
+        }
+    }
+}
+
+/// Rows grow in (GH.Motion.enter, staggered over the first six) only while the
+/// tab is first loading; rows made later by scrolling just appear.
+private struct CareEnter: ViewModifier {
+    let delay: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown: Bool
+
+    init(index: Int, active: Bool) {
+        delay = Double(min(index, 5)) * GH.Motion.staggerStep
+        _shown = State(initialValue: !active)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .scaleEffect(shown || reduceMotion ? 1 : 0.96)
+            .offset(y: shown || reduceMotion ? 0 : 12)
+            .onAppear {
+                guard !shown else { return }
+                withAnimation((reduceMotion ? GH.Motion.reduced : GH.Motion.enter).delay(delay)) { shown = true }
+            }
+    }
+}
+
+private extension View {
+    func careEnter(index: Int, active: Bool) -> some View {
+        modifier(CareEnter(index: index, active: active))
     }
 }
 
