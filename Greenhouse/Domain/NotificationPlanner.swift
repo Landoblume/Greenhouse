@@ -1,4 +1,5 @@
 import CoreData
+import UIKit
 import UserNotifications
 
 struct PlannedNotification: Equatable {
@@ -52,7 +53,8 @@ enum NotificationPlanner {
         minute: Int = 0,
         photoCheckInMonths: Int = defaultPhotoCheckInMonths,
         calendar: Calendar = .current,
-        lastNudged: [String: Date] = [:]
+        lastNudged: [String: Date] = [:],
+        muted: Set<String> = []
     ) -> [PlannedNotification] {
         func at(_ day: Date) -> Date? {
             calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
@@ -102,7 +104,7 @@ enum NotificationPlanner {
         guard free > 0, photoCheckInMonths > 0 else { return reminders }
         let checkIns = photoCheckIns(for: (household.plants ?? []).filter(\.isActive), months: photoCheckInMonths,
                                      after: now, hour: hour, minute: minute, calendar: calendar,
-                                     lastNudged: lastNudged)
+                                     lastNudged: lastNudged, muted: muted)
         let sortedCheckIns = checkIns.sorted { ($0.date, $0.id) < ($1.date, $1.id) }
         return (reminders + sortedCheckIns.prefix(free)).sorted { $0.date < $1.date }
     }
@@ -166,6 +168,86 @@ enum NotificationPlanner {
         return result
     }
 
+    // MARK: Muting and "this weekend"
+
+    /// Per phone: ids of plants whose check-ins were stopped from a
+    /// notification ("Stop for this plant"). Settings lists them to unmute.
+    static let mutedKey = "photoCheckInMuted"
+
+    static func mutedPlantIDs(in defaults: UserDefaults = .standard) -> Set<String> {
+        Set(defaults.stringArray(forKey: mutedKey) ?? [])
+    }
+
+    static func setMuted(_ muted: Bool, plantID: UUID, in defaults: UserDefaults = .standard) {
+        var ids = mutedPlantIDs(in: defaults)
+        if muted { ids.insert(plantID.uuidString) } else { ids.remove(plantID.uuidString) }
+        saveMuted(ids, in: defaults)
+    }
+
+    private static func saveMuted(_ ids: Set<String>, in defaults: UserDefaults) {
+        defaults.set(ids.sorted(), forKey: mutedKey)
+    }
+
+    /// The weekend day a "Remind me this weekend" moves a check-in to: the
+    /// coming Saturday at the reminder time, or Sunday when it's already
+    /// Saturday past that time (then the Saturday after, once Sunday's has
+    /// passed too). As a day (start of day), like the ledger.
+    static func comingWeekend(after now: Date, hour: Int, minute: Int, calendar: Calendar) -> Date? {
+        var day = calendar.startOfDay(for: now)
+        for _ in 0..<8 {
+            let weekday = calendar.component(.weekday, from: day)
+            if weekday == 7 || weekday == 1,
+               let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day), fire > now {
+                return day
+            }
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { return nil }
+            day = next
+        }
+        return nil
+    }
+
+    /// The ledger with this plant's next check-in moved to the coming
+    /// weekend. The planner keeps a ledger day that's still ahead, so that's
+    /// where the next plan puts it, and the plant's weekly gap counts from there.
+    static func remindingThisWeekend(
+        _ ledger: [String: Date],
+        plantID: UUID,
+        now: Date,
+        hour: Int,
+        minute: Int,
+        calendar: Calendar
+    ) -> [String: Date] {
+        guard let weekend = comingWeekend(after: now, hour: hour, minute: minute, calendar: calendar) else { return ledger }
+        var result = ledger
+        result[plantID.uuidString] = weekend
+        return result
+    }
+
+    /// "Remind me this weekend" on a check-in: moves that plant's next one
+    /// to the weekend and plans again. Returns once the new plan is queued.
+    static func remindThisWeekend(plantID: UUID, defaults: UserDefaults = .standard, now: Date = .now) async {
+        let (hour, minute) = reminderTime(in: defaults)
+        saveLastNudged(remindingThisWeekend(lastNudged(in: defaults), plantID: plantID, now: now,
+                                            hour: hour, minute: minute, calendar: .current), in: defaults)
+        await rescheduleAndWait()
+    }
+
+    /// "Stop for this plant" on a check-in.
+    static func mute(plantID: UUID, defaults: UserDefaults = .standard) async {
+        setMuted(true, plantID: plantID, in: defaults)
+        await rescheduleAndWait()
+    }
+
+    // MARK: Opening a tapped check-in
+
+    /// The newest photo of the plant (or the plants it was combined from)
+    /// taken on or after the day a check-in arrived: someone (usually the
+    /// other phone) already answered it, so there's no need for the camera.
+    static func photoAnswering(checkInOn firedAt: Date, plant: Plant, calendar: Calendar = .current) -> Photo? {
+        let start = calendar.startOfDay(for: firedAt)
+        return Lineage.timeline(for: plant).last { ($0.photo.takenAt ?? .distantPast) >= start }?.photo
+    }
+
     /// The household's check-ins, planned forward from today: one on each
     /// slot day (`checkInSlotWeekdays`, so about 3 a week) for the plant
     /// that's been waiting longest, ties by plant id. A plant is waiting from
@@ -186,7 +268,8 @@ enum NotificationPlanner {
         hour: Int,
         minute: Int,
         calendar: Calendar,
-        lastNudged: [String: Date] = [:]
+        lastNudged: [String: Date] = [:],
+        muted: Set<String> = []
     ) -> [PlannedNotification] {
         guard months > 0,
               let horizon = calendar.date(byAdding: .day, value: checkInWeeksAhead * 7, to: now).map(calendar.startOfDay)
@@ -219,7 +302,7 @@ enum NotificationPlanner {
 
         var waiting: [Waiting] = []
         var taken: Set<Date> = []
-        for plant in plants {
+        for plant in plants where !muted.contains(plant.uuid?.uuidString ?? "") {
             guard let seen = lastSeen(of: plant, calendar: calendar),
                   let threshold = checkInStart(lastSeen: seen.date, months: months, calendar: calendar) else { continue }
             var entry = Waiting(plant: plant, key: plant.uuid?.uuidString ?? "", seen: seen, due: threshold)
@@ -378,33 +461,85 @@ enum NotificationPlanner {
 
     // MARK: - Scheduling
 
+    /// Long-press actions on a check-in. Each plant gets its own category so
+    /// the buttons can name it ("Open camera for Pip").
+    static let openCameraAction = "checkin.open"
+    static let remindWeekendAction = "checkin.weekend"
+    static let stopAction = "checkin.stop"
+
+    static func checkInCategoryID(plantID: UUID) -> String { "photo-checkin-\(plantID.uuidString)" }
+
+    static func checkInCategory(plantID: UUID, plantName: String) -> UNNotificationCategory {
+        UNNotificationCategory(
+            identifier: checkInCategoryID(plantID: plantID),
+            actions: [
+                UNNotificationAction(identifier: openCameraAction, title: "Open camera for \(plantName)",
+                                     options: [.foreground], icon: UNNotificationActionIcon(systemImageName: "camera")),
+                UNNotificationAction(identifier: remindWeekendAction, title: "Remind me this weekend",
+                                     options: [], icon: UNNotificationActionIcon(systemImageName: "calendar")),
+                UNNotificationAction(identifier: stopAction, title: "Stop for this plant",
+                                     options: [.destructive], icon: UNNotificationActionIcon(systemImageName: "bell.slash")),
+            ],
+            intentIdentifiers: []
+        )
+    }
+
+    /// Check-ins this close get the plant's latest photo as a thumbnail.
+    /// Further ones are planned again (with theirs) long before they fire, and
+    /// skipping them keeps a reschedule from decoding every plant's photo.
+    static let thumbnailDays = 14
+
     static func requestAuthorization() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             if granted { DispatchQueue.main.async { reschedule() } }
         }
     }
 
-    /// Replaces every pending notification with a fresh plan.
-    static func reschedule(persistence: Persistence = .shared) {
+    static func reminderTime(in defaults: UserDefaults = .standard) -> (hour: Int, minute: Int) {
+        (defaults.object(forKey: hourKey) as? Int ?? 9, defaults.object(forKey: minuteKey) as? Int ?? 0)
+    }
+
+    /// `reschedule`, for callers that must not return before it's done (a
+    /// notification action handled in the background).
+    static func rescheduleAndWait(persistence: Persistence = .shared) async {
+        await withCheckedContinuation { continuation in
+            reschedule(persistence: persistence) { continuation.resume() }
+        }
+    }
+
+    /// Replaces every pending notification with a fresh plan. `completion`
+    /// runs once the requests are queued.
+    static func reschedule(persistence: Persistence = .shared, completion: (() -> Void)? = nil) {
         let center = UNUserNotificationCenter.current()
         let context = persistence.viewContext
         let defaults = UserDefaults.standard
-        let hour = defaults.object(forKey: hourKey) as? Int ?? 9
-        let minute = defaults.object(forKey: minuteKey) as? Int ?? 0
+        let (hour, minute) = reminderTime(in: defaults)
         let checkInMonths = photoCheckInMonths(in: defaults)
 
         context.perform {
+            defer { completion?() }
             center.removeAllPendingNotificationRequests()
             guard let household = persistence.currentHousehold(in: context) else { return }
             let calendar = Calendar.current
+            let now = Date.now
+            let active = (household.plants ?? []).filter(\.isActive)
+            let activeIDs = Set(active.compactMap(\.uuid))
+            // Muted plants that are gone (combined, deleted) drop off the list.
+            let muted = mutedPlantIDs(in: defaults).filter { id in activeIDs.contains { $0.uuidString == id } }
+            saveMuted(muted, in: defaults)
             let ledger = lastNudged(in: defaults)
-            let planned = plan(household: household, hour: hour, minute: minute,
-                               photoCheckInMonths: checkInMonths, calendar: calendar, lastNudged: ledger)
-            saveLastNudged(updatedLastNudged(
-                ledger, scheduled: planned,
-                activePlantIDs: Set((household.plants ?? []).filter(\.isActive).compactMap(\.uuid)),
-                calendar: calendar
-            ), in: defaults)
+            let planned = plan(household: household, now: now, hour: hour, minute: minute,
+                               photoCheckInMonths: checkInMonths, calendar: calendar, lastNudged: ledger, muted: muted)
+            saveLastNudged(updatedLastNudged(ledger, scheduled: planned, activePlantIDs: activeIDs, calendar: calendar),
+                           in: defaults)
+
+            let plantsByID = Dictionary(active.compactMap { plant in plant.uuid.map { ($0, plant) } }) { first, _ in first }
+            let checkInPlants = Set(planned.compactMap(\.plantID))
+            center.setNotificationCategories(Set(checkInPlants.compactMap { id in
+                plantsByID[id].map { checkInCategory(plantID: id, plantName: $0.displayName) }
+            }))
+            let thumbnailCutoff = calendar.date(byAdding: .day, value: thumbnailDays, to: now) ?? now
+
             for item in planned {
                 let content = UNMutableNotificationContent()
                 content.title = item.title
@@ -412,12 +547,47 @@ enum NotificationPlanner {
                 content.sound = .default
                 if let plantID = item.plantID {
                     content.userInfo = [plantIDKey: plantID.uuidString]
+                    content.categoryIdentifier = checkInCategoryID(plantID: plantID)
+                    if item.date <= thumbnailCutoff, let plant = plantsByID[plantID],
+                       let attachment = thumbnailAttachment(for: plant, id: item.id) {
+                        content.attachments = [attachment]
+                    }
                 }
                 let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: item.date)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
                 center.add(UNNotificationRequest(identifier: item.id, content: content, trigger: trigger))
             }
         }
+    }
+
+    /// The plant's latest photo as a small JPEG in a temp file, which iOS
+    /// moves into its own store when the request is added.
+    private static func thumbnailAttachment(for plant: Plant, id: String) -> UNNotificationAttachment? {
+        guard let photo = Lineage.timeline(for: plant).last?.photo,
+              let image = ThumbnailCache.shared.image(for: photo, maxPixel: 300),
+              let data = image.jpegData(compressionQuality: 0.8) else { return nil }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("checkin-thumbnails", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("\(id).jpg")
+        guard (try? data.write(to: url, options: .atomic)) != nil else { return nil }
+        return try? UNNotificationAttachment(identifier: "thumbnail", url: url, options: nil)
+    }
+}
+
+/// A tapped check-in on its way to the camera. If it can't be shown within
+/// `lifetime` (another sheet stayed up, the app was in the background), it's
+/// dropped, so the camera never pops up later on its own.
+struct PhotoCheckInRequest: Equatable {
+    static let lifetime: TimeInterval = 60
+
+    let plantID: UUID
+    /// When the notification arrived; a photo since that day means someone
+    /// already checked in. Nil when it wasn't from a notification.
+    let firedAt: Date?
+    let requestedAt: Date
+
+    func isExpired(at now: Date) -> Bool {
+        now.timeIntervalSince(requestedAt) > Self.lifetime
     }
 }
 

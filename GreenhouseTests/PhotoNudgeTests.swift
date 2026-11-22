@@ -484,4 +484,122 @@ final class PhotoNudgeTests: XCTestCase {
         XCTAssertEqual(NotificationPlanner.photoCheckInTarget(plantID: try XCTUnwrap(ab.uuid), in: store.household), abc)
         XCTAssertNil(NotificationPlanner.photoCheckInTarget(plantID: UUID(), in: store.household))
     }
+
+    // MARK: Muting, "this weekend", and opening a tap
+
+    func testAMutedPlantGetsNoCheckInsAndTheOthersCarryOn() throws {
+        let store = TestStore()
+        let fern = store.plant(nickname: "Fern", acquired: day(2025, 1, 1))
+        let aloe = store.plant(nickname: "Aloe", acquired: day(2025, 2, 1))
+        let now = day(2026, 10, 1)
+        let muted: Set<String> = [try XCTUnwrap(fern.uuid?.uuidString)]
+
+        let planned = checkIns(plan(store, now: now, months: 2))
+        XCTAssertTrue(planned.contains { $0.plantID == fern.uuid })
+        let mutedPlan = NotificationPlanner.photoCheckIns(for: [fern, aloe], months: 2, after: now, hour: 9, minute: 0,
+                                                          calendar: calendar, muted: muted)
+        XCTAssertFalse(mutedPlan.contains { $0.plantID == fern.uuid }, "muted")
+        XCTAssertTrue(mutedPlan.contains { $0.plantID == aloe.uuid }, "the others still come")
+        let viaPlan = NotificationPlanner.plan(household: store.household, now: now, photoCheckInMonths: 2,
+                                               calendar: calendar, muted: muted)
+        XCTAssertFalse(viaPlan.contains { $0.plantID == fern.uuid }, "plan passes the mute through")
+    }
+
+    func testMuteIsStoredPerPhoneAndCanBeUndone() throws {
+        let suite = "PhotoNudgeTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let a = UUID(), b = UUID()
+        XCTAssertTrue(NotificationPlanner.mutedPlantIDs(in: defaults).isEmpty)
+        NotificationPlanner.setMuted(true, plantID: a, in: defaults)
+        NotificationPlanner.setMuted(true, plantID: b, in: defaults)
+        NotificationPlanner.setMuted(true, plantID: a, in: defaults)
+        XCTAssertEqual(NotificationPlanner.mutedPlantIDs(in: defaults), [a.uuidString, b.uuidString])
+        NotificationPlanner.setMuted(false, plantID: a, in: defaults)
+        XCTAssertEqual(NotificationPlanner.mutedPlantIDs(in: defaults), [b.uuidString])
+    }
+
+    func testTheComingWeekendIsSaturdayOrSundayOnTheWeekendItself() {
+        func weekend(_ now: Date) -> Date? {
+            NotificationPlanner.comingWeekend(after: now, hour: 9, minute: 0, calendar: calendar)
+        }
+        let saturday = calendar.startOfDay(for: day(2026, 11, 21))
+        let sunday = calendar.startOfDay(for: day(2026, 11, 22))
+        XCTAssertEqual(weekend(day(2026, 11, 17)), saturday, "Tuesday: the coming Saturday")
+        XCTAssertEqual(weekend(day(2026, 11, 21, hour: 8)), saturday, "Saturday before the reminder time: today")
+        XCTAssertEqual(weekend(day(2026, 11, 21, hour: 10)), sunday, "Saturday after it: tomorrow")
+        XCTAssertEqual(weekend(day(2026, 11, 22, hour: 10)), calendar.startOfDay(for: day(2026, 11, 28)), "Sunday after it: next Saturday")
+    }
+
+    func testRemindMeThisWeekendMovesThatPlantsNextCheckInToSaturday() throws {
+        let store = TestStore()
+        let fern = store.plant(nickname: "Fern", acquired: day(2025, 1, 1))
+        let aloe = store.plant(nickname: "Aloe", acquired: day(2025, 2, 1))
+        var ledger: [String: Date] = [:]
+        // Planned on Tuesday morning: Fern (waiting longest) gets today's slot.
+        let tuesday = day(2026, 11, 17, hour: 6)
+        let before = reschedule([fern, aloe], now: tuesday, months: 2, ledger: &ledger)
+        XCTAssertEqual(before.first?.plantID, fern.uuid)
+
+        // It fires at 9; at 10 Fern's "Remind me this weekend" is tapped.
+        let tapped = day(2026, 11, 17, hour: 10)
+        ledger = NotificationPlanner.remindingThisWeekend(ledger, plantID: try XCTUnwrap(fern.uuid), now: tapped,
+                                                          hour: 9, minute: 0, calendar: calendar)
+        let after = reschedule([fern, aloe], now: tapped, months: 2, ledger: &ledger)
+        let fernNext = try XCTUnwrap(after.first { $0.plantID == fern.uuid })
+        XCTAssertEqual(calendar.startOfDay(for: fernNext.date), calendar.startOfDay(for: day(2026, 11, 21)), "Saturday")
+        XCTAssertEqual(calendar.component(.hour, from: fernNext.date), 9, "at the reminder time")
+        let fernDates = after.filter { $0.plantID == fern.uuid }.map(\.date)
+        for (a, b) in zip(fernDates, fernDates.dropFirst()) {
+            XCTAssertGreaterThanOrEqual(calendar.dateComponents([.day], from: a, to: b).day ?? 0, 7, "still weekly after the move")
+        }
+        XCTAssertEqual(ledger[try XCTUnwrap(fern.uuid?.uuidString)], calendar.startOfDay(for: day(2026, 11, 21)))
+        // Planning again keeps it there.
+        XCTAssertEqual(reschedule([fern, aloe], now: day(2026, 11, 18), months: 2, ledger: &ledger)
+            .first { $0.plantID == fern.uuid }?.id, fernNext.id)
+    }
+
+    func testATapRequestExpiresAfterAMinute() {
+        let asked = day(2026, 11, 21, hour: 9)
+        let request = PhotoCheckInRequest(plantID: UUID(), firedAt: asked, requestedAt: asked)
+        XCTAssertFalse(request.isExpired(at: asked))
+        XCTAssertFalse(request.isExpired(at: asked.addingTimeInterval(59)))
+        XCTAssertFalse(request.isExpired(at: asked.addingTimeInterval(60)))
+        XCTAssertTrue(request.isExpired(at: asked.addingTimeInterval(61)))
+        XCTAssertTrue(request.isExpired(at: asked.addingTimeInterval(3_600)), "coming back to the app later doesn't open it")
+    }
+
+    func testAPhotoSinceTheCheckInDayAnswersIt() throws {
+        let store = TestStore()
+        let fern = store.plant(nickname: "Fern", acquired: day(2025, 1, 1))
+        let fired = day(2026, 11, 17, hour: 9)
+        addPhoto(store, to: fern, takenAt: day(2026, 3, 1))
+        XCTAssertNil(NotificationPlanner.photoAnswering(checkInOn: fired, plant: fern, calendar: calendar), "an old photo doesn't")
+
+        // The other phone snapped one that morning, before the nudge even fired.
+        addPhoto(store, to: fern, takenAt: day(2026, 11, 17, hour: 8))
+        let answer = try XCTUnwrap(NotificationPlanner.photoAnswering(checkInOn: fired, plant: fern, calendar: calendar))
+        XCTAssertEqual(answer.takenAt, day(2026, 11, 17, hour: 8))
+
+        // A photo of a plant it was combined from counts too.
+        let other = store.plant(nickname: "Other", acquired: day(2025, 1, 1))
+        addPhoto(store, to: other, takenAt: day(2026, 11, 18))
+        let combined = Lineage.staple([fern, other], nickname: "Both", date: day(2026, 11, 19), household: store.household,
+                                      context: store.context, persistence: store.persistence)
+        store.save()
+        XCTAssertEqual(NotificationPlanner.photoAnswering(checkInOn: fired, plant: combined, calendar: calendar)?.takenAt,
+                       day(2026, 11, 18), "the newest one")
+    }
+
+    func testEachPlantsCategoryNamesItInTheActions() throws {
+        let id = UUID()
+        let category = NotificationPlanner.checkInCategory(plantID: id, plantName: "Pip")
+        XCTAssertEqual(category.identifier, NotificationPlanner.checkInCategoryID(plantID: id))
+        XCTAssertEqual(category.actions.map(\.identifier), [NotificationPlanner.openCameraAction,
+                                                             NotificationPlanner.remindWeekendAction,
+                                                             NotificationPlanner.stopAction])
+        XCTAssertEqual(category.actions.map(\.title), ["Open camera for Pip", "Remind me this weekend", "Stop for this plant"])
+        XCTAssertTrue(category.actions[0].options.contains(.foreground), "the camera opens the app")
+        XCTAssertFalse(category.actions[1].options.contains(.foreground), "snoozing doesn't")
+    }
 }
