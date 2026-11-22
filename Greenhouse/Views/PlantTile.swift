@@ -57,7 +57,7 @@ struct PlantTile: View {
                     WateringChipView(task: watering).padding(10)
                 }
             }
-            .overlay(alignment: .topTrailing) {
+            .overlay(alignment: .bottomLeading) {
                 if inProject {
                     Image(systemName: "hammer.fill")
                         .font(.caption)
@@ -109,6 +109,7 @@ struct WateringChipView: View {
             Label(chip.label, systemImage: "drop.fill")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(colors.ink)
+                .lineLimit(1)
                 .padding(.horizontal, 9)
                 .frame(minHeight: 26)
                 .background(colors.fill, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))

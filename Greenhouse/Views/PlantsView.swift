@@ -14,7 +14,11 @@ struct PlantsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingAdd = false
     @State private var combining: Plant?
+    #if DEBUG
+    @State private var filter = PlantFilter(genus: DemoData.startingGenus)
+    #else
     @State private var filter = PlantFilter()
+    #endif
     @FocusState private var searchFocused: Bool
     @State private var deleting: Plant?
     @State private var choosingPlants: PlantCollection?

@@ -9,9 +9,12 @@ import UIKit
 ///     xcrun simctl launch booted com.landenblume.greenhouse -demoData YES -openTab 2
 ///
 /// `-demoData` fills an empty store once; `-openTab` picks the starting tab
-/// (0 Plants, 1 Care, 2 Plans, 3 Settings).
+/// (0 Plants, 1 Care, 2 Plans, 3 Settings). Add `-demoEmpty YES` to seed a
+/// household with no plants, and `-demoGenus Monstera` to open Plants with
+/// that genus filter on.
 enum DemoData {
     static var openTab: Int { UserDefaults.standard.integer(forKey: "openTab") }
+    static var startingGenus: String? { UserDefaults.standard.string(forKey: "demoGenus") }
 
     static func seedIfRequested(persistence: Persistence = .shared) {
         let defaults = UserDefaults.standard
@@ -23,6 +26,11 @@ enum DemoData {
         }
         let household = persistence.createHousehold(name: "Demo household", in: context)
         household.hardinessZone = "7a"
+        // `-demoEmpty YES`: a household with no plants, for the empty states.
+        if defaults.bool(forKey: "demoEmpty") {
+            persistence.save(context)
+            return
+        }
         let catalog = SpeciesCatalog.shared
         let calendar = Calendar.current
         func ago(months: Int = 0, days: Int = 0, years: Int = 0) -> Date {
