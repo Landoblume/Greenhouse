@@ -602,4 +602,78 @@ final class PhotoNudgeTests: XCTestCase {
         XCTAssertTrue(category.actions[0].options.contains(.foreground), "the camera opens the app")
         XCTAssertFalse(category.actions[1].options.contains(.foreground), "snoozing doesn't")
     }
+
+    // MARK: Categories for check-ins already delivered
+
+    func testCategoriesCoverPlannedAndStillDeliveredCheckIns() {
+        let planned = UUID(), delivered = UUID(), other = UUID()
+        let plan = [PlannedNotification(id: "photo-x", date: day(2026, 11, 24), title: "t", body: "b", plantID: planned),
+                    PlannedNotification(id: "care-1", date: day(2026, 11, 24), title: "t", body: "b")]
+        let inCenter: [(identifier: String, userInfo: [AnyHashable: Any])] = [
+            ("\(NotificationPlanner.photoCheckInPrefix)\(delivered)", [NotificationPlanner.plantIDKey: delivered.uuidString]),
+            ("\(NotificationPlanner.photoCheckInPrefix)\(planned)", [NotificationPlanner.plantIDKey: planned.uuidString]),
+            ("care-7", [NotificationPlanner.plantIDKey: other.uuidString]),
+            ("\(NotificationPlanner.photoCheckInPrefix)junk", [NotificationPlanner.plantIDKey: "not a uuid"]),
+            ("\(NotificationPlanner.photoCheckInPrefix)none", [:]),
+        ]
+        XCTAssertEqual(NotificationPlanner.categoryPlantIDs(planned: plan, delivered: inCenter), [planned, delivered],
+                       "a delivered check-in keeps its buttons even when the plan no longer has it")
+        XCTAssertEqual(NotificationPlanner.categoryPlantIDs(planned: [], delivered: []), [])
+    }
+
+    // MARK: Thumbnail files
+
+    private func jpegData(side: CGFloat = 600, color: UIColor = .systemGreen) throws -> Data {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { context in
+            color.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: side, height: side))
+        }
+        return try XCTUnwrap(image.jpegData(compressionQuality: 0.9))
+    }
+
+    func testThumbnailIsMadeOnceAndReusedUntilThePhotoChanges() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("thumb-test-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let id = UUID()
+        let data = try jpegData()
+
+        let first = try XCTUnwrap(CheckInThumbnails.file(photoID: id, imageData: data, in: folder))
+        // Overwrite the contents but keep the name: a second call that
+        // re-encoded would replace them with a real JPEG again.
+        try Data("kept".utf8).write(to: first)
+        let again = try XCTUnwrap(CheckInThumbnails.file(photoID: id, imageData: data, in: folder))
+        XCTAssertEqual(again, first)
+        XCTAssertEqual(try Data(contentsOf: again), Data("kept".utf8), "an existing thumbnail is reused, not re-encoded")
+
+        // A crop changes the bytes: new file, and the old one is gone.
+        let cropped = try jpegData(side: 400, color: .systemRed)
+        let second = try XCTUnwrap(CheckInThumbnails.file(photoID: id, imageData: cropped, in: folder))
+        XCTAssertNotEqual(second, first)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), [second.lastPathComponent])
+        let image = try XCTUnwrap(UIImage(contentsOfFile: second.path))
+        XCTAssertLessThanOrEqual(max(image.size.width, image.size.height) * image.scale, CheckInThumbnails.maxPixel)
+    }
+
+    func testThumbnailPruneKeepsOnlyWhatIsNeeded() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("thumb-test-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let a = try XCTUnwrap(CheckInThumbnails.file(photoID: UUID(), imageData: try jpegData(), in: folder))
+        let b = try XCTUnwrap(CheckInThumbnails.file(photoID: UUID(), imageData: try jpegData(), in: folder))
+        CheckInThumbnails.prune(keeping: [a.lastPathComponent], in: folder)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), [a.lastPathComponent])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: b.path))
+        XCTAssertNil(CheckInThumbnails.file(photoID: UUID(), imageData: Data("not an image".utf8), in: folder))
+    }
+
+    func testAnOvertakenRescheduleDoesNotRun() {
+        let generations = RescheduleGeneration()
+        let first = generations.next()
+        let second = generations.next()
+        var ran: [Int] = []
+        generations.runIfCurrent(first) { ran.append(first) }
+        generations.runIfCurrent(second) { ran.append(second) }
+        XCTAssertEqual(ran, [second])
+    }
 }

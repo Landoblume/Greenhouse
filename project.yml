@@ -24,7 +24,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.landenblume.greenhouse
         GENERATE_INFOPLIST_FILE: YES
         # Keys the INFOPLIST_KEY_ settings can't express (CloudKit sharing,
-        # background pushes). Xcode merges this file into the generated plist.
+        # background pushes, the limited-photo-library prompt). Xcode merges this file into the generated plist.
         INFOPLIST_FILE: Greenhouse/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: Greenhouse
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
