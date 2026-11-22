@@ -76,8 +76,6 @@ extension CareHistory {
             index >= 0 && index < rows.count ? rows[index] : nil
         }
 
-        var total: Double { rows.map(\.settled).max() ?? 0 }
-
         static let idle = DrawSchedule(rows: [])
     }
 
@@ -239,6 +237,11 @@ extension CareHistory {
         return all.dropLast().joined(separator: ", ") + " & " + all.last!
     }
 
+    /// "Rosie and Spike": VoiceOver says "and" better than "&".
+    private static func spoken(_ names: String) -> String {
+        names.replacingOccurrences(of: " & ", with: " and ")
+    }
+
     /// What VoiceOver reads for a row, since the threads themselves are hidden
     /// from it: "Watered, Friday November 14, by Alex. Rosie, before the Combine."
     static func spokenLabel(for row: Row, viewedPlant: Plant, now: Date = .now,
@@ -261,9 +264,9 @@ extension CareHistory {
             return "Milestone, \(mark.title), \(day(mark.date))\(by)." + before(mark.source, label: mark.source.displayName) + notes
         case .merge(let merge):
             if merge.kind == .split {
-                return "\(merge.output.displayName) split from \(names(merge.inputs)), \(day(merge.date))."
+                return "\(spoken(names(merge.outputs.isEmpty ? [merge.output] : merge.outputs))) split from \(names(merge.inputs)), \(day(merge.date))."
             }
-            return "Combined into \(merge.output.displayName) from \(names(merge.inputs).replacingOccurrences(of: " & ", with: " and ")), \(day(merge.date))."
+            return "Combined into \(merge.output.displayName) from \(spoken(names(merge.inputs))), \(day(merge.date))."
         case .cutting(let mark):
             switch mark.direction {
             case .taken:
@@ -273,8 +276,8 @@ extension CareHistory {
             }
         case .joined(let into, let with, let date, let kind):
             let verb = kind == .split ? "Split into" : "Became part of"
-            let others = with.isEmpty ? "" : ", with \(names(with).replacingOccurrences(of: " & ", with: " and "))"
-            return "\(verb) \(into.displayName)\(others), \(day(date))."
+            let others = with.isEmpty ? "" : ", with \(spoken(names(with)))"
+            return "\(verb) \(spoken(names(into)))\(others), \(day(date))."
         case .showEarlier(let count, _):
             return count == 1 ? "Show 1 earlier plant" : "Show \(count) earlier plants"
         }

@@ -5,7 +5,11 @@ import SwiftUI
 /// (by lazy loading, or scrolled to later) shows already drawn.
 struct HistoryDrawClock: Equatable {
     var epoch = Date()
+    /// Bumped by every draw-in: the lines draw again.
     var token = 0
+    /// Bumped only on coming back to the screen: the dots spring in again
+    /// too. A level change leaves them be, so they glide to their new spots.
+    var visit = 0
 
     var elapsed: Double { Date().timeIntervalSince(epoch) }
 
@@ -18,6 +22,12 @@ struct HistoryDrawClock: Equatable {
     mutating func restart() {
         epoch = Date()
         token += 1
+    }
+
+    /// Back on the screen: lines and dots both draw in again.
+    mutating func replay() {
+        restart()
+        visit += 1
     }
 }
 
@@ -76,7 +86,9 @@ struct HistoryThreadGutter: View {
                         clock: clock,
                         bloom: bloom
                     )
-                    .matchedGeometryEffect(id: rowID, in: namespace)
+                    .id(clock.visit)
+                    // Under Reduce Motion levels crossfade, so dots don't travel.
+                    .modifier(HistoryDotIdentity(id: rowID, namespace: reduceMotion ? nil : namespace))
                     .position(x: geometry.x(threads[lane].column), y: nodeY)
                 }
             }
@@ -121,6 +133,20 @@ struct HistoryThreadGutter: View {
             drew = true
         }
         return drew ? path : nil
+    }
+}
+
+/// A dot keeps its identity across levels, so it moves to its new spot.
+private struct HistoryDotIdentity: ViewModifier {
+    let id: String
+    let namespace: Namespace.ID?
+
+    func body(content: Content) -> some View {
+        if let namespace {
+            content.matchedGeometryEffect(id: id, in: namespace)
+        } else {
+            content
+        }
     }
 }
 

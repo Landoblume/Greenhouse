@@ -19,14 +19,14 @@ final class CareHistoryModel: ObservableObject {
     @Published var expanded = false {
         didSet { if expanded != oldValue { rebuild() } }
     }
-    private var footprint: CareHistory.Footprint
+    /// What the history was built from; worked out alongside it.
+    private var footprint: CareHistory.Footprint?
     private var focusCache: (plant: NSManagedObjectID, timeline: CareHistory.Timeline)?
     /// How many times the history has been worked out (tests check it stays put).
     private(set) var builds = 0
 
     init(plant: Plant) {
         self.plant = plant
-        footprint = CareHistory.Footprint(plant: plant)
         rebuild()
     }
 
@@ -48,11 +48,15 @@ final class CareHistoryModel: ObservableObject {
         return focused
     }
 
-    /// From `NSManagedObjectContextObjectsDidChange`.
+    /// From `NSManagedObjectContextObjectsDidChange`. Only the plant's own
+    /// context counts: a background context (a sync, an import) posts on its
+    /// own thread, and its objects can't be read from here. Its changes reach
+    /// this context by merging, which posts again on the main thread.
     func contextChanged(_ note: Notification) {
+        guard let context = plant.managedObjectContext, (note.object as? NSManagedObjectContext) === context else { return }
         let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
         let objects = keys.flatMap { (note.userInfo?[$0] as? Set<NSManagedObject>) ?? [] }
-        if footprint.isAffected(by: objects) { rebuild() }
+        if footprint?.isAffected(by: objects) ?? true { rebuild() }
     }
 }
 
@@ -88,6 +92,14 @@ struct CareHistoryView: View {
 
     private var focusPlant: Plant { focus ?? plant }
 
+    /// The context the plant (and so its logs) lives in.
+    private var store: NSManagedObjectContext { plant.managedObjectContext ?? context }
+
+    /// Under Reduce Motion the whole list crossfades when this changes.
+    private var levelKey: String {
+        level == .onePlant ? "one-\(focusPlant.objectID.uriRepresentation())" : "level-\(level.rawValue)"
+    }
+
     private var shown: CareHistory.Timeline {
         level == .onePlant ? model.timeline(focusedOn: focusPlant) : model.timeline
     }
@@ -106,28 +118,34 @@ struct CareHistoryView: View {
             expand: { withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.enter) { model.expanded = true } }
         )
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                header
-                if level == .allThreads, let root = timeline.threads.first, !timeline.rows.isEmpty {
-                    rootPill(root, geometry: geometry)
+            // A ZStack so that, under Reduce Motion, the old level and the new
+            // one overlap while they crossfade instead of stacking up.
+            ZStack(alignment: .top) {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    header
+                    if level == .allThreads, let root = timeline.threads.first, !timeline.rows.isEmpty {
+                        rootPill(root, geometry: geometry)
+                    }
+                    ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
+                        CareHistoryRowView(
+                            row: row,
+                            level: level,
+                            timeline: timeline,
+                            geometry: geometry,
+                            viewedPlant: plant,
+                            focusPlant: level == .onePlant ? focusPlant : nil,
+                            timing: schedule.timing(forRow: index),
+                            clock: clock,
+                            namespace: dots,
+                            bloom: bloom,
+                            actions: actions
+                        )
+                    }
                 }
-                ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
-                    CareHistoryRowView(
-                        row: row,
-                        level: level,
-                        timeline: timeline,
-                        geometry: geometry,
-                        viewedPlant: plant,
-                        focusPlant: level == .onePlant ? focusPlant : nil,
-                        timing: schedule.timing(forRow: index),
-                        clock: clock,
-                        namespace: dots,
-                        bloom: bloom,
-                        actions: actions
-                    )
-                }
+                .padding(.bottom, GH.Space.xl)
+                .id(reduceMotion ? levelKey : "moving")
+                .transition(.opacity)
             }
-            .padding(.bottom, GH.Space.xl)
         }
         .scrollIndicators(.hidden)
         .background {
@@ -159,28 +177,33 @@ struct CareHistoryView: View {
             ToolbarItem(placement: .principal) { titleView(timeline) }
         }
         .onAppear {
-            // Lines draw in once per visit to the screen.
+            // Lines and dots draw in once per visit to the screen, and again
+            // on coming back to it.
             if appeared {
-                clock.restart()
+                clock.replay()
                 bloom.reset()
             }
             appeared = true
         }
-        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
+        // Only the plant's own (main-thread) context: see `contextChanged`.
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange,
+                                                        object: store)) { note in
             model.contextChanged(note)
         }
+        .onChange(of: model.builds) {
+            // The other phone took this log back while we were asking.
+            if let pending = pendingUndo, CareHistory.live(pending.log, in: store) == nil { pendingUndo = nil }
+        }
         .confirmationDialog(
-            pendingUndo.map { "Undo this \($0.title.lowercased())?" } ?? "Undo",
+            "Undo this log?",
             isPresented: Binding(get: { pendingUndo != nil }, set: { if !$0 { pendingUndo = nil } }),
             titleVisibility: .visible,
             presenting: pendingUndo
         ) { entry in
-            Button("Undo \(entry.title.lowercased()) on \(CareHistory.dayLabel(entry.doneAt))", role: .destructive) {
-                undo(entry)
-            }
+            Button("Undo log", role: .destructive) { undo(entry) }
             Button("Keep it", role: .cancel) {}
-        } message: { _ in
-            Text("Only this one log is removed. The rest of the history stays.")
+        } message: { entry in
+            Text("\(entry.title), \(CareHistory.dayLabel(entry.doneAt)). Only this one log is removed; the rest of the history stays.")
         }
         .sheet(isPresented: $addingReminder) {
             if let household = plant.household {
@@ -264,34 +287,44 @@ struct CareHistoryView: View {
 
     private func setLevel(_ new: CareHistoryLevel) {
         guard new != level else { return }
-        withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.zoom) {
-            level = new
-            clock.restart()
-        }
+        changeLevel { level = new }
     }
 
     private func zoom(into target: Plant) {
         guard target != focus || level != .onePlant else { return }
-        withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.zoom) {
+        changeLevel {
             focus = target
             level = .onePlant
-            clock.restart()
+        }
+    }
+
+    /// Moving: the rows reflow, dots glide to their new spots, and the lines
+    /// draw in again. Reduce Motion: the old level crossfades into the new
+    /// one, already drawn.
+    private func changeLevel(_ change: () -> Void) {
+        if reduceMotion {
+            withAnimation(GH.Motion.reduced, change)
+        } else {
+            withAnimation(GH.Motion.zoom) {
+                change()
+                clock.restart()
+            }
         }
     }
 
     private func undo(_ entry: CareHistory.Entry) {
-        let context = entry.log.managedObjectContext ?? context
-        CareHistory.undo(entry.log, context: context)
-        Persistence.shared.save(context)
-        NotificationPlanner.reschedule()
         pendingUndo = nil
+        if CareHistory.undo(entry.log, context: store) {
+            Persistence.shared.save(store)
+            NotificationPlanner.reschedule()
+        }
     }
 }
 
 // MARK: - Header pieces
 
-/// "Watered 23 times since May 2023 · mostly by Sam 💚", with the big number,
-/// the other kinds, and a little party on round numbers.
+/// "Watered 23 times since May 2023 · mostly by Sam 💚", with the big number
+/// and a little party on round numbers.
 struct CareStatsHeader: View {
     let stats: CareHistory.Stats
     var viewerName: String?
@@ -309,11 +342,6 @@ struct CareStatsHeader: View {
                     .font(.subheadline)
                     .foregroundStyle(GH.Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-            if let others = stats.others {
-                Text(others)
-                    .font(.footnote)
-                    .foregroundStyle(GH.Palette.ink2)
             }
             if let celebration = stats.celebration() {
                 Text(celebration)
@@ -386,29 +414,5 @@ private struct HistoryLevelPicker: View {
         .background(GH.Palette.surface2, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Zoom level")
-    }
-}
-
-// MARK: - Kept for other screens
-
-/// Lane colors: the theme thread palette, which adapts to dark mode. The source plant's
-/// name is always written out too, so color is never the only cue.
-enum ThreadPalette {
-    static let colors: [Color] = GH.threads
-    static func color(_ lane: Int) -> Color { CareHistoryStyle.color(lane) }
-}
-
-extension View {
-    /// For screens that show care logs without a `CareHistoryModel`: the
-    /// plant doesn't observe its tasks' logs, so marking a task done, undoing
-    /// it, or a log arriving from the other phone wouldn't redraw them.
-    func redrawsOnCareLogChanges(_ plant: Plant) -> some View {
-        onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
-            let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
-            let changed = keys.contains { key in
-                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is CareLog || $0 is CareTask || $0 is Plant } ?? false
-            }
-            if changed { plant.objectWillChange.send() }
-        }
     }
 }

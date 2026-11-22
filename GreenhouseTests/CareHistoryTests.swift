@@ -276,7 +276,6 @@ final class CareHistoryTests: XCTestCase {
         XCTAssertEqual(stats?.mostlyBy, "Sam")
         let since = day(2026, 2, 1).formatted(.dateTime.month(.abbreviated).year())
         XCTAssertEqual(stats?.headline, "Watered 3 times since \(since) \u{00B7} mostly by Sam \u{1F49A}")
-        XCTAssertEqual(stats?.others, "Mist 1")
     }
 
     func testStatsOmitMostlyByWhenNobodyIsNamedAndSingularizes() {
@@ -286,7 +285,6 @@ final class CareHistoryTests: XCTestCase {
         store.save()
         let stats = CareHistory.stats(for: plant)
         XCTAssertNil(stats?.mostlyBy)
-        XCTAssertNil(stats?.others)
         XCTAssertTrue(stats?.headline.hasPrefix("Watered 1 time since ") ?? false)
         XCTAssertFalse(stats?.headline.contains("mostly") ?? true)
     }

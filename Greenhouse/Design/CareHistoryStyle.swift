@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Sizes and colors for the care-history threads (from the Threads board),
 /// kept out of Theme.swift so the tokens file stays shared and unowned.
@@ -25,8 +26,25 @@ enum CareHistoryStyle {
     /// All threads: the left-hand month labels, and the widest lane spacing.
     static let monthColumn: CGFloat = 60
     static let wideSpacing: CGFloat = 95
+    /// All threads: room kept clear right of the lanes, so every label can
+    /// sit to the right of its dot, even on the rightmost lane.
+    static let labelRoom: CGFloat = 104
+    /// All threads: from a dot's center to its label.
+    static let labelGap: CGFloat = 14
 
     static func color(_ index: Int) -> Color { GH.threads[((index % GH.threads.count) + GH.threads.count) % GH.threads.count] }
+
+    /// How far down a row its dot goes: `padding` (which stays the same at
+    /// every text size), then half a line of `style` text at `size`. That's
+    /// level with the middle of the title's first line however big the text.
+    static func titleMiddle(below padding: CGFloat, style: UIFont.TextStyle, size: DynamicTypeSize) -> CGFloat {
+        padding + lineHeight(style, size: size) / 2
+    }
+
+    static func lineHeight(_ style: UIFont.TextStyle, size: DynamicTypeSize) -> CGFloat {
+        let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
+        return UIFont.preferredFont(forTextStyle: style, compatibleWith: traits).lineHeight
+    }
 }
 
 /// The three zoom levels, outermost first.
@@ -62,8 +80,6 @@ struct LaneGeometry: Equatable {
     /// Where the row's words start.
     let contentLeading: CGFloat
     let spacing: CGFloat
-    /// The row's full width.
-    var width: CGFloat = 390
 
     func x(_ column: Int) -> CGFloat { column >= 0 && column < xs.count ? xs[column] : (xs.first ?? 0) }
 
@@ -71,17 +87,19 @@ struct LaneGeometry: Equatable {
         let n = max(columns, 1)
         switch level {
         case .allThreads:
-            let available = max(width - CareHistoryStyle.monthColumn - GH.Space.m, 40)
+            // Lanes fill what's left after the month labels on the left and
+            // the label room on the right.
+            let available = max(width - CareHistoryStyle.monthColumn - CareHistoryStyle.labelRoom, 40)
             let spacing = min(CareHistoryStyle.wideSpacing, available / CGFloat(n))
             let center = CareHistoryStyle.monthColumn + available / 2
             let xs = (0..<n).map { center + (CGFloat($0) - CGFloat(n - 1) / 2) * spacing }
-            return LaneGeometry(xs: xs, contentLeading: CareHistoryStyle.monthColumn, spacing: spacing, width: width)
+            return LaneGeometry(xs: xs, contentLeading: CareHistoryStyle.monthColumn, spacing: spacing)
         case .log, .onePlant:
             let spacing = tight ? CareHistoryStyle.laneSpacingTight : CareHistoryStyle.laneSpacing
             let gutter = max(CareHistoryStyle.gutter, CGFloat(n) * spacing + 16)
             let center = CareHistoryStyle.inset + gutter / 2
             let xs = (0..<n).map { center + (CGFloat($0) - CGFloat(n - 1) / 2) * spacing }
-            return LaneGeometry(xs: xs, contentLeading: CareHistoryStyle.inset + gutter + CareHistoryStyle.gutterGap, spacing: spacing, width: width)
+            return LaneGeometry(xs: xs, contentLeading: CareHistoryStyle.inset + gutter + CareHistoryStyle.gutterGap, spacing: spacing)
         }
     }
 }
