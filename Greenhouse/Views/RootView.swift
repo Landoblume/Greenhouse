@@ -87,7 +87,12 @@ struct MainTabView: View {
                 .ignoresSafeArea(.keyboard)
         }
         .onAppear {
+            #if DEBUG
+            // Demo runs are for simulator screenshots: no permission alert on top.
+            if !UserDefaults.standard.bool(forKey: "demoData") { NotificationPlanner.requestAuthorization() }
+            #else
             NotificationPlanner.requestAuthorization()
+            #endif
             NotificationPlanner.reschedule()
             if PlantPhotos.saveMissingCovers(in: household) > 0, let context = household.managedObjectContext {
                 Persistence.shared.save(context)
