@@ -59,6 +59,7 @@ struct CareView: View {
             .task {
                 #if DEBUG
                 CareDemo.applyIfRequested(household: household, context: context)
+                CareDemo.applyAppearanceIfRequested()
                 #endif
                 try? await Task.sleep(for: .seconds(1))
                 loading = false
@@ -130,7 +131,7 @@ struct CareView: View {
         case .task(let task):
             TaskRow(task: task, household: household, onEdit: edit(task), onOpenPlant: openPlant, layout: .card, onDone: pin)
                 .careEnter(index: index, active: loading)
-                .scrollSoftening()
+                .careSoftening()
         case .caughtUp(let hasTasks):
             caughtUp(hasTasks: hasTasks)
         case .nextUp(let task):
@@ -165,14 +166,14 @@ struct CareView: View {
         { editing = task }
     }
 
-    /// Keeps a just-finished row where it is for about three seconds.
+    /// Keeps a just-finished row where it is for about four seconds.
     private func pin(_ task: CareTask) {
         guard let due = CareSchedule.nextDue(for: task) else { return }
         let status = CareSchedule.status(nextDue: due)
         let id = task.objectID
         pinned[id] = (CareAgenda.section(for: status), due)
-        Task {
-            try? await Task.sleep(for: .seconds(3))
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
             withAnimation(GH.Motion.enter) { pinned[id] = nil }
         }
     }

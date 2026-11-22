@@ -1,6 +1,7 @@
 #if DEBUG
 import CoreData
 import Foundation
+import UIKit
 
 /// Reshapes the demo household's reminders so every Care tab state can be seen
 /// in the simulator. Debug builds only, run once per store:
@@ -11,6 +12,15 @@ import Foundation
 /// request with `-careDemoDone YES`), some this week, one later, plus a
 /// household-wide task. `clear`: nothing due, so "All caught up" shows.
 enum CareDemo {
+    /// `-careDemoDark YES` forces dark mode on every window (the simulator's own
+    /// appearance switch doesn't reach the app from the command line).
+    static func applyAppearanceIfRequested() {
+        guard UserDefaults.standard.bool(forKey: "careDemoDark") else { return }
+        for scene in UIApplication.shared.connectedScenes {
+            for window in (scene as? UIWindowScene)?.windows ?? [] { window.overrideUserInterfaceStyle = .dark }
+        }
+    }
+
     static func applyIfRequested(household: Household, context: NSManagedObjectContext) {
         let defaults = UserDefaults.standard
         guard let mode = defaults.string(forKey: "careDemo"), !defaults.bool(forKey: "careDemoApplied-\(mode)") else { return }

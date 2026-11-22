@@ -400,3 +400,35 @@ struct CareNextUpCard: View {
         .accessibilityHint("Opens the reminder")
     }
 }
+
+// MARK: - Scroll softening
+
+/// Rows soften as they enter and leave the viewport: scale 0.94, opacity 0.5,
+/// y +-8 at the very edge. Reduce Motion: opacity only, floor 0.7. Measured
+/// against the scroll view's bounds with `visualEffect`, because `scrollTransition`
+/// is unreliable on List rows (every row in the list came out faded).
+struct CareSoftening: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let reduce = reduceMotion
+        return content.visualEffect { view, proxy in
+            let frame = proxy.frame(in: .scrollView(axis: .vertical))
+            let height = max(frame.height, 1)
+            let viewport = proxy.bounds(of: .scrollView(axis: .vertical))?.height ?? .infinity
+            // 0 when the row is fully inside the viewport, 1 when it has fully left.
+            let above = max(0, -frame.minY) / height
+            let below = viewport.isFinite ? max(0, frame.maxY - viewport) / height : 0
+            let amount = min(1, max(above, below))
+            let direction: CGFloat = above > below ? -1 : 1
+            return view
+                .opacity(1 - amount * (reduce ? 0.3 : 0.5))
+                .scaleEffect(reduce ? 1 : 1 - amount * 0.06)
+                .offset(y: reduce ? 0 : direction * amount * 8)
+        }
+    }
+}
+
+extension View {
+    func careSoftening() -> some View { modifier(CareSoftening()) }
+}

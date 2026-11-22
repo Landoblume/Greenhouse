@@ -40,6 +40,10 @@ struct TaskRow: View {
 
     var body: some View {
         content
+            // A row's menu would win the press-and-hold on the Done circle (which
+            // undoes), so a finished row has none; the hold and the VoiceOver
+            // action are its undo.
+            .contextMenu { if !isDone { menu } }
             .swipeActions(edge: .leading) {
                 Button(action: onEdit) { Label("Edit", systemImage: "pencil") }
                     .tint(GH.Palette.swipeLeaf)
@@ -48,7 +52,6 @@ struct TaskRow: View {
                 Button { choosingSnooze = true } label: { Label("Snooze", systemImage: "moon.zzz") }
                     .tint(GH.Palette.swipeSky)
             }
-            .contextMenu { menu }
             .sensoryFeedback(.success, trigger: celebrate)
             .sensoryFeedback(.impact(weight: .light), trigger: undone)
             .confirmationDialog("Snooze \(task.title)", isPresented: $choosingSnooze, titleVisibility: .visible) {
@@ -77,15 +80,20 @@ struct TaskRow: View {
         }
     }
 
+    private var cardInfo: some View {
+        HStack(alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center, spacing: GH.Space.s) {
+            avatar
+            textBlock
+        }
+        .contentShape(Rectangle())
+    }
+
     private var card: some View {
         Group {
             if dynamicTypeSize.isAccessibilitySize {
                 // The Done circle drops under the text so the words get the full width.
                 VStack(alignment: .leading, spacing: GH.Space.s) {
-                    HStack(alignment: .top, spacing: GH.Space.s) {
-                        avatar
-                        textBlock
-                    }
+                    cardInfo
                     HStack(spacing: GH.Space.s) {
                         doneButton
                         Text(isDone ? doneWord : "Mark \(doneWord.lowercased())")
@@ -95,8 +103,7 @@ struct TaskRow: View {
                 }
             } else {
                 HStack(spacing: GH.Space.s) {
-                    avatar
-                    textBlock
+                    cardInfo
                     doneButton
                 }
             }
@@ -205,9 +212,6 @@ struct TaskRow: View {
             } label: {
                 Label("Cancel snooze", systemImage: "alarm")
             }
-        }
-        if CareSchedule.canUndoDone(task) {
-            Button(action: undo) { Label("Undo \(doneWord)", systemImage: "arrow.uturn.backward") }
         }
     }
 
