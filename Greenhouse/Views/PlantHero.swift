@@ -119,15 +119,20 @@ struct PlantPageBar<MenuContent: View>: View {
         }
         .buttonStyle(.plain)
         .overlay {
-            Text(title)
-                .font(.ghRounded(.headline))
-                .foregroundStyle(GH.Palette.ink)
-                .lineLimit(1)
-                .padding(.horizontal, 120)
-                .opacity(collapsed ? 1 : 0)
-                .animation(.easeOut(duration: 0.3), value: collapsed)
-                .accessibilityHidden(!collapsed)
-                .accessibilityAddTraits(.isHeader)
+            // Only in the tree while collapsed, so VoiceOver doesn't read the
+            // name twice while the hero is showing. The fade still runs.
+            Group {
+                if collapsed {
+                    Text(title)
+                        .font(.ghRounded(.headline))
+                        .foregroundStyle(GH.Palette.ink)
+                        .lineLimit(1)
+                        .padding(.horizontal, 120)
+                        .accessibilityAddTraits(.isHeader)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeOut(duration: 0.3), value: collapsed)
         }
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .padding(.horizontal, GH.Space.m)
