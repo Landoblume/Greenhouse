@@ -105,6 +105,8 @@ struct CareHistoryRow: View {
             LogContent(entry: entry, viewedPlant: viewedPlant)
         case .merge(let merge):
             MergeContent(merge: merge)
+        default:
+            EmptyView()
         }
     }
 }
