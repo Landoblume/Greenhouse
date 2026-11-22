@@ -207,13 +207,17 @@ struct LightSourcePicker: View {
 
 /// Camera first (where there is one), photo library as the fallback.
 /// `onCaptureDate` gets the date stored in a library photo, or nil for a new
-/// camera shot (taken now) or a photo without one.
+/// camera shot (taken now) or a photo without one. Camera shots are also
+/// copied to the phone's photo library (see `PhotoLibrarySaver`); library
+/// picks aren't.
 struct PhotoInput: View {
     @Binding var image: UIImage?
     var onCaptureDate: (Date?) -> Void = { _ in }
     @State private var showingCamera = false
     @State private var showingCrop = false
     @State private var libraryItem: PhotosPickerItem?
+    /// Said once, the first time Photos access turns out to be off.
+    @State private var libraryNotice: String?
 
     var body: some View {
         if let image {
@@ -235,7 +239,7 @@ struct PhotoInput: View {
                 Label(image == nil ? "Take photo" : "Retake photo", systemImage: "camera")
             }
             .fullScreenCover(isPresented: $showingCamera) {
-                CameraPicker(image: $image).ignoresSafeArea()
+                CameraPicker(image: $image) { libraryNotice = $0 }.ignoresSafeArea()
             }
             .onChange(of: showingCamera) { _, showing in
                 if !showing { onCaptureDate(nil) }
@@ -252,11 +256,20 @@ struct PhotoInput: View {
                 }
             }
         }
+        if let libraryNotice {
+            Label(libraryNotice, systemImage: "photo.badge.exclamationmark")
+                .font(.footnote)
+                .foregroundStyle(GH.Palette.ink2)
+        }
     }
 }
 
+/// The system camera. What it shoots is also saved to this phone's photo
+/// library when "Save new photos to Photos" is on, at capture, like the
+/// Camera app; `onLibraryNotice` gets the one-time "access is off" message.
 struct CameraPicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    var onLibraryNotice: (String) -> Void = { _ in }
     @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -276,7 +289,17 @@ struct CameraPicker: UIViewControllerRepresentable {
         init(_ parent: CameraPicker) { self.parent = parent }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            parent.image = info[.originalImage] as? UIImage
+            let shot = info[.originalImage] as? UIImage
+            parent.image = shot
+            if let shot {
+                let notify = parent.onLibraryNotice
+                Task { @MainActor in
+                    guard let data = ImageTools.upright(shot).jpegData(compressionQuality: 0.9) else { return }
+                    if case .denied(tellUser: true) = await PhotoLibrarySaver.shared.save(data) {
+                        notify(PhotoLibrarySaver.deniedNotice)
+                    }
+                }
+            }
             parent.dismiss()
         }
 
