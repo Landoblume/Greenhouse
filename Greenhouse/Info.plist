@@ -10,6 +10,11 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<!-- With limited photo access, iOS otherwise asks "select more photos?" whenever the app
+	     uses the library. Greenhouse only adds photos, so it never needs the prompt.
+	     (An INFOPLIST_KEY_ build setting doesn't carry this key into the plist.) -->
+	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
+	<true/>
 	<!-- Only Apple's built-in HTTPS; skips the export-compliance question on every TestFlight upload. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>

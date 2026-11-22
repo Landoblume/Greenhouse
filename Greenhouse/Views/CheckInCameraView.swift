@@ -431,6 +431,10 @@ struct CapturedPhoto {
 
 /// The capture session behind the check-in camera: back or front camera,
 /// portrait stills.
+///
+/// Every touch of the AVCaptureSession (inputs, outputs, start, stop,
+/// capture) happens on one serial queue. Configuring on the main thread while
+/// `startRunning` runs on another is what AVFoundation warns about.
 @MainActor
 final class CheckInCameraSession: ObservableObject {
     @Published private(set) var isRunning = false
@@ -438,9 +442,19 @@ final class CheckInCameraSession: ObservableObject {
     @Published private(set) var position: AVCaptureDevice.Position = .back
     let session = AVCaptureSession()
     private let output = AVCapturePhotoOutput()
-    private var input: AVCaptureDeviceInput?
     private let queue = DispatchQueue(label: "greenhouse.checkin-camera")
+    /// Only touched on `queue`.
+    private let hardware: Hardware
     private var delegate: PhotoDelegate?
+    private var flipping = false
+    /// False once the screen has asked the camera to stop. A start that was
+    /// waiting on the permission prompt checks it, so closing the sheet over
+    /// the prompt doesn't leave the camera running (and its light on) behind.
+    private var wanted = false
+
+    init() {
+        hardware = Hardware(session: session, output: output)
+    }
 
     var canFlip: Bool { isRunning && Self.device(at: position == .back ? .front : .back) != nil }
 
@@ -449,6 +463,7 @@ final class CheckInCameraSession: ObservableObject {
     }
 
     func start() async {
+        wanted = true
         guard !isRunning else { return }
         // Checked before asking, so a phone (or simulator) without a camera
         // never shows the permission prompt.
@@ -460,64 +475,111 @@ final class CheckInCameraSession: ObservableObject {
             problem = "Camera access is off. Turn it on in Settings → Greenhouse → Camera, or use a photo from your library."
             return
         }
-        guard let input = try? AVCaptureDeviceInput(device: device) else {
+        // The sheet closed while the prompt was up: nothing to start.
+        guard wanted, !Task.isCancelled else { return }
+        let hardware = hardware
+        let queue = queue
+        let started: Bool? = await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: hardware.start(with: device)) }
+        }
+        guard let started else {
             problem = "The camera couldn't start. Try again, or use a photo from your library."
             return
         }
-        if session.inputs.isEmpty {
-            session.beginConfiguration()
-            session.sessionPreset = .photo
-            if session.canAddInput(input) {
-                session.addInput(input)
-                self.input = input
-            }
-            if session.canAddOutput(output) { session.addOutput(output) }
-            session.commitConfiguration()
-        }
-        let session = session
-        await withCheckedContinuation { continuation in
-            queue.async {
-                session.startRunning()
-                continuation.resume()
-            }
-        }
-        isRunning = session.isRunning
+        // A stop() that arrived mid-start is queued behind this start and
+        // runs next, so the session is already on its way down.
+        isRunning = started && wanted
     }
 
     func stop() {
+        wanted = false
         isRunning = false
-        let session = session
-        queue.async { session.stopRunning() }
+        let hardware = hardware
+        queue.async { hardware.stop() }
     }
 
     func flip() {
         let next: AVCaptureDevice.Position = position == .back ? .front : .back
-        guard let device = Self.device(at: next), let newInput = try? AVCaptureDeviceInput(device: device) else { return }
-        session.beginConfiguration()
-        if let input { session.removeInput(input) }
-        if session.canAddInput(newInput) {
-            session.addInput(newInput)
-            input = newInput
-            position = next
-        } else if let input {
-            session.addInput(input)
+        guard !flipping, let device = Self.device(at: next) else { return }
+        flipping = true
+        let hardware = hardware
+        let queue = queue
+        Task {
+            let swapped = await withCheckedContinuation { continuation in
+                queue.async { continuation.resume(returning: hardware.swapInput(to: device)) }
+            }
+            if swapped { position = next }
+            flipping = false
         }
-        session.commitConfiguration()
     }
 
     func capture() async -> CapturedPhoto? {
         guard isRunning, delegate == nil else { return nil }
-        if let connection = output.connection(with: .video), connection.isVideoRotationAngleSupported(90) {
-            connection.videoRotationAngle = 90  // the app is portrait only
-        }
         let settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
+        let hardware = hardware
+        let queue = queue
         let result: CapturedPhoto? = await withCheckedContinuation { continuation in
             let delegate = PhotoDelegate { continuation.resume(returning: $0) }
             self.delegate = delegate
-            output.capturePhoto(with: settings, delegate: delegate)
+            queue.async { hardware.capture(with: settings, delegate: delegate) }
         }
         delegate = nil
         return result
+    }
+
+    /// The session and its inputs. Every method runs on the camera queue.
+    private final class Hardware: @unchecked Sendable {
+        let session: AVCaptureSession
+        let output: AVCapturePhotoOutput
+        private var input: AVCaptureDeviceInput?
+
+        init(session: AVCaptureSession, output: AVCapturePhotoOutput) {
+            self.session = session
+            self.output = output
+        }
+
+        /// Sets up (first time) and starts the session. Nil when the camera
+        /// couldn't be opened.
+        func start(with device: AVCaptureDevice) -> Bool? {
+            if session.inputs.isEmpty {
+                guard let newInput = try? AVCaptureDeviceInput(device: device) else { return nil }
+                session.beginConfiguration()
+                session.sessionPreset = .photo
+                if session.canAddInput(newInput) {
+                    session.addInput(newInput)
+                    input = newInput
+                }
+                if session.canAddOutput(output) { session.addOutput(output) }
+                session.commitConfiguration()
+            }
+            session.startRunning()
+            return session.isRunning
+        }
+
+        func stop() {
+            session.stopRunning()
+        }
+
+        func swapInput(to device: AVCaptureDevice) -> Bool {
+            guard let newInput = try? AVCaptureDeviceInput(device: device) else { return false }
+            session.beginConfiguration()
+            defer { session.commitConfiguration() }
+            if let input { session.removeInput(input) }
+            if session.canAddInput(newInput) {
+                session.addInput(newInput)
+                input = newInput
+                return true
+            }
+            if let input { session.addInput(input) }
+            return false
+        }
+
+        func capture(with settings: AVCapturePhotoSettings, delegate: AVCapturePhotoCaptureDelegate) {
+            if let connection = output.connection(with: .video), connection.isVideoRotationAngleSupported(90) {
+                connection.videoRotationAngle = 90  // the app is portrait only
+            }
+            output.capturePhoto(with: settings, delegate: delegate)
+        }
     }
 
     private final class PhotoDelegate: NSObject, AVCapturePhotoCaptureDelegate {

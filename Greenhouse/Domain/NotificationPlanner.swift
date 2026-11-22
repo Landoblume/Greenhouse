@@ -509,17 +509,25 @@ enum NotificationPlanner {
 
     /// Replaces every pending notification with a fresh plan. `completion`
     /// runs once the requests are queued.
+    ///
+    /// The planning reads Core Data on the main queue. Everything slow after
+    /// that (asking what's still in Notification Center, making thumbnails)
+    /// runs off it. A reschedule that a newer one has overtaken stops before it
+    /// touches the notification center, so the newest plan wins.
     static func reschedule(persistence: Persistence = .shared, completion: (() -> Void)? = nil) {
         let center = UNUserNotificationCenter.current()
         let context = persistence.viewContext
         let defaults = UserDefaults.standard
         let (hour, minute) = reminderTime(in: defaults)
         let checkInMonths = photoCheckInMonths(in: defaults)
+        let generation = rescheduleGeneration.next()
 
         context.perform {
-            defer { completion?() }
-            center.removeAllPendingNotificationRequests()
-            guard let household = persistence.currentHousehold(in: context) else { return }
+            guard let household = persistence.currentHousehold(in: context) else {
+                center.removeAllPendingNotificationRequests()
+                completion?()
+                return
+            }
             let calendar = Calendar.current
             let now = Date.now
             let active = (household.plants ?? []).filter(\.isActive)
@@ -533,44 +541,150 @@ enum NotificationPlanner {
             saveLastNudged(updatedLastNudged(ledger, scheduled: planned, activePlantIDs: activeIDs, calendar: calendar),
                            in: defaults)
 
-            let plantsByID = Dictionary(active.compactMap { plant in plant.uuid.map { ($0, plant) } }) { first, _ in first }
-            let checkInPlants = Set(planned.compactMap(\.plantID))
-            center.setNotificationCategories(Set(checkInPlants.compactMap { id in
-                plantsByID[id].map { checkInCategory(plantID: id, plantName: $0.displayName) }
-            }))
+            // Plain values from here on, so the rest can leave the main queue.
+            var names: [UUID: String] = [:]
+            var latestPhotos: [UUID: NSManagedObjectID] = [:]
             let thumbnailCutoff = calendar.date(byAdding: .day, value: thumbnailDays, to: now) ?? now
+            for plant in active {
+                guard let id = plant.uuid else { continue }
+                names[id] = plant.displayName
+                if planned.contains(where: { $0.plantID == id && $0.date <= thumbnailCutoff }),
+                   let photo = Lineage.timeline(for: plant).last?.photo {
+                    latestPhotos[id] = photo.objectID
+                }
+            }
 
-            for item in planned {
-                let content = UNMutableNotificationContent()
-                content.title = item.title
-                content.body = item.body
-                content.sound = .default
-                if let plantID = item.plantID {
-                    content.userInfo = [plantIDKey: plantID.uuidString]
-                    content.categoryIdentifier = checkInCategoryID(plantID: plantID)
-                    if item.date <= thumbnailCutoff, let plant = plantsByID[plantID],
-                       let attachment = thumbnailAttachment(for: plant, id: item.id) {
-                        content.attachments = [attachment]
+            Task.detached(priority: .utility) {
+                let delivered = await center.deliveredNotifications().map { ($0.request.identifier, $0.request.content.userInfo) }
+                let categoryPlants = categoryPlantIDs(planned: planned, delivered: delivered)
+                let thumbnails = await CheckInThumbnails.files(for: latestPhotos, in: persistence)
+                rescheduleGeneration.runIfCurrent(generation) {
+                    // Only the current reschedule prunes: an overtaken one could
+                    // delete a thumbnail the newer one just made.
+                    CheckInThumbnails.prune(keeping: Set(thumbnails.values.map(\.lastPathComponent)), in: CheckInThumbnails.cacheFolder)
+                    center.removeAllPendingNotificationRequests()
+                    center.setNotificationCategories(Set(categoryPlants.compactMap { id in
+                        names[id].map { checkInCategory(plantID: id, plantName: $0) }
+                    }))
+                    for item in planned {
+                        let content = UNMutableNotificationContent()
+                        content.title = item.title
+                        content.body = item.body
+                        content.sound = .default
+                        if let plantID = item.plantID {
+                            content.userInfo = [plantIDKey: plantID.uuidString]
+                            content.categoryIdentifier = checkInCategoryID(plantID: plantID)
+                            if item.date <= thumbnailCutoff, let file = thumbnails[plantID],
+                               let attachment = CheckInThumbnails.attachment(copying: file, id: item.id) {
+                                content.attachments = [attachment]
+                            }
+                        }
+                        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: item.date)
+                        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                        center.add(UNNotificationRequest(identifier: item.id, content: content, trigger: trigger))
                     }
                 }
-                let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: item.date)
-                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-                center.add(UNNotificationRequest(identifier: item.id, content: content, trigger: trigger))
+                completion?()
             }
         }
     }
 
-    /// The plant's latest photo as a small JPEG in a temp file, which iOS
-    /// moves into its own store when the request is added.
-    private static func thumbnailAttachment(for plant: Plant, id: String) -> UNNotificationAttachment? {
-        guard let photo = Lineage.timeline(for: plant).last?.photo,
-              let image = ThumbnailCache.shared.image(for: photo, maxPixel: 300),
-              let data = image.jpegData(compressionQuality: 0.8) else { return nil }
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("checkin-thumbnails", isDirectory: true)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let url = folder.appendingPathComponent("\(id).jpg")
-        guard (try? data.write(to: url, options: .atomic)) != nil else { return nil }
-        return try? UNNotificationAttachment(identifier: "thumbnail", url: url, options: nil)
+    /// The plants whose check-in actions have to stay registered: every plant
+    /// in the plan, plus every plant with a check-in still sitting in
+    /// Notification Center. Categories are replaced as a whole, so leaving a
+    /// delivered check-in's plant out strips the buttons off it.
+    static func categoryPlantIDs(planned: [PlannedNotification], delivered: [(identifier: String, userInfo: [AnyHashable: Any])]) -> Set<UUID> {
+        var ids = Set(planned.compactMap(\.plantID))
+        for item in delivered where item.identifier.hasPrefix(photoCheckInPrefix) {
+            if let raw = item.userInfo[plantIDKey] as? String, let id = UUID(uuidString: raw) { ids.insert(id) }
+        }
+        return ids
+    }
+}
+
+/// Numbers the reschedules, so one that was overtaken can tell.
+final class RescheduleGeneration: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current = 0
+
+    func next() -> Int {
+        lock.lock(); defer { lock.unlock() }
+        current += 1
+        return current
+    }
+
+    /// Runs `work` only if no newer reschedule has started since `generation`.
+    func runIfCurrent(_ generation: Int, _ work: () -> Void) {
+        lock.lock(); defer { lock.unlock() }
+        if generation == current { work() }
+    }
+}
+
+private let rescheduleGeneration = RescheduleGeneration()
+
+/// The latest-photo thumbnails attached to check-ins. Each is made once and
+/// kept in the caches folder (one small JPEG per photo), so a launch only
+/// copies files instead of decoding and re-encoding every plant's photo.
+enum CheckInThumbnails {
+    static let maxPixel: CGFloat = 300
+
+    static var cacheFolder: URL {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("checkin-thumbnails", isDirectory: true)
+    }
+
+    /// The cached thumbnail for each plant's photo, made now if it isn't there
+    /// yet. Runs on a background context. It never deletes anything: the
+    /// caller prunes (see `prune`) once it knows its plan is still current.
+    static func files(for photos: [UUID: NSManagedObjectID], in persistence: Persistence, folder: URL = cacheFolder) async -> [UUID: URL] {
+        guard !photos.isEmpty else { return [:] }
+        let context = persistence.container.newBackgroundContext()
+        return await context.perform {
+            var result: [UUID: URL] = [:]
+            for (plantID, objectID) in photos {
+                guard let photo = try? context.existingObject(with: objectID) as? Photo,
+                      let uuid = photo.uuid, let data = photo.imageData,
+                      let url = file(photoID: uuid, imageData: data, in: folder) else { continue }
+                result[plantID] = url
+            }
+            return result
+        }
+    }
+
+    /// The thumbnail file for one photo: `<photo id>-<byte count>.jpg`, so a
+    /// photo that's edited (a crop changes its bytes) gets a new file.
+    static func file(photoID: UUID, imageData: Data, in folder: URL) -> URL? {
+        let manager = FileManager.default
+        let url = folder.appendingPathComponent("\(photoID.uuidString)-\(imageData.count).jpg")
+        if manager.fileExists(atPath: url.path) { return url }
+        guard let image = ImageTools.thumbnail(from: imageData, maxPixel: maxPixel),
+              let jpeg = image.jpegData(compressionQuality: 0.8) else { return nil }
+        try? manager.createDirectory(at: folder, withIntermediateDirectories: true)
+        // The photo's older thumbnails (before an edit) are dead now.
+        for old in (try? manager.contentsOfDirectory(atPath: folder.path)) ?? [] where old.hasPrefix(photoID.uuidString) {
+            try? manager.removeItem(at: folder.appendingPathComponent(old))
+        }
+        guard (try? jpeg.write(to: url, options: .atomic)) != nil else { return nil }
+        return url
+    }
+
+    static func prune(keeping names: Set<String>, in folder: URL) {
+        let manager = FileManager.default
+        for name in (try? manager.contentsOfDirectory(atPath: folder.path)) ?? [] where !names.contains(name) {
+            try? manager.removeItem(at: folder.appendingPathComponent(name))
+        }
+    }
+
+    /// iOS moves an attachment's file into its own store, so each request
+    /// gets a copy and the cached thumbnail stays put.
+    static func attachment(copying file: URL, id: String) -> UNNotificationAttachment? {
+        let manager = FileManager.default
+        let folder = manager.temporaryDirectory.appendingPathComponent("checkin-attachments", isDirectory: true)
+        try? manager.createDirectory(at: folder, withIntermediateDirectories: true)
+        let copy = folder.appendingPathComponent("\(id).jpg")
+        try? manager.removeItem(at: copy)
+        guard (try? manager.copyItem(at: file, to: copy)) != nil else { return nil }
+        return try? UNNotificationAttachment(identifier: "thumbnail", url: copy, options: nil)
     }
 }
 
