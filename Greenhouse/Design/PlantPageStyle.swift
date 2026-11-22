@@ -20,7 +20,7 @@ extension GH {
 }
 
 /// A soft organic blob for small icon backdrops (the birthday banner's badge).
-struct BlobShape: Shape {
+struct PlantPageBlobShape: Shape {
     func path(in rect: CGRect) -> Path {
         let w = rect.width, h = rect.height
         func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * w, y: rect.minY + y * h) }
