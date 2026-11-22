@@ -37,23 +37,29 @@ struct PlantHero: View {
     var body: some View {
         let reduce = reduceMotion
         let height = height
-        ZStack {
-            PlantPhotoView(photo: photo, maxPixel: 1600)
-            // "Greenhouse at night": the photo dims a little in dark mode.
-            if colorScheme == .dark {
-                Color.black.opacity(0.2)
+        // The size comes from the clear base; the photo and light only draw
+        // over it. A fill image sized on its own is as wide as its aspect
+        // needs at 380 pt tall, and a landscape photo stretched the page.
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .overlay {
+                ZStack {
+                    PlantPhotoView(photo: photo, maxPixel: 1600)
+                    // "Greenhouse at night": the photo dims a little in dark mode.
+                    if colorScheme == .dark {
+                        Color.black.opacity(0.2)
+                    }
+                    Image("DappledLight")
+                        .resizable()
+                        .scaledToFill()
+                        .blendMode(.softLight)
+                        .opacity(shown ? (colorScheme == .dark ? 0.32 : 0.4) : 0)
+                        .animation(reduce ? GH.Motion.reduced : .easeOut(duration: 1).delay(0.2), value: shown)
+                        .accessibilityHidden(true)
+                }
             }
-            Image("DappledLight")
-                .resizable()
-                .scaledToFill()
-                .blendMode(.softLight)
-                .opacity(shown ? (colorScheme == .dark ? 0.32 : 0.4) : 0)
-                .animation(reduce ? GH.Motion.reduced : .easeOut(duration: 1).delay(0.2), value: shown)
-                .accessibilityHidden(true)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .clipped()
+            .clipped()
         .scaleEffect(shown || reduce ? 1 : 1.06)
         .opacity(shown ? 1 : 0)
         .visualEffect { content, proxy in

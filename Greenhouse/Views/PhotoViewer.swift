@@ -98,14 +98,16 @@ struct PhotoViewer: View {
                 ZStack {
                     // Two slots; the photo follows whichever is the source, so
                     // switching it animates the photo between them.
+                    // The effect goes before `position`, which would make the
+                    // slot as big as the screen.
                     Color.clear
                         .frame(width: thumb.width, height: thumb.height)
-                        .position(x: thumb.midX, y: thumb.midY)
                         .matchedGeometryEffect(id: "slot", in: space, isSource: phase == .thumb)
+                        .position(x: thumb.midX, y: thumb.midY)
                     Color.clear
                         .frame(width: full.width, height: full.height)
-                        .position(x: full.midX, y: full.midY)
                         .matchedGeometryEffect(id: "slot", in: space, isSource: phase != .thumb)
+                        .position(x: full.midX, y: full.midY)
                     ViewerPhoto(photo: item.photo, radius: phase == .thumb ? GH.Radius.chip : 0)
                         .matchedGeometryEffect(id: "slot", in: space, isSource: false)
                         .offset(drag)

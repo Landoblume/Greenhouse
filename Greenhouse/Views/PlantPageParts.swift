@@ -223,7 +223,11 @@ struct PlantStatCards: View {
 
     private func card(_ value: Int, one: String, many: String, color: Color) -> some View {
         let label = value == 1 ? one : many
-        return VStack(alignment: .leading, spacing: 0) {
+        // Stacked cards at accessibility sizes put the label beside the number.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: GH.Space.s))
+            : AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+        return layout {
             GHDisplayNumber(value: "\(value)", color: color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
