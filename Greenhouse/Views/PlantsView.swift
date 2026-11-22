@@ -27,6 +27,12 @@ struct PlantsView: View {
     @FocusState private var searchFocused: Bool
     @State private var deleting: Plant?
     @State private var choosingPlants: PlantCollection?
+    /// The stack's pages, so a tile can push its plant itself (to choose how
+    /// it animates). Value links further in still push onto it.
+    @State private var path = NavigationPath()
+    @Namespace private var morphSpace
+    @State private var tileFrames = TileFrameStore()
+    @State private var flight: TileFlight?
 
     init(household: Household) {
         self.household = household
@@ -41,9 +47,10 @@ struct PlantsView: View {
     private var plants: [Plant] { filter.apply(to: inCollection) }
     /// One column at accessibility text sizes, where two would squeeze the names.
     private var columns: Int { typeSize.isAccessibilitySize ? 1 : 2 }
+    private var morphStyle: TileMorph { TileMorph.current(reduceMotion: reduceMotion) }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     header
@@ -66,6 +73,11 @@ struct PlantsView: View {
             .ghTabBarClearance()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
+            .navigationDestination(for: PlantTileRoute.self) { route in
+                let style = morphStyle
+                PlantDetailView(plant: route.plant, household: household, heroEntrance: style.heroEntrance)
+                    .tileMorphDestination(id: route.plant.objectID, in: morphSpace, enabled: style == .zoom)
+            }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
             .navigationDestination(for: CareHistoryRoute.self) { CareHistoryView(plant: $0.plant) }
             .onChange(of: PlantFilter.genera(in: inCollection)) {
@@ -78,19 +90,15 @@ struct PlantsView: View {
                 if phase == .active { refreshOthers(); refreshThrowback() }
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in refreshThrowback() }
-            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
+            .onReceive(ContextChanges.publisher(for: household.managedObjectContext)) { note in
                 // New care logs (here or syncing in) can add a person; photo,
-                // plant and Combine changes can change the throwback.
-                let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
-                var logs = false, photos = false
-                for key in keys {
-                    for object in note.userInfo?[key] as? Set<NSManagedObject> ?? [] {
-                        if object is CareLog { logs = true }
-                        if object is Photo || object is Plant || object is LineageEvent || object is PlantCollection { photos = true }
-                    }
-                }
-                if logs { refreshOthers() }
-                if photos { refreshThrowback() }
+                // plant and Combine changes can change the throwback. Only
+                // this (main-thread) context counts: see `ContextChanges`.
+                let store = household.managedObjectContext
+                if ContextChanges.touches(note, in: store, where: { $0 is CareLog }) { refreshOthers() }
+                if ContextChanges.touches(note, in: store, where: {
+                    $0 is Photo || $0 is Plant || $0 is LineageEvent || $0 is PlantCollection
+                }) { refreshThrowback() }
             }
             .sheet(isPresented: $showingAdd) { AddPlantView(household: household) }
             .sheet(item: $choosingPlants) { CollectionPlantsSheet(collection: $0, household: household) }
@@ -109,6 +117,46 @@ struct PlantsView: View {
                 Text("Removes it from both phones, with its photos, history and its own reminders. To merge it with another plant instead, use Combine.")
             }
             .sheet(item: $combining) { CombineSheet(plant: $0, household: household) }
+        }
+        .overlay {
+            if let flight { TileFlightOverlay(flight: flight) }
+        }
+    }
+
+    // MARK: - Opening a plant
+
+    /// A tile's tap. iOS 18 pushes with the zoom; iOS 17 pushes without the
+    /// slide and flies the photo up into the hero; Reduce Motion pushes
+    /// without the slide and lets the page fade in.
+    private func open(_ plant: Plant) {
+        guard flight == nil else { return }
+        let route = PlantTileRoute(plant: plant)
+        let style = morphStyle
+        guard style != .zoom else {
+            path.append(route)
+            return
+        }
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        guard style == .overlay, let from = tileFrames.frames[plant.objectID] else {
+            withTransaction(instant) { path.append(route) }
+            return
+        }
+        withTransaction(instant) {
+            flight = TileFlight(plantID: plant.objectID, photo: PlantPhotos.cover(for: plant), from: from)
+            path.append(route)
+        }
+        // Next frame, once the copy is drawn over the tile: fly, then fade.
+        DispatchQueue.main.async {
+            withAnimation(GH.Motion.hero) {
+                flight?.landed = true
+            } completion: {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    flight?.fading = true
+                } completion: {
+                    flight = nil
+                }
+            }
         }
     }
 
@@ -232,7 +280,10 @@ struct PlantsView: View {
             LazyMasonry(items: plants,
                         heights: plants.map { PlantTileStyle.estimatedHeight(forID: $0.uuid) },
                         columns: columns) { plant, index in
-                NavigationLink(value: plant) { PlantTile(plant: plant) }
+                Button { open(plant) } label: {
+                    PlantTile(plant: plant, morph: TileMorphSource(namespace: morphSpace,
+                                                                   frames: morphStyle == .overlay ? tileFrames : nil))
+                }
                     .buttonStyle(.plain)
                     .contextMenu {
                         if allPlants.count >= 2 {

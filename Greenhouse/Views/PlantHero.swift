@@ -23,12 +23,23 @@ final class PlantHeroScroll {
 /// The 380-pt photo at the top of a plant page, with the dappled-light
 /// overlay. It fades in from 1.06 scale, drifts slower than the page as it
 /// scrolls away (softening a little), and stretches when pulled down. Reduce
-/// Motion keeps only the fade: no scale, drift, stretch or blur.
+/// Motion keeps only the fade: no scale, drift, stretch or blur. Opened from
+/// a tile, the tile's photo becomes the hero, so it skips the fade.
 struct PlantHero: View {
+    enum Entrance: Equatable {
+        /// Fades in from 1.06 scale (Reduce Motion: fade only).
+        case fadeIn
+        /// Already there: the zoom from a tile brought it.
+        case shown
+        /// Appears at once when the iOS 17 tile overlay lands on it.
+        case afterFlight
+    }
+
     let photo: Photo?
     let scroll: PlantHeroScroll
     /// The distance over which the hero is considered collapsing.
     let collapseDistance: CGFloat
+    var entrance = Entrance.fadeIn
     var height: CGFloat = GH.PlantPage.heroHeight
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -37,6 +48,7 @@ struct PlantHero: View {
     var body: some View {
         let reduce = reduceMotion
         let height = height
+        let visible = shown || entrance == .shown
         // The size comes from the clear base; the photo and light only draw
         // over it. A fill image sized on its own is as wide as its aspect
         // needs at 380 pt tall, and a landscape photo stretched the page.
@@ -54,14 +66,14 @@ struct PlantHero: View {
                         .resizable()
                         .scaledToFill()
                         .blendMode(.softLight)
-                        .opacity(shown ? (colorScheme == .dark ? 0.32 : 0.4) : 0)
-                        .animation(reduce ? GH.Motion.reduced : .easeOut(duration: 1).delay(0.2), value: shown)
+                        .opacity(visible ? (colorScheme == .dark ? 0.32 : 0.4) : 0)
+                        .animation(reduce ? GH.Motion.reduced : .easeOut(duration: 1).delay(0.2), value: visible)
                         .accessibilityHidden(true)
                 }
             }
             .clipped()
-        .scaleEffect(shown || reduce ? 1 : 1.06)
-        .opacity(shown ? 1 : 0)
+        .scaleEffect(visible || reduce ? 1 : 1.06)
+        .opacity(visible ? 1 : 0)
         .visualEffect { content, proxy in
             let minY = proxy.frame(in: .scrollView).minY
             let pull = reduce ? 0 : max(minY, 0)
@@ -80,7 +92,16 @@ struct PlantHero: View {
         }
         .onAppear {
             guard !shown else { return }
-            withAnimation(reduce ? GH.Motion.reduced : .easeOut(duration: 0.8)) { shown = true }
+            switch entrance {
+            case .shown:
+                break
+            case .fadeIn:
+                withAnimation(reduce ? GH.Motion.reduced : .easeOut(duration: 0.8)) { shown = true }
+            case .afterFlight:
+                // Not animated: it appears under the landing photo, which
+                // then fades away over it.
+                DispatchQueue.main.asyncAfter(deadline: .now() + TileMorph.flightDuration) { shown = true }
+            }
         }
         .accessibilityElement()
         .accessibilityLabel(photo == nil ? "No photo yet" : "Main photo")
@@ -91,7 +112,9 @@ struct PlantHero: View {
 /// The plant page's top bar: glass back, share and more buttons over the
 /// hero. As the hero scrolls away a compact bar fades in behind them with the
 /// plant's name (the name itself takes 0.3 s). Reduce Motion: a solid bar,
-/// no blur.
+/// no blur. While the hero shows, a soft paper wash sits under the status
+/// bar so the time and battery read on any photo, in the scheme's own ink;
+/// it fades as the hero goes and the bar takes over.
 struct PlantPageBar<MenuContent: View>: View {
     let title: String
     let scroll: PlantHeroScroll
@@ -138,6 +161,16 @@ struct PlantPageBar<MenuContent: View>: View {
         .padding(.horizontal, GH.Space.m)
         .padding(.top, GH.Space.xxs)
         .padding(.bottom, GH.Space.xs)
+        .background {
+            LinearGradient(stops: [.init(color: GH.Palette.paper.opacity(0.72), location: 0),
+                                   .init(color: GH.Palette.paper.opacity(0.32), location: 0.45),
+                                   .init(color: GH.Palette.paper.opacity(0), location: 1)],
+                           startPoint: .top, endPoint: .bottom)
+                .opacity(1 - backdrop)
+                .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .background {
             ZStack(alignment: .bottom) {
                 if reduceMotion {

@@ -6,10 +6,15 @@ import SwiftUI
 struct PlantDetailView: View {
     @ObservedObject var plant: Plant
     let household: Household
+    /// How the hero comes in: opened from a tile, the tile's photo has just
+    /// morphed into it (see `TileMorph`).
+    var heroEntrance = PlantHero.Entrance.fadeIn
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
     @AppStorage(SettingsKey.myName) private var myName = ""
     @State private var showingAddPhoto = false
+    @State private var showingFirstPhoto = false
+    @State private var showingShareCard = false
     @State private var showingCombine = false
     @State private var showingCutting = false
     @State private var showingEdit = false
@@ -31,7 +36,8 @@ struct PlantDetailView: View {
         let entries = CareHistory.entries(for: plant)
         ScrollView {
             VStack(spacing: 0) {
-                PlantHero(photo: PlantPhotos.cover(for: plant), scroll: scroll, collapseDistance: Self.collapseDistance)
+                PlantHero(photo: PlantPhotos.cover(for: plant), scroll: scroll, collapseDistance: Self.collapseDistance,
+                          entrance: heroEntrance)
                 sheet(timeline: timeline, entries: entries)
             }
         }
@@ -40,7 +46,7 @@ struct PlantDetailView: View {
         .ignoresSafeArea(.container, edges: .top)
         .overlay(alignment: .top) {
             PlantPageBar(title: plant.displayName, scroll: scroll, onBack: { dismiss() }, onShare: {
-                // Wave 3 opens the then-vs-now share card from here.
+                showingShareCard = true
             }, showsMenu: plant.isActive) {
                 moreMenu
             }
@@ -48,6 +54,8 @@ struct PlantDetailView: View {
         .toolbar(.hidden, for: .navigationBar)
         .background(InteractivePopEnabler().frame(width: 0, height: 0).accessibilityHidden(true))
         .sheet(isPresented: $showingAddPhoto) { AddPhotoSheet(plant: plant, household: household) }
+        .sheet(isPresented: $showingFirstPhoto) { CheckInCameraView(plant: plant, household: household) }
+        .sheet(isPresented: $showingShareCard) { ShareCardView(plant: plant) }
         .sheet(isPresented: $showingCombine) { CombineSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingCutting) { CuttingSheet(plant: plant, household: household) }
         .sheet(isPresented: $addingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: nil) }
@@ -192,7 +200,7 @@ struct PlantDetailView: View {
         CollapsibleSection("Photos", summary: "\(timeline.count)") {
             if timeline.isEmpty {
                 PlantPhotosEmptyState(name: plant.displayName,
-                                      onTakePhoto: plant.isActive ? { showingAddPhoto = true } : nil)
+                                      onTakePhoto: plant.isActive ? { showingFirstPhoto = true } : nil)
             } else {
                 PlantPhotoStrip(items: PlantPage.strip(timeline), total: timeline.count,
                                 hiddenID: showingViewer ? viewerPhotoID : nil, frames: photoFrames,
@@ -489,13 +497,10 @@ extension View {
     /// `includingCare` also watches reminders and care logs, for views that
     /// show counts or "last watered" from them (the plant page).
     func redrawsOnRelatedChanges(_ plant: Plant, includingCare: Bool = false) -> some View {
-        onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
-            let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
-            let changed = keys.contains { key in
-                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { object in
-                    object is Photo || object is Milestone || object is Project
-                        || (includingCare && (object is CareLog || object is CareTask))
-                } ?? false
+        onReceive(ContextChanges.publisher(for: plant.managedObjectContext)) { note in
+            let changed = ContextChanges.touches(note, in: plant.managedObjectContext) { object in
+                object is Photo || object is Milestone || object is Project
+                    || (includingCare && (object is CareLog || object is CareTask))
             }
             if changed { plant.objectWillChange.send() }
         }
