@@ -12,6 +12,11 @@ struct PlantsView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    /// The other people sharing the household, and today's throwback. Worked
+    /// out when the data or the day changes, not on every redraw.
+    @State private var others: [String] = []
+    @State private var throwback: OnThisDay.Match<OnThisDay.PlantPhoto>?
     @State private var showingAdd = false
     @State private var combining: Plant?
     #if DEBUG
@@ -66,6 +71,27 @@ struct PlantsView: View {
             .onChange(of: PlantFilter.genera(in: inCollection)) {
                 filter = filter.clearingUnavailableGenus(in: inCollection)
             }
+            .onAppear { refreshOthers(); refreshThrowback() }
+            .onChange(of: myName) { refreshOthers() }
+            .onChange(of: inCollection.map(\.objectID)) { refreshThrowback() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshOthers(); refreshThrowback() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in refreshThrowback() }
+            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
+                // New care logs (here or syncing in) can add a person; photo,
+                // plant and Combine changes can change the throwback.
+                let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
+                var logs = false, photos = false
+                for key in keys {
+                    for object in note.userInfo?[key] as? Set<NSManagedObject> ?? [] {
+                        if object is CareLog { logs = true }
+                        if object is Photo || object is Plant || object is LineageEvent || object is PlantCollection { photos = true }
+                    }
+                }
+                if logs { refreshOthers() }
+                if photos { refreshThrowback() }
+            }
             .sheet(isPresented: $showingAdd) { AddPlantView(household: household) }
             .sheet(item: $choosingPlants) { CollectionPlantsSheet(collection: $0, household: household) }
             .confirmationDialog("Delete \(deleting?.displayName ?? "plant")?",
@@ -95,14 +121,14 @@ struct PlantsView: View {
                 titleBlock
                 Spacer(minLength: GH.Space.s)
                 HStack(spacing: GH.Space.s) {
-                    PeopleAvatars(names: people)
+                    PeopleAvatars(names: others)
                     addButton
                 }
             }
             VStack(alignment: .leading, spacing: GH.Space.s) {
                 titleBlock
                 HStack(spacing: GH.Space.s) {
-                    PeopleAvatars(names: people)
+                    PeopleAvatars(names: others)
                     Spacer(minLength: 0)
                     addButton
                 }
@@ -112,9 +138,11 @@ struct PlantsView: View {
 
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(GH.Palette.ink2)
+            if let name = household.name?.trimmingCharacters(in: .whitespaces), !name.isEmpty {
+                Text(name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(GH.Palette.ink2)
+            }
             Text("Plants")
                 .font(.ghRounded(.largeTitle))
                 .foregroundStyle(GH.Palette.ink)
@@ -135,9 +163,16 @@ struct PlantsView: View {
         .accessibilityLabel("Add plant")
     }
 
-    /// You, then the other people who've logged care in this household.
-    private var people: [String] {
-        PeopleAvatars.names(me: myName, loggers: (household.tasks ?? []).flatMap { ($0.logs ?? []).compactMap(\.doneBy) })
+    private func refreshOthers() {
+        let loggers = (household.tasks ?? []).flatMap { ($0.logs ?? []).compactMap(\.doneBy) }
+        let updated = PeopleAvatars.others(me: myName, loggers: loggers)
+        if updated != others { others = updated }
+    }
+
+    private func refreshThrowback() {
+        let pick = OnThisDay.pick(in: inCollection, today: .now)
+        let changed = pick?.item.photo != throwback?.item.photo || pick?.yearsAgo != throwback?.yearsAgo
+        if changed { throwback = pick }
     }
 
     // MARK: - With plants
@@ -164,13 +199,15 @@ struct PlantsView: View {
         .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.94),
                                      .init(color: .clear, location: 1)], startPoint: .leading, endPoint: .trailing))
         .growIn(index: 2)
-        if let throwback = OnThisDay.pick(in: inCollection) {
+        if let throwback {
             OnThisDayCard(plant: throwback.item.plant, photo: throwback.item.photo, yearsAgo: throwback.yearsAgo)
                 .padding(.horizontal, GH.Space.screen)
                 .growIn(index: 3)
         }
         if let genus = filter.genus {
-            GenusChip(genus: genus) { withAnimation(GH.Motion.enter) { filter.genus = nil } }
+            GenusChip(genus: genus) {
+                withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.enter) { filter.genus = nil }
+            }
                 .padding(.horizontal, GH.Space.screen)
         }
         grid
@@ -191,28 +228,28 @@ struct PlantsView: View {
             ContentUnavailableView("Nothing in \(collection.name ?? "this collection") yet", systemImage: "square.stack",
                                    description: Text("Tap \u{201C}Choose plants\u{201D} above, or + to add a new plant here."))
         } else {
-            MasonryLayout(columns: columns) {
-                ForEach(Array(plants.enumerated()), id: \.element.objectID) { index, plant in
-                    NavigationLink(value: plant) { PlantTile(plant: plant) }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            if allPlants.count >= 2 {
-                                Button { combining = plant } label: {
-                                    Label("Combine with other plants…", systemImage: "arrow.triangle.merge")
-                                }
-                            }
-                            Button(role: .destructive) { deleting = plant } label: {
-                                Label("Delete plant", systemImage: "trash")
+            LazyMasonry(items: plants,
+                        heights: plants.map { PlantTileStyle.estimatedHeight(forID: $0.uuid) },
+                        columns: columns) { plant, index in
+                NavigationLink(value: plant) { PlantTile(plant: plant) }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        if allPlants.count >= 2 {
+                            Button { combining = plant } label: {
+                                Label("Combine with other plants…", systemImage: "arrow.triangle.merge")
                             }
                         }
-                        .transition(.opacity)
-                        .growIn(index: index, baseDelay: 0.2)
-                        .scrollSoftening()
-                }
+                        Button(role: .destructive) { deleting = plant } label: {
+                            Label("Delete plant", systemImage: "trash")
+                        }
+                    }
+                    .transition(.opacity)
+                    .modifier(FirstTilesGrowIn(index: index))
+                    .scrollSoftening()
             }
             .padding(.horizontal, GH.Space.screen)
-            // Filtering or sorting springs the tiles to their new spots (the
-            // ids are stable); Reduce Motion makes it a quick ease instead.
+            // Filtering or sorting reflows the tiles (the ids are stable);
+            // Reduce Motion makes it a quick ease instead of a spring.
             .animation(reduceMotion ? GH.Motion.reduced : GH.Motion.enter, value: plants.map(\.objectID))
         }
     }
@@ -318,40 +355,78 @@ struct GenusChip: View {
     }
 }
 
-/// Small blob-shaped initials for the people sharing the household.
+/// Small blob-shaped initials for the other people sharing the household:
+/// two of them, then a "+N" bubble when there are more.
 struct PeopleAvatars: View {
+    /// Everyone else, in a stable order. Empty hides the avatars.
     let names: [String]
 
-    /// You first, then one other person who has logged care (the first by
-    /// name, so both phones show the same two).
-    static func names(me: String, loggers: [String]) -> [String] {
+    /// The other people who've logged care: not this phone's own name, and
+    /// nobody at all when this phone's name isn't set yet (there's no telling
+    /// which logger is "me"). Case and spacing don't make a different person,
+    /// and the order is by name so both phones show the same people.
+    static func others(me: String, loggers: [String]) -> [String] {
         func clean(_ name: String) -> String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
         let mine = clean(me)
+        guard !mine.isEmpty else { return [] }
         var seen: Set<String> = [mine.lowercased()]
-        var others: [String] = []
-        for name in loggers.map(clean).sorted(by: { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }) where !name.isEmpty {
-            if seen.insert(name.lowercased()).inserted { others.append(name) }
+        var result: [String] = []
+        func inOrder(_ a: String, _ b: String) -> Bool {
+            let order = a.localizedCaseInsensitiveCompare(b)
+            return order == .orderedSame ? a < b : order == .orderedAscending
         }
-        return ([mine].filter { !$0.isEmpty } + others).prefix(2).map { $0 }
+        for name in loggers.map(clean).sorted(by: inOrder) where !name.isEmpty {
+            if seen.insert(name.lowercased()).inserted { result.append(name) }
+        }
+        return result
     }
 
-    private static let fills: [(Color, Color)] = [(GH.Palette.terraSoft, GH.Palette.terraInk), (GH.Palette.skySoft, GH.Palette.skyInk)]
+    /// "Shared with Alex", "Shared with Alex and Sam", "Shared with Alex, Sam and Riley".
+    static func spokenLabel(for names: [String]) -> String {
+        "Shared with \(names.formatted(.list(type: .and)))"
+    }
+
+    private static let fills: [(Color, Color)] = [(GH.Palette.terraSoft, GH.Palette.terraInk), (GH.Palette.skySoft, GH.Palette.skyInk),
+                                                  (GH.Palette.leafSoft, GH.Palette.leafInk)]
 
     var body: some View {
         if !names.isEmpty {
+            let shown = Array(names.prefix(2))
+            let extra = names.count - shown.count
             HStack(spacing: -8) {
-                ForEach(Array(names.enumerated()), id: \.offset) { index, name in
-                    let colors = Self.fills[index % Self.fills.count]
-                    Text(name.prefix(1).uppercased())
-                        .font(.ghRounded(.footnote))
-                        .foregroundStyle(colors.1)
-                        .frame(width: 32, height: 32)
-                        .background(colors.0, in: BlobShape(variant: index))
-                        .overlay { if index > 0 { BlobShape(variant: index).stroke(GH.Palette.paper, lineWidth: 2) } }
+                ForEach(Array(shown.enumerated()), id: \.offset) { index, name in
+                    bubble(String(name.prefix(1)).uppercased(), index: index)
                 }
+                if extra > 0 { bubble("+\(extra)", index: 2) }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Shared with \(names.formatted(.list(type: .and)))")
+            .accessibilityLabel(Self.spokenLabel(for: names))
+        }
+    }
+
+    private func bubble(_ text: String, index: Int) -> some View {
+        let colors = Self.fills[index % Self.fills.count]
+        return Text(text)
+            .font(.ghRounded(.footnote))
+            .foregroundStyle(colors.1)
+            .minimumScaleFactor(0.7)
+            .lineLimit(1)
+            .frame(width: 32, height: 32)
+            .background(colors.0, in: BlobShape(variant: index))
+            .overlay { if index > 0 { BlobShape(variant: index).stroke(GH.Palette.paper, lineWidth: 2) } }
+    }
+}
+
+/// Only the first screenful of tiles grows in; tiles scrolled to later are
+/// built on demand and just appear (scroll softening handles their entrance).
+struct FirstTilesGrowIn: ViewModifier {
+    let index: Int
+
+    func body(content: Content) -> some View {
+        if index < 8 {
+            content.growIn(index: index, baseDelay: 0.2)
+        } else {
+            content
         }
     }
 }

@@ -117,18 +117,63 @@ final class PlantsTabTests: XCTestCase {
 
     func testWateringChipTonesAndLabels() {
         XCTAssertNil(WateringChip.make(for: nil))
-        XCTAssertEqual(WateringChip.make(for: .today), WateringChip(label: "Water today", tone: .due))
-        XCTAssertEqual(WateringChip.make(for: .upcoming(days: 1)), WateringChip(label: "Tomorrow", tone: .later))
-        XCTAssertEqual(WateringChip.make(for: .upcoming(days: 4)), WateringChip(label: "In 4 days", tone: .later))
-        XCTAssertEqual(WateringChip.make(for: .overdue(days: 1)), WateringChip(label: "Overdue · 1 day", tone: .overdue))
-        XCTAssertEqual(WateringChip.make(for: .overdue(days: 3)), WateringChip(label: "Overdue · 3 days", tone: .overdue))
+        XCTAssertEqual(WateringChip.make(for: .today), WateringChip(label: "Water today", shortLabel: "Due", tone: .due))
+        XCTAssertEqual(WateringChip.make(for: .upcoming(days: 1)), WateringChip(label: "Tomorrow", shortLabel: "in 1d", tone: .later))
+        XCTAssertEqual(WateringChip.make(for: .upcoming(days: 4)), WateringChip(label: "In 4 days", shortLabel: "in 4d", tone: .later))
+        XCTAssertEqual(WateringChip.make(for: .overdue(days: 1)), WateringChip(label: "Overdue · 1 day", shortLabel: "1d", tone: .overdue))
+        XCTAssertEqual(WateringChip.make(for: .overdue(days: 3)), WateringChip(label: "Overdue · 3 days", shortLabel: "3d", tone: .overdue))
     }
 
-    func testAvatarNamesAreYouThenOneOtherInStableOrder() {
-        XCTAssertEqual(PeopleAvatars.names(me: "Sam", loggers: []), ["Sam"])
-        XCTAssertEqual(PeopleAvatars.names(me: "Sam", loggers: ["Sam", "alex", "Alex ", "Zed"]), ["Sam", "alex"])
-        XCTAssertEqual(PeopleAvatars.names(me: "", loggers: ["Zed", "Alex"]), ["Alex", "Zed"])
-        XCTAssertEqual(PeopleAvatars.names(me: " ", loggers: []), [])
+    func testAvatarsAreTheOtherPeopleOnly() {
+        XCTAssertEqual(PeopleAvatars.others(me: "Sam", loggers: []), [], "nobody else: avatars hidden")
+        XCTAssertEqual(PeopleAvatars.others(me: "Sam", loggers: ["Sam", " sam ", "SAM"]), [], "this phone's own name is excluded")
+        XCTAssertEqual(PeopleAvatars.others(me: "Sam", loggers: ["Zed", "alex", "Alex ", "Sam"]), ["Alex", "Zed"],
+                       "one person per name, in a stable order")
+        XCTAssertEqual(PeopleAvatars.others(me: "Sam", loggers: ["Alex", "alex"]), ["Alex"], "ties break by spelling, not input order")
+        XCTAssertEqual(PeopleAvatars.others(me: "Sam", loggers: ["alex", "Alex"]), ["Alex"])
+    }
+
+    func testAvatarsDontGuessWhenThisPhonesNameIsEmpty() {
+        XCTAssertEqual(PeopleAvatars.others(me: "", loggers: ["Zed", "Alex"]), [])
+        XCTAssertEqual(PeopleAvatars.others(me: "  ", loggers: ["Zed"]), [])
+    }
+
+    func testAvatarSpokenLabelListsEveryone() {
+        XCTAssertEqual(PeopleAvatars.spokenLabel(for: ["Alex"]), "Shared with Alex")
+        XCTAssertEqual(PeopleAvatars.spokenLabel(for: ["Alex", "Sam"]), "Shared with Alex and Sam")
+        let three = PeopleAvatars.spokenLabel(for: ["Alex", "Riley", "Sam"])
+        XCTAssertTrue(["Alex", "Riley", "Sam"].allSatisfy { three.contains($0) }, "names everyone, however the locale joins them")
+    }
+
+    func testChipShortLabelsForNarrowTiles() {
+        XCTAssertEqual(WateringChip.make(for: .overdue(days: 207))?.shortLabel, "207d")
+        XCTAssertEqual(WateringChip.make(for: .today)?.shortLabel, "Due")
+        XCTAssertEqual(WateringChip.make(for: .upcoming(days: 3))?.shortLabel, "in 3d")
+        XCTAssertEqual(WateringChip.make(for: .upcoming(days: 1))?.shortLabel, "in 1d")
+    }
+
+    // MARK: - Masonry columns
+
+    func testColumnsGoToTheShortestWithTheSecondStartingLower() {
+        // Bottoms start at 0 and 28. Tile 0 goes left (216), 1 right (144), 2 right (260), 3 left (216 < 260).
+        let heights: [CGFloat] = [200, 100, 100, 100]
+        let result = MasonryColumns.assign(heights: heights, columns: 2, stagger: 28, spacing: 16)
+        XCTAssertEqual(result, [[0, 3], [1, 2]])
+        XCTAssertEqual(MasonryColumns.assign(heights: [50, 50, 50], columns: 2, stagger: 28, spacing: 16), [[0, 2], [1]])
+        XCTAssertEqual(MasonryColumns.assign(heights: [], columns: 2, stagger: 28, spacing: 16), [[], []])
+        XCTAssertEqual(MasonryColumns.assign(heights: [1, 2, 3], columns: 1, stagger: 28, spacing: 16), [[0, 1, 2]])
+        XCTAssertEqual(MasonryColumns.assign(heights: [1, 2], columns: 0, stagger: 28, spacing: 16), [[0, 1]], "never fewer than one column")
+    }
+
+    func testColumnsKeepEveryTileOnceAndNeverDependOnTextSize() {
+        let ids = (0..<100).map { _ in UUID() }
+        let heights = ids.map { PlantTileStyle.estimatedHeight(forID: $0) }
+        let result = MasonryColumns.assign(heights: heights, columns: 2, stagger: 28, spacing: 16)
+        XCTAssertEqual(result.flatMap { $0 }.sorted(), Array(0..<100))
+        XCTAssertEqual(result, MasonryColumns.assign(heights: heights, columns: 2, stagger: 28, spacing: 16), "deterministic")
+        let left = result[0].map { heights[$0] }.reduce(0, +), right = result[1].map { heights[$0] }.reduce(0, +)
+        XCTAssertLessThan(abs(left - right), 400, "columns stay roughly balanced")
+        XCTAssertEqual(PlantTileStyle.estimatedHeight(forID: nil), PlantTileStyle.photoHeight(forID: nil) + PlantTileStyle.labelAllowance)
     }
 
     // MARK: - Genus picker

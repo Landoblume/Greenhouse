@@ -11,7 +11,7 @@ import UIKit
 /// `-demoData` fills an empty store once; `-openTab` picks the starting tab
 /// (0 Plants, 1 Care, 2 Plans, 3 Settings). Add `-demoEmpty YES` to seed a
 /// household with no plants, and `-demoGenus Monstera` to open Plants with
-/// that genus filter on.
+/// that genus filter on. `-demoMany YES` adds 100 more plants.
 enum DemoData {
     static var openTab: Int { UserDefaults.standard.integer(forKey: "openTab") }
     static var startingGenus: String? { UserDefaults.standard.string(forKey: "demoGenus") }
@@ -113,6 +113,24 @@ enum DemoData {
         let veteran = plant("ficus-lyrata", "Centurion", monthsAgo: 0, acquired: ago(years: 3), photoTakenAt: ago(months: 2))
         for week in 0..<110 {
             water(veteran, by: week.isMultiple(of: 2) ? "Alex" : "Sam", at: ago(days: week * 7 + 2))
+        }
+
+        // A combined plant that is also in a project: its tile shows the hammer and
+        // the Combined badge together.
+        paint.mutableSetValue(forKey: "plants").add(trio)
+
+        // `-demoMany YES`: about 100 more plants, to see how the grid scrolls.
+        if defaults.bool(forKey: "demoMany") {
+            let species = ["monstera-deliciosa", "ficus-lyrata", "pilea-peperomioides", "epipremnum-aureum",
+                           "aloe-vera", "echeveria-elegans", "ocimum-basilicum", "ficus-elastica"]
+            for number in 1...100 {
+                let id = species[number % species.count]
+                let hasPhoto = number % 3 != 0
+                let added = plant(id, "Plant \(String(format: "%03d", number))", monthsAgo: number % 18,
+                                  photoTakenAt: hasPhoto ? ago(months: number % 18, days: number % 28) : nil,
+                                  waterEvery: 3 + number % 10)
+                if number % 2 == 0 { water(added, by: number % 4 == 0 ? "Alex" : "Sam", at: ago(days: number % 9)) }
+            }
         }
 
         persistence.save(context)

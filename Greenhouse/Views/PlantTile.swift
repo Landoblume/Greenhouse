@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 
 /// One plant in the Plants-tab masonry: a 28-pt rounded photo with a watering
@@ -28,10 +29,26 @@ struct PlantTile: View {
             }
             .padding(.horizontal, 6)
         }
+        // Only the tile itself opens the plant, not the gutter beside it.
+        .contentShape(RoundedRectangle(cornerRadius: GH.Radius.tile, style: .continuous))
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: GH.Radius.tile, style: .continuous))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Opens the plant")
         .redrawsOnRelatedChanges(plant)
+        .redrawsOnWateringChanges(plant)
+    }
+
+    /// "Monty, Monstera deliciosa, watering due today, Combined, in a project".
+    private var accessibilityLabel: String {
+        var parts = [plant.displayName]
+        if let latin = plant.scientificName, !latin.isEmpty, latin != plant.displayName { parts.append(latin) }
+        if let watering = plant.wateringTask, let status = CareSchedule.status(of: watering) {
+            parts.append("watering " + status.label.prefix(1).lowercased() + status.label.dropFirst())
+        }
+        if isCombined { parts.append("Combined") }
+        if inProject { parts.append("in a project") }
+        return parts.joined(separator: ", ")
     }
 
     private var photo: some View {
@@ -44,7 +61,7 @@ struct PlantTile: View {
                 // -12...+12 pt as the tile crosses the screen without ever
                 // showing an edge. Reduce Motion keeps it still.
                 let drift = !reduceMotion
-                PlantPhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 600)
+                TilePhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 600)
                     .frame(height: photoHeight + 24)
                     .visualEffect { content, proxy in
                         content.offset(y: drift ? Self.parallax(proxy) : 0)
@@ -57,26 +74,20 @@ struct PlantTile: View {
                     WateringChipView(task: watering).padding(10)
                 }
             }
-            .overlay(alignment: .bottomLeading) {
-                if inProject {
-                    Image(systemName: "hammer.fill")
-                        .font(.caption)
-                        .foregroundStyle(GH.Palette.onLeaf)
-                        .frame(width: 28, height: 28)
-                        .background(GH.Palette.leaf, in: Circle())
-                        .padding(10)
-                        .accessibilityLabel("Part of a project in progress")
-                }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                if isCombined {
-                    Label("Combined", systemImage: "arrow.triangle.merge")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(GH.Palette.ink)
-                        .padding(.horizontal, 9)
-                        .frame(minHeight: 26)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
-                        .padding(10)
+            .overlay(alignment: .bottom) {
+                if inProject || isCombined {
+                    HStack(spacing: GH.Space.xs) {
+                        if inProject {
+                            Image(systemName: "hammer.fill")
+                                .font(.caption)
+                                .foregroundStyle(GH.Palette.onLeaf)
+                                .frame(width: 28, height: 28)
+                                .background(GH.Palette.leaf, in: Circle())
+                        }
+                        Spacer(minLength: 0)
+                        if isCombined { combinedBadge.layoutPriority(1) }
+                    }
+                    .padding(10)
                 }
             }
             .overlay {
@@ -85,6 +96,24 @@ struct PlantTile: View {
                         .strokeBorder(GH.Palette.leaf, lineWidth: 3)
                 }
             }
+    }
+
+    /// "Combined" with its icon, or the icon alone when the tile is too narrow.
+    private var combinedBadge: some View {
+        ViewThatFits(in: .horizontal) {
+            Label("Combined", systemImage: "arrow.triangle.merge")
+                .font(.caption.weight(.bold))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 9)
+                .frame(minHeight: 28)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
+            Image(systemName: "arrow.triangle.merge")
+                .font(.caption.weight(.bold))
+                .frame(width: 28, height: 28)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
+        }
+        .foregroundStyle(GH.Palette.ink)
     }
 
     /// -12 at the top of the screen to +12 at the bottom, from the tile's
@@ -98,22 +127,32 @@ struct PlantTile: View {
     }
 }
 
-/// "Water today" (sky), "In 4 days" (leaf) or "Overdue · 1 day" (terracotta).
-/// Watches the watering task, so it updates the moment someone waters.
+/// "Water today" (sky), "In 4 days" (leaf) or "Overdue · 1 day" (terracotta),
+/// falling back to "207d" / "Due" / "in 3d" on a narrow tile so it never
+/// truncates. Watches the watering task, so it updates the moment someone waters.
 struct WateringChipView: View {
     @ObservedObject var task: CareTask
 
     var body: some View {
         if let chip = WateringChip.make(for: CareSchedule.status(of: task)) {
             let colors = Self.colors(chip.tone)
-            Label(chip.label, systemImage: "drop.fill")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(colors.ink)
-                .lineLimit(1)
-                .padding(.horizontal, 9)
-                .frame(minHeight: 26)
-                .background(colors.fill, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
+            ViewThatFits(in: .horizontal) {
+                label(chip.label)
+                label(chip.shortLabel)
+            }
+            .foregroundStyle(colors.ink)
+            .background(colors.fill, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
+            .accessibilityHidden(true)
         }
+    }
+
+    private func label(_ text: String) -> some View {
+        Label(text, systemImage: "drop.fill")
+            .font(.caption.weight(.bold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 9)
+            .frame(minHeight: 26)
     }
 
     private static func colors(_ tone: WateringChip.Tone) -> (fill: Color, ink: Color) {
@@ -121,6 +160,21 @@ struct WateringChipView: View {
         case .due: (GH.Palette.skySoft, GH.Palette.skyInk)
         case .later: (GH.Palette.leafSoft, GH.Palette.leafInk)
         case .overdue: (GH.Palette.terraSoft, GH.Palette.terraInk)
+        }
+    }
+}
+
+extension View {
+    /// The tile's spoken watering status comes from the watering task and its
+    /// logs, which the plant doesn't observe. This redraws it when one changes
+    /// (marked done here, or a log arriving from the other phone).
+    func redrawsOnWateringChanges(_ plant: Plant) -> some View {
+        onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
+            let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
+            let changed = keys.contains { key in
+                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is CareLog || $0 is CareTask } ?? false
+            }
+            if changed { plant.objectWillChange.send() }
         }
     }
 }

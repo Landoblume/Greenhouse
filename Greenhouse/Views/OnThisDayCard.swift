@@ -10,7 +10,7 @@ struct OnThisDayCard: View {
     var body: some View {
         NavigationLink(value: plant) {
             HStack(spacing: 14) {
-                PlantPhotoView(photo: photo, maxPixel: 300)
+                TilePhotoView(photo: photo, maxPixel: 300)
                     .frame(width: 88, height: 88)
                     .saturation(0.55)
                     .colorMultiply(Color(red: 1, green: 0.92, blue: 0.78))
