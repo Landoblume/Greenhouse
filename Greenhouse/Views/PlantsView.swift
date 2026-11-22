@@ -154,6 +154,7 @@ struct PlantsView: View {
         Button { showingAdd = true } label: {
             Image(systemName: "plus")
                 .font(.body.weight(.bold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(GH.Palette.onLeaf)
                 .frame(width: 44, height: 44)
                 .background(GH.Palette.leaf, in: Circle())
@@ -261,6 +262,7 @@ struct PlantsView: View {
             HStack(spacing: GH.Space.xs) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(GH.Palette.ink2)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .accessibilityHidden(true)
                 TextField("Search plants, rooms, Latin names", text: $filter.query)
                     .focused($searchFocused)
@@ -322,6 +324,7 @@ struct PlantsView: View {
                   ? "line.3.horizontal.decrease.circle.fill"
                   : "line.3.horizontal.decrease.circle")
                 .font(.title3)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(filter.isFiltering ? GH.Palette.leafInk : GH.Palette.ink)
                 .frame(width: 44, height: 44)
                 .background(filter.isFiltering ? GH.Palette.leafSoft : GH.Palette.surface2, in: Circle())
@@ -399,6 +402,7 @@ struct PeopleAvatars: View {
                 }
                 if extra > 0 { bubble("+\(extra)", index: 2) }
             }
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.spokenLabel(for: names))
         }

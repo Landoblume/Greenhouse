@@ -72,6 +72,7 @@ struct PlantTile: View {
             .overlay(alignment: .topLeading) {
                 if let watering = plant.wateringTask {
                     WateringChipView(task: watering).padding(10)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 }
             }
             .overlay(alignment: .bottom) {
@@ -88,6 +89,9 @@ struct PlantTile: View {
                         if isCombined { combinedBadge.layoutPriority(1) }
                     }
                     .padding(10)
+                    // Badges on the photo stop growing at the largest regular
+                    // size; the tile's name and VoiceOver label carry the rest.
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 }
             }
             .overlay {
