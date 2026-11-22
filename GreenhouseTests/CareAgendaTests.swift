@@ -102,8 +102,19 @@ final class CareAgendaTests: XCTestCase {
         done(water, by: "  ", at: day(2026, 10, 2), store)
         XCTAssertNil(CareAgenda.usualDoer(of: water))
         done(water, by: "Alex", at: day(2026, 10, 3), store)
-        done(water, by: "Sam", at: day(2026, 10, 4), store)
+        done(water, by: "Alex", at: day(2026, 10, 4), store)
+        done(water, by: "Sam", at: day(2026, 10, 5), store)
+        done(water, by: "Sam", at: day(2026, 10, 6), store)
         XCTAssertEqual(CareAgenda.usualDoer(of: water), "Sam")
+    }
+
+    func testUsualDoerNeedsSomeoneWithTwoEntriesNotJustTwoInTotal() {
+        let store = TestStore()
+        let water = task(store, "Water", firstDue: day(2026, 10, 1), count: 1, unit: .day)
+        done(water, by: "Alex", at: day(2026, 10, 2), store)
+        done(water, by: "Sam", at: day(2026, 10, 3), store)
+        XCTAssertNil(CareAgenda.usualDoer(of: water), "a 1-1 split isn't 'usually' anyone")
+        XCTAssertNil(CareAgenda.usualDoer(of: water, viewer: "Sam"))
     }
 
     func testDoneLine() {
@@ -169,16 +180,64 @@ final class CareAgendaTests: XCTestCase {
         XCTAssertNotNil(task.dueOverride, "only the latest entry's override goes with it")
     }
 
+    /// A throwaway defaults suite, so tests never touch the app's own.
+    private func freshDefaults() -> UserDefaults {
+        let name = "CareUndoMemoryTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        addTeardownBlock { defaults.removePersistentDomain(forName: name) }
+        return defaults
+    }
+
     @MainActor
     func testUndoMemoryFindsTheEntryThisPhoneMade() {
         let store = TestStore()
+        let memory = CareUndoMemory(defaults: freshDefaults())
         let task = water(store)
-        let mine = mark(task, by: "Sam", at: .now, store)
-        CareUndoMemory.remember(mine)
-        _ = mark(task, by: "Alex", at: .now.addingTimeInterval(1), store)
-        XCTAssertEqual(CareUndoMemory.undoableLog(for: task), mine)
-        CareUndoMemory.forget(task)
-        XCTAssertNil(CareUndoMemory.undoableLog(for: task))
+        let now = day(2026, 11, 18, hour: 9)
+        let mine = mark(task, by: "Sam", at: now, store)
+        memory.remember(mine, now: now)
+        _ = mark(task, by: "Alex", at: now.addingTimeInterval(60), store)
+        XCTAssertEqual(memory.undoableLog(for: task, now: now.addingTimeInterval(120)), mine)
+        memory.forget(task, now: now)
+        XCTAssertNil(memory.undoableLog(for: task, now: now.addingTimeInterval(120)))
+    }
+
+    @MainActor
+    func testUndoMemorySurvivesARelaunchTheSameDayOnly() {
+        let store = TestStore()
+        let defaults = freshDefaults()
+        let task = water(store)
+        let now = day(2026, 11, 18, hour: 9)
+        let mine = mark(task, by: "Sam", at: now, store)
+        store.save()
+        CareUndoMemory(defaults: defaults).remember(mine, now: now)
+
+        // A new instance on the same defaults stands in for the app after iOS closed it.
+        let relaunched = CareUndoMemory(defaults: defaults)
+        XCTAssertEqual(relaunched.undoableLog(for: task, now: day(2026, 11, 18, hour: 20)), mine)
+        XCTAssertNil(relaunched.undoableLog(for: task, now: day(2026, 11, 19, hour: 8)), "same day only")
+    }
+
+    @MainActor
+    func testUndoMemoryPrunesOldAndDeletedEntries() {
+        let store = TestStore()
+        let defaults = freshDefaults()
+        let memory = CareUndoMemory(defaults: defaults)
+        let yesterdayTask = water(store)
+        let todayTask = water(store)
+        memory.remember(mark(yesterdayTask, by: "Sam", at: day(2026, 11, 17, hour: 9), store), now: day(2026, 11, 17, hour: 9))
+        let today = mark(todayTask, by: "Sam", at: day(2026, 11, 18, hour: 9), store)
+        memory.remember(today, now: day(2026, 11, 18, hour: 9))
+        // Writing today's record dropped yesterday's: only one is stored.
+        let stored = defaults.data(forKey: SettingsKey.careUndoEntries)
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        XCTAssertEqual(stored?.count, 1)
+
+        // Its entry deleted elsewhere (history, the other phone): nothing to undo.
+        CareSchedule.undoDone(today, now: day(2026, 11, 18, hour: 10), context: store.context)
+        XCTAssertNil(memory.undoableLog(for: todayTask, now: day(2026, 11, 18, hour: 10)))
+        memory.forget(todayTask, now: day(2026, 11, 18, hour: 10))
+        XCTAssertNil(defaults.data(forKey: SettingsKey.careUndoEntries), "an empty store is removed")
     }
 
     func testSummary() {

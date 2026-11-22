@@ -260,27 +260,72 @@ enum CareSchedule {
     }
 }
 
+extension SettingsKey {
+    /// Per phone: which care entry each task's Done circle made today (task
+    /// uuid -> log uuid and when), so hold-to-undo survives the app being
+    /// closed in the background. See `CareUndoMemory`.
+    static let careUndoEntries = "careUndoEntries"
+}
+
 /// Which entry each task's Done circle made on this phone, so hold-to-undo takes
 /// back that entry and never another one: not one synced in from the other
 /// phone, not one added in history. Shared by every row showing the task (the
-/// Care tab and the plant page). Kept in memory only: after a relaunch, a
-/// finished row has no undo, and history is the place to take an entry back.
+/// Care tab and the plant page). Stored per phone in UserDefaults (never
+/// synced), so a row finished earlier today keeps its undo after iOS closes the
+/// app. Same day only: older records are dropped whenever the store is written.
 @MainActor
-enum CareUndoMemory {
-    /// Task uuid -> log uuid.
-    private static var made: [UUID: UUID] = [:]
+struct CareUndoMemory {
+    static let shared = CareUndoMemory()
 
-    static func remember(_ log: CareLog) {
+    private struct Record: Codable {
+        let log: UUID
+        let doneAt: Date
+    }
+
+    private let defaults: UserDefaults
+    private let key: String
+
+    init(defaults: UserDefaults = .standard, key: String = SettingsKey.careUndoEntries) {
+        self.defaults = defaults
+        self.key = key
+    }
+
+    func remember(_ log: CareLog, now: Date = .now, calendar: Calendar = .current) {
         guard let task = log.task?.uuid, let entry = log.uuid else { return }
-        made[task] = entry
+        var records = load()
+        records[task.uuidString] = Record(log: entry, doneAt: log.doneAt ?? now)
+        save(records, now: now, calendar: calendar)
     }
 
-    /// The entry this phone's Done made for `task`, while it can still be undone.
-    static func undoableLog(for task: CareTask, now: Date = .now, calendar: Calendar = .current) -> CareLog? {
-        CareSchedule.undoableLog(task.uuid.flatMap { made[$0] }, of: task, now: now, calendar: calendar)
+    /// The entry this phone's Done made for `task`, while it's still there and
+    /// still from today. Read-only, so rows can ask while they draw.
+    func undoableLog(for task: CareTask, now: Date = .now, calendar: Calendar = .current) -> CareLog? {
+        guard let id = task.uuid, let record = load()[id.uuidString],
+              calendar.isDate(record.doneAt, inSameDayAs: now) else { return nil }
+        return CareSchedule.undoableLog(record.log, of: task, now: now, calendar: calendar)
     }
 
-    static func forget(_ task: CareTask) {
-        if let id = task.uuid { made[id] = nil }
+    /// Drops the task's record: after an undo, or when its entry is gone.
+    func forget(_ task: CareTask, now: Date = .now, calendar: Calendar = .current) {
+        guard let id = task.uuid else { return }
+        var records = load()
+        records[id.uuidString] = nil
+        save(records, now: now, calendar: calendar)
+    }
+
+    private func load() -> [String: Record] {
+        guard let data = defaults.data(forKey: key),
+              let records = try? JSONDecoder().decode([String: Record].self, from: data) else { return [:] }
+        return records
+    }
+
+    /// Keeps only today's records, so the store never grows past one day's Dones.
+    private func save(_ records: [String: Record], now: Date, calendar: Calendar) {
+        let today = records.filter { calendar.isDate($0.value.doneAt, inSameDayAs: now) }
+        if today.isEmpty {
+            defaults.removeObject(forKey: key)
+        } else if let data = try? JSONEncoder().encode(today) {
+            defaults.set(data, forKey: key)
+        }
     }
 }

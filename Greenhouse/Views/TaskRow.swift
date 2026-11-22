@@ -44,7 +44,7 @@ struct TaskRow: View {
     /// row drawn before midnight is drawn again after it.
     private var isDone: Bool { CareSchedule.canUndoDone(task, now: max(clock, .now)) }
     /// The entry this phone's Done made today, the only one hold-to-undo takes back.
-    private var undoableLog: CareLog? { isDone ? CareUndoMemory.undoableLog(for: task) : nil }
+    private var undoableLog: CareLog? { isDone ? CareUndoMemory.shared.undoableLog(for: task) : nil }
     private var isCelebrating: Bool { celebrationEnds.map { $0 > .now } ?? false }
     private var status: DueStatus? { CareSchedule.status(of: task) }
     private var isOverdue: Bool {
@@ -179,6 +179,8 @@ struct TaskRow: View {
                      + Text(Image(systemName: "chevron.right"))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(GH.Palette.ink2))
+                        // VoiceOver reads the title only, not the chevron ("Forward").
+                        .accessibilityLabel(task.title)
                     detailLine
                     if !task.isWatering || layout == .inline {
                         Text(CareSchedule.cadence(count: Int(task.intervalCount), unit: task.unit).capitalizedFirst
@@ -275,7 +277,7 @@ struct TaskRow: View {
         // The row tints, the check draws and the rings ripple inside this animation.
         withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.press) {
             let log = CareSchedule.markDone(task, by: myName, keepNewTiming: keepNewTiming, household: household, context: context)
-            CareUndoMemory.remember(log)
+            CareUndoMemory.shared.remember(log)
             celebrate += 1
             celebrationEnds = .now.addingTimeInterval(Double(Self.celebration.components.seconds))
         }
@@ -285,10 +287,14 @@ struct TaskRow: View {
     private func undo() {
         // Checked again now, not when the row was drawn: past midnight, or once
         // the entry is gone, there's nothing to take back.
-        guard let log = CareUndoMemory.undoableLog(for: task) else { return }
+        guard let log = CareUndoMemory.shared.undoableLog(for: task) else {
+            // Its entry is gone (or it's a new day): drop the stale record.
+            CareUndoMemory.shared.forget(task)
+            return
+        }
         withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.press) {
             guard CareSchedule.undoDone(log, context: context) else { return }
-            CareUndoMemory.forget(task)
+            CareUndoMemory.shared.forget(task)
             celebrationEnds = nil
             undone += 1
         }
