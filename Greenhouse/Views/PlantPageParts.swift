@@ -22,7 +22,7 @@ struct BirthdayBanner: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(GH.Palette.terraSoft)
                 .frame(width: 44, height: 44)
-                .background(GH.Palette.terra, in: BlobShape())
+                .background(GH.Palette.terra, in: PlantPageBlobShape())
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(PlantPage.birthdayTitle(name: name, years: birthday.years))
