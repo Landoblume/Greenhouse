@@ -7,254 +7,401 @@ struct CareHistoryRoute: Hashable {
     let plant: Plant
 }
 
-/// Every time something was done for this plant: what, when, and by whom, as
-/// a changelog. Each plant it came from is its own colored thread, and the
-/// threads join where the plants were combined.
-struct CareHistoryView: View {
-    @ObservedObject var plant: Plant
+/// Works the history out once, and again only when a saved change touches
+/// this plant's family (its tasks, logs, milestones, cuttings or combines).
+/// Another plant's watering, or a project, leaves it alone.
+final class CareHistoryModel: ObservableObject {
+    let plant: Plant
+    @Published private(set) var timeline: CareHistory.Timeline = .empty
+    @Published private(set) var stats: CareHistory.Stats?
+    @Published private(set) var hasLogs = false
+    /// The folded branches are open.
+    @Published var expanded = false {
+        didSet { if expanded != oldValue { rebuild() } }
+    }
+    private var footprint: CareHistory.Footprint
+    private var focusCache: (plant: NSManagedObjectID, timeline: CareHistory.Timeline)?
+    /// How many times the history has been worked out (tests check it stays put).
+    private(set) var builds = 0
 
-    var body: some View {
-        let timeline = CareHistory.timeline(for: plant)
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                if let stats = CareHistory.stats(for: plant) {
-                    CareStatsHeader(stats: stats)
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-                } else {
-                    Text("Nothing's been done for \(plant.displayName) yet. Marking a reminder done adds it here.")
-                        .foregroundStyle(GH.Palette.ink2)
-                        .padding()
-                }
-                ForEach(timeline.rows) { row in
-                    CareHistoryRow(row: row, viewedPlant: plant, laneCount: timeline.threads.count)
-                        .fluidScrollRow()
-                }
-            }
-        }
-        .background(GH.Palette.paper.ignoresSafeArea())
-        .navigationTitle("Care history")
-        .navigationBarTitleDisplayMode(.inline)
-        .redrawsOnCareLogChanges(plant)
+    init(plant: Plant) {
+        self.plant = plant
+        footprint = CareHistory.Footprint(plant: plant)
+        rebuild()
+    }
+
+    func rebuild() {
+        let entries = CareHistory.entries(for: plant)
+        timeline = CareHistory.timeline(for: plant, entries: entries, expanded: expanded)
+        stats = CareHistory.stats(of: entries)
+        hasLogs = !entries.isEmpty
+        footprint = CareHistory.Footprint(plant: plant)
+        focusCache = nil
+        builds += 1
+    }
+
+    /// One plant's rows, kept until the history changes.
+    func timeline(focusedOn focus: Plant) -> CareHistory.Timeline {
+        if let focusCache, focusCache.plant == focus.objectID { return focusCache.timeline }
+        let focused = timeline.focused(on: focus)
+        focusCache = (focus.objectID, focused)
+        return focused
+    }
+
+    /// From `NSManagedObjectContextObjectsDidChange`.
+    func contextChanged(_ note: Notification) {
+        let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
+        let objects = keys.flatMap { (note.userInfo?[$0] as? Set<NSManagedObject>) ?? [] }
+        if footprint.isAffected(by: objects) { rebuild() }
     }
 }
 
-/// "Watered 23 times since May 2023 · mostly by Sam 💚"
-struct CareStatsHeader: View {
-    let stats: CareHistory.Stats
+/// Every time something was done for this plant: what, when, and by whom.
+/// Each plant it came from is its own colored thread, and the threads join
+/// where the plants were combined. Three zoom levels (all threads, the log,
+/// one plant) reflow the same rows; pinch, the segmented control, or a
+/// lane's name switch between them.
+struct CareHistoryView: View {
+    let plant: Plant
+    @StateObject private var model: CareHistoryModel
+    @AppStorage(SettingsKey.myName) private var myName = ""
+    @Environment(\.managedObjectContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var level: CareHistoryLevel = .log
+    @State private var focus: Plant?
+    @State private var clock = HistoryDrawClock()
+    @State private var appeared = false
+    @State private var viewport = CGSize(width: 390, height: 700)
+    @State private var bloom = HistoryBloomLedger()
+    @State private var pendingUndo: CareHistory.Entry?
+    @State private var addingReminder = false
+    @Namespace private var dots
+
+    /// Opens on the log unless told otherwise.
+    init(plant: Plant, level: CareHistoryLevel = .log, focus: Plant? = nil) {
+        self.plant = plant
+        _model = StateObject(wrappedValue: CareHistoryModel(plant: plant))
+        _level = State(initialValue: level)
+        _focus = State(initialValue: focus)
+    }
+
+    private var focusPlant: Plant { focus ?? plant }
+
+    private var shown: CareHistory.Timeline {
+        level == .onePlant ? model.timeline(focusedOn: focusPlant) : model.timeline
+    }
+
+    /// About a screenful of rows: only those animate in.
+    private var window: Int { Int(viewport.height / level.shortestRow) + 2 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(stats.headline)
-                .font(.headline)
+        let timeline = shown
+        let geometry = LaneGeometry.make(level: level, columns: timeline.columnCount, width: viewport.width,
+                                         tight: typeSize.isAccessibilitySize)
+        let schedule = CareHistory.drawSchedule(for: timeline, window: window)
+        let actions = CareHistoryActions(
+            focus: { zoom(into: $0) },
+            undo: { pendingUndo = $0 },
+            expand: { withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.enter) { model.expanded = true } }
+        )
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                header
+                if level == .allThreads, let root = timeline.threads.first, !timeline.rows.isEmpty {
+                    rootPill(root, geometry: geometry)
+                }
+                ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
+                    CareHistoryRowView(
+                        row: row,
+                        level: level,
+                        timeline: timeline,
+                        geometry: geometry,
+                        viewedPlant: plant,
+                        focusPlant: level == .onePlant ? focusPlant : nil,
+                        timing: schedule.timing(forRow: index),
+                        clock: clock,
+                        namespace: dots,
+                        bloom: bloom,
+                        actions: actions
+                    )
+                }
+            }
+            .padding(.bottom, GH.Space.xl)
+        }
+        .scrollIndicators(.hidden)
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { viewport = proxy.size }
+                    .onChange(of: proxy.size) { _, size in viewport = size }
+            }
+        }
+        .simultaneousGesture(
+            MagnifyGesture(minimumScaleDelta: 0.05).onEnded { value in
+                // Snap to the nearest level: a bigger pinch goes two levels.
+                let scale = value.magnification
+                let steps = scale > 2.4 ? 2 : scale > 1.25 ? 1 : scale < 0.42 ? -2 : scale < 0.8 ? -1 : 0
+                if steps != 0 { setLevel(level.zoomed(by: steps)) }
+            }
+        )
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HistoryLevelPicker(selection: level) { setLevel($0) }
+                .padding(.horizontal, GH.Space.screen)
+                .padding(.vertical, GH.Space.xs)
+                .background(GH.Palette.paper)
+        }
+        .ghTabBarClearance()
+        .background(GH.Palette.paper.ignoresSafeArea())
+        .navigationTitle(level == .onePlant ? focusPlant.displayName : "Care history")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) { titleView(timeline) }
+        }
+        .onAppear {
+            // Lines draw in once per visit to the screen.
+            if appeared {
+                clock.restart()
+                bloom.reset()
+            }
+            appeared = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
+            model.contextChanged(note)
+        }
+        .confirmationDialog(
+            pendingUndo.map { "Undo this \($0.title.lowercased())?" } ?? "Undo",
+            isPresented: Binding(get: { pendingUndo != nil }, set: { if !$0 { pendingUndo = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingUndo
+        ) { entry in
+            Button("Undo \(entry.title.lowercased()) on \(CareHistory.dayLabel(entry.doneAt))", role: .destructive) {
+                undo(entry)
+            }
+            Button("Keep it", role: .cancel) {}
+        } message: { _ in
+            Text("Only this one log is removed. The rest of the history stays.")
+        }
+        .sheet(isPresented: $addingReminder) {
+            if let household = plant.household {
+                TaskEditorView(household: household, task: nil, preselected: [plant])
+            }
+        }
+    }
+
+    // MARK: Header
+
+    @ViewBuilder private var header: some View {
+        if !model.hasLogs {
+            EmptyHistoryCard(plant: plant) { addingReminder = true }
+                .padding(.horizontal, GH.Space.screen)
+                .padding(.vertical, GH.Space.xs)
+                .growIn()
+        } else if level == .log, let stats = model.stats {
+            CareStatsHeader(stats: stats, viewerName: myName)
+                .padding(.horizontal, GH.Space.screen)
+                .padding(.vertical, GH.Space.xs)
+                .growIn()
+        }
+    }
+
+    /// Zoomed out, the viewed plant's name sits on top of its lane.
+    private func rootPill(_ root: CareHistory.CareThread, geometry: LaneGeometry) -> some View {
+        let x = geometry.x(root.column)
+        return ZStack(alignment: .topLeading) {
+            Path { p in
+                p.move(to: CGPoint(x: x, y: 26))
+                p.addLine(to: CGPoint(x: x, y: 40))
+            }
+            .stroke(CareHistoryStyle.color(root.color), style: StrokeStyle(lineWidth: CareHistoryStyle.thread, lineCap: .round))
+            .accessibilityHidden(true)
+            HistoryNamePill(name: root.plant.displayName, color: CareHistoryStyle.color(root.color), maxWidth: 200, leaf: true) {
+                zoom(into: root.plant)
+            }
+            .position(x: x, y: 14)
+        }
+        .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
+        .padding(.top, GH.Space.xs)
+    }
+
+    @ViewBuilder private func titleView(_ timeline: CareHistory.Timeline) -> some View {
+        VStack(spacing: 0) {
+            Text(subtitle(timeline))
+                .font(.caption)
+                .foregroundStyle(GH.Palette.ink2)
+                .lineLimit(1)
+            HStack(spacing: 6) {
+                if level == .onePlant, let thread = timeline.threads.first(where: { $0.plant == focusPlant }) {
+                    Circle().fill(CareHistoryStyle.color(thread.color)).frame(width: 10, height: 10)
+                        .accessibilityHidden(true)
+                }
+                Text(level == .onePlant ? focusPlant.displayName : "Care history")
+                    .font(.ghRounded(.headline))
+                    .foregroundStyle(GH.Palette.ink)
+                    .lineLimit(1)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    private func subtitle(_ timeline: CareHistory.Timeline) -> String {
+        switch level {
+        case .allThreads:
+            let count = timeline.threads.count
+            return "\(plant.displayName) · \(count == 1 ? "1 thread" : "\(count) threads")"
+        case .log:
+            guard let latin = CareHistory.cleaned(plant.scientificName), latin != plant.displayName else { return plant.displayName }
+            return "\(plant.displayName) · \(latin)"
+        case .onePlant:
+            guard focusPlant != plant else { return Lineage.ancestors(of: plant).isEmpty ? "Its whole story" : "Since the Combine" }
+            let word = focusPlant.consumedBy?.kindValue == .split ? "split" : "Combine"
+            return "\(plant.displayName) › \(focusPlant.displayName) · before the \(word)"
+        }
+    }
+
+    // MARK: Actions
+
+    private func setLevel(_ new: CareHistoryLevel) {
+        guard new != level else { return }
+        withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.zoom) {
+            level = new
+            clock.restart()
+        }
+    }
+
+    private func zoom(into target: Plant) {
+        guard target != focus || level != .onePlant else { return }
+        withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.zoom) {
+            focus = target
+            level = .onePlant
+            clock.restart()
+        }
+    }
+
+    private func undo(_ entry: CareHistory.Entry) {
+        let context = entry.log.managedObjectContext ?? context
+        CareHistory.undo(entry.log, context: context)
+        Persistence.shared.save(context)
+        NotificationPlanner.reschedule()
+        pendingUndo = nil
+    }
+}
+
+// MARK: - Header pieces
+
+/// "Watered 23 times since May 2023 · mostly by Sam 💚", with the big number,
+/// the other kinds, and a little party on round numbers.
+struct CareStatsHeader: View {
+    let stats: CareHistory.Stats
+    var viewerName: String?
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 10))
+            layout {
+                GHDisplayNumber(value: "\(stats.lead.count)")
+                    .accessibilityHidden(true)
+                Text(stats.headline(viewerName: viewerName))
+                    .font(.subheadline)
+                    .foregroundStyle(GH.Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let others = stats.others {
                 Text(others)
-                    .font(.subheadline)
+                    .font(.footnote)
                     .foregroundStyle(GH.Palette.ink2)
+            }
+            if let celebration = stats.celebration() {
+                Text(celebration)
+                    .font(.ghRounded(.subheadline, weight: .bold))
+                    .foregroundStyle(GH.Palette.terraInk)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(GH.Palette.surface, in: RoundedRectangle(cornerRadius: GH.Radius.card, style: .continuous))
+        .padding(GH.Space.m)
+        .ghCard()
         .accessibilityElement(children: .combine)
     }
 }
+
+/// Nothing logged yet: a warm hello, and a way to set up the first reminder.
+private struct EmptyHistoryCard: View {
+    @ObservedObject var plant: Plant
+    let addReminder: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: GH.Space.s) {
+            Text("Fresh start. \(plant.displayName)'s story begins the first time you mark something done 🌱")
+                .font(.body)
+                .foregroundStyle(GH.Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            if plant.isActive, plant.activeTasks.isEmpty, plant.household != nil {
+                Button("Add a care reminder", action: addReminder)
+                    .buttonStyle(.ghProminent)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(GH.Space.m)
+        .ghCard()
+    }
+}
+
+/// All threads / Log / One plant. The no-pinch and VoiceOver way to zoom.
+private struct HistoryLevelPicker: View {
+    let selection: CareHistoryLevel
+    let select: (CareHistoryLevel) -> Void
+    @Namespace private var pill
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(CareHistoryLevel.allCases) { level in
+                let selected = level == selection
+                Button { select(level) } label: {
+                    Text(level.title)
+                        .font(selected ? .subheadline.weight(.heavy) : .subheadline.weight(.semibold))
+                        .foregroundStyle(selected ? GH.Palette.ink : GH.Palette.ink2)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 4)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background {
+                            if selected {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(GH.Palette.surface)
+                                    .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+                                    .matchedGeometryEffect(id: "selected", in: pill)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? [.isSelected] : [])
+            }
+        }
+        .padding(3)
+        .background(GH.Palette.surface2, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Zoom level")
+    }
+}
+
+// MARK: - Kept for other screens
 
 /// Lane colors: the theme thread palette, which adapts to dark mode. The source plant's
 /// name is always written out too, so color is never the only cue.
 enum ThreadPalette {
     static let colors: [Color] = GH.threads
-    static func color(_ lane: Int) -> Color { colors[lane % colors.count] }
-}
-
-/// One row of the list: a month header, a care log, or a combine, drawn
-/// beside the threads' lines.
-struct CareHistoryRow: View {
-    let row: CareHistory.Row
-    let viewedPlant: Plant
-    let laneCount: Int
-    @ScaledMetric(relativeTo: .body) private var scaledLaneWidth: CGFloat = 22
-    @ScaledMetric(relativeTo: .body) private var nodeY: CGFloat = 22
-
-    /// Capped so a few lanes at the largest text sizes don't eat the row.
-    private var laneWidth: CGFloat { min(scaledLaneWidth, 30) }
-
-    private var gutter: CGFloat { laneWidth * CGFloat(max(laneCount, 1)) + 8 }
-
-    var body: some View {
-        content
-            .padding(.leading, gutter)
-            .padding(.trailing)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(alignment: .topLeading) {
-                ThreadGutter(lanes: row.lanes, laneWidth: laneWidth, nodeY: nodeY)
-                    .padding(.leading, 8)
-            }
-            .accessibilityElement(children: .combine)
-    }
-
-    @ViewBuilder private var content: some View {
-        switch row.kind {
-        case .month(let date):
-            Text(date.map { $0.formatted(.dateTime.month(.wide).year()) } ?? "Unknown date")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(GH.Palette.ink2)
-                .textCase(.uppercase)
-        case .log(let entry):
-            LogContent(entry: entry, viewedPlant: viewedPlant)
-        case .merge(let merge):
-            MergeContent(merge: merge)
-        }
-    }
-}
-
-/// Watches the log so an undo or a change from the other phone shows right away.
-private struct LogContent: View {
-    let entry: CareHistory.Entry
-    let viewedPlant: Plant
-    @ObservedObject private var log: CareLog
-    @ObservedObject private var source: Plant
-
-    init(entry: CareHistory.Entry, viewedPlant: Plant) {
-        self.entry = entry
-        self.viewedPlant = viewedPlant
-        _log = ObservedObject(wrappedValue: entry.log)
-        _source = ObservedObject(wrappedValue: entry.source)
-    }
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.title)
-                if let who = log.doneBy?.trimmingCharacters(in: .whitespacesAndNewlines), !who.isEmpty {
-                    Text("by \(who)")
-                        .font(.caption)
-                        .foregroundStyle(GH.Palette.ink2)
-                }
-                if source != viewedPlant {
-                    Text("For \(entry.sourceLabel)")
-                        .font(.caption)
-                        .foregroundStyle(GH.Palette.ink2)
-                }
-            }
-            Spacer()
-            Text(log.doneAt.map(Lineage.format) ?? "Unknown date")
-                .font(.subheadline)
-                .foregroundStyle(GH.Palette.ink2)
-        }
-    }
-}
-
-private struct MergeContent: View {
-    let merge: CareHistory.Merge
-    @ObservedObject private var output: Plant
-
-    init(merge: CareHistory.Merge) {
-        self.merge = merge
-        _output = ObservedObject(wrappedValue: merge.output)
-    }
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(merge.title).font(.headline)
-                Text(merge.kind == .staple
-                     ? merge.inputs.map(\.displayName).joined(separator: " + ") + " → " + output.displayName
-                     : (merge.inputs.first?.displayName ?? "A plant") + " → " + output.displayName)
-                    .font(.caption)
-                    .foregroundStyle(GH.Palette.ink2)
-            }
-            Spacer()
-            Text(merge.date.map(Lineage.format) ?? "Unknown date")
-                .font(.subheadline)
-                .foregroundStyle(GH.Palette.ink2)
-        }
-    }
-}
-
-/// The lanes' lines and dots for one row. Lines grow in the first time the
-/// row appears; the merge node pops in and its joins draw toward it.
-private struct ThreadGutter: View {
-    let lanes: [CareHistory.LaneMark]
-    let laneWidth: CGFloat
-    let nodeY: CGFloat
-    @State private var revealed = false
-
-    private let dot: CGFloat = 10
-    private let lineWidth: CGFloat = 3
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(lanes.indices, id: \.self) { lane in
-                laneView(lane, mark: lanes[lane])
-            }
-        }
-        .frame(width: laneWidth * CGFloat(max(lanes.count, 1)))
-        .frame(maxHeight: .infinity, alignment: .top)
-        .revealsOnAppear($revealed)
-        .accessibilityHidden(true)
-    }
-
-    private func x(_ lane: Int) -> CGFloat { laneWidth * (CGFloat(lane) + 0.5) }
-
-    @ViewBuilder private func laneView(_ lane: Int, mark: CareHistory.LaneMark) -> some View {
-        let color = ThreadPalette.color(lane)
-        let progress: CGFloat = revealed ? 1 : 0
-        GeometryReader { proxy in
-            let height = proxy.size.height
-            // Line coming in from above, down to the node (or the row's end).
-            if mark.lineAbove {
-                Path { p in
-                    p.move(to: CGPoint(x: x(lane), y: 0))
-                    p.addLine(to: CGPoint(x: x(lane), y: (mark.dot || mark.joinsLane != nil) ? nodeY : height))
-                }
-                .trim(from: 0, to: progress)
-                .stroke(color.opacity(0.85), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-            }
-            // Line carrying on below.
-            if mark.lineBelow {
-                // Below an original's join the line starts where its curve ends,
-                // so there's no stub left that reads as a fork.
-                let startY: CGFloat = mark.joinsLane != nil ? nodeY + laneWidth : (mark.dot ? nodeY : 0)
-                Path { p in
-                    p.move(to: CGPoint(x: x(lane), y: startY))
-                    p.addLine(to: CGPoint(x: x(lane), y: height))
-                }
-                .trim(from: 0, to: progress)
-                .stroke(color.opacity(0.85), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-            }
-            // An original curving into the combined plant's lane.
-            if let into = mark.joinsLane {
-                Path { p in
-                    p.move(to: CGPoint(x: x(lane), y: nodeY + laneWidth))
-                    p.addQuadCurve(to: CGPoint(x: x(into), y: nodeY), control: CGPoint(x: x(lane), y: nodeY))
-                }
-                .trim(from: 0, to: progress)
-                .stroke(color.opacity(0.85), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-            }
-            if mark.dot {
-                Circle()
-                    .fill(color)
-                    .frame(width: mark.isMergeNode ? dot * 1.8 : dot, height: mark.isMergeNode ? dot * 1.8 : dot)
-                    .overlay {
-                        if mark.isMergeNode {
-                            Image(systemName: "arrow.triangle.merge")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.background)
-                        }
-                    }
-                    .scaleEffect(progress)
-                    .position(x: x(lane), y: nodeY)
-            }
-        }
-    }
+    static func color(_ lane: Int) -> Color { CareHistoryStyle.color(lane) }
 }
 
 extension View {
-    /// The history list is built from the plant's tasks and their logs, which
-    /// the plant doesn't observe: marking a task done, undoing it, or a log
-    /// arriving from the other phone wouldn't redraw it.
+    /// For screens that show care logs without a `CareHistoryModel`: the
+    /// plant doesn't observe its tasks' logs, so marking a task done, undoing
+    /// it, or a log arriving from the other phone wouldn't redraw them.
     func redrawsOnCareLogChanges(_ plant: Plant) -> some View {
         onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
             let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
