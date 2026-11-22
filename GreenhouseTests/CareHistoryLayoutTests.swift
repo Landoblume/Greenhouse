@@ -1,4 +1,5 @@
 import CoreData
+import SwiftUI
 import XCTest
 @testable import Greenhouse
 
@@ -297,7 +298,7 @@ final class CareHistoryLayoutTests: XCTestCase {
         let nested = Nested(test: self)
         let timeline = CareHistory.timeline(for: nested.c)
         guard case .joined(let into, let with, let date, _) = timeline.rows[1].kind else { return XCTFail("joined row first") }
-        XCTAssertEqual(into, nested.abc)
+        XCTAssertEqual(into, [nested.abc])
         XCTAssertEqual(with, [nested.ab])
         XCTAssertEqual(date, day(2026, 4, 1))
         XCTAssertEqual(timeline.rows[1].lanes[0].glyph, .joined)
@@ -524,5 +525,159 @@ final class CareHistoryLayoutTests: XCTestCase {
         }
         store.save()
         XCTAssertEqual(CareHistory.stats(for: plant)?.celebration(now: day(2026, 11, 21)), "100th watering 🎉")
+    }
+
+    // MARK: - v1.5.1 fixes
+
+    func testThreadsFromEntriesMatchTheOneShotThreads() {
+        let nested = Nested(test: self)
+        let entries = CareHistory.entries(for: nested.abc)
+        XCTAssertEqual(CareHistory.threads(for: nested.abc, entries: entries), CareHistory.threads(for: nested.abc))
+        XCTAssertEqual(CareHistory.timeline(for: nested.abc, entries: entries, expanded: false), CareHistory.timeline(for: nested.abc))
+    }
+
+    func testASplitNamesEveryNewPlantAndEachOpensItsOwnHistory() {
+        let store = TestStore()
+        let parent = store.plant(nickname: "Big", acquired: day(2025, 1, 1))
+        water(parent, on: day(2025, 3, 1), by: "Sam", store: store)
+        let halves = Lineage.split(parent, names: ["Left", "Right"], date: day(2025, 4, 1), household: store.household,
+                                   context: store.context, persistence: store.persistence)
+        store.save()
+
+        // The retired parent: "Split into Left & Right".
+        let rows = CareHistory.timeline(for: parent).rows
+        guard let joined = rows.first(where: { if case .joined = $0.kind { true } else { false } }),
+              case .joined(let into, let with, _, let kind) = joined.kind else { return XCTFail("a joined row") }
+        XCTAssertEqual(kind, .split)
+        XCTAssertEqual(Set(into), Set(halves))
+        XCTAssertEqual(into.count, 2)
+        XCTAssertEqual(with, [])
+        XCTAssertEqual(CareHistory.spokenLabel(for: joined, viewedPlant: parent, now: day(2025, 12, 1), locale: enUS),
+                       "Split into \(CareHistory.names(into).replacingOccurrences(of: " & ", with: " and ")), Tuesday April 1.")
+
+        // A new half: the split row names both halves.
+        let left = halves.first { $0.nickname == "Left" }!
+        let merge = CareHistory.merges(for: left).first!
+        XCTAssertEqual(Set(merge.outputs), Set(halves))
+        let mergeRow = CareHistory.timeline(for: left).rows.first { if case .merge = $0.kind { true } else { false } }!
+        let spoken = CareHistory.spokenLabel(for: mergeRow, viewedPlant: left, now: day(2025, 12, 1), locale: enUS)
+        XCTAssertTrue(spoken.contains("Left") && spoken.contains("Right"), spoken)
+        XCTAssertTrue(spoken.hasSuffix("split from Big, Tuesday April 1."), spoken)
+    }
+
+    func testACombineSaysWhereThePlantWentAndOpensIt() {
+        let store = TestStore()
+        let rosie = store.plant(nickname: "Rosie", acquired: day(2025, 1, 1))
+        let spike = store.plant(nickname: "Spike", acquired: day(2025, 1, 2))
+        let trio = combine([rosie, spike], "The Trio", on: day(2025, 11, 20), store: store)
+        store.save()
+        let joined = CareHistory.timeline(for: rosie).rows.first { if case .joined = $0.kind { true } else { false } }!
+        guard case .joined(let into, _, _, let kind) = joined.kind else { return XCTFail() }
+        XCTAssertEqual(into, [trio], "one plant to open: The Trio's history")
+        XCTAssertEqual(kind, .staple)
+        XCTAssertEqual(CareHistory.spokenLabel(for: joined, viewedPlant: rosie, now: day(2025, 12, 1), locale: enUS),
+                       "Became part of The Trio, with Spike, Thursday November 20.")
+    }
+
+    func testUndoingALogThatsAlreadyGoneDoesNothing() {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2026, 1, 1))
+        water(plant, on: day(2026, 2, 1), by: "Sam", store: store)
+        water(plant, on: day(2026, 2, 8), by: "Alex", store: store)
+        store.save()
+        let entry = CareHistory.entries(for: plant)[0]
+
+        // The other phone takes it back: the store loses it, but this context
+        // hasn't merged yet, so the object still looks whole here.
+        let other = store.persistence.container.newBackgroundContext()
+        other.performAndWait {
+            other.delete(other.object(with: entry.log.objectID))
+            try! other.save()
+        }
+        XCTAssertNil(CareHistory.live(entry.log, in: store.context))
+        XCTAssertFalse(CareHistory.undo(entry.log, context: store.context))
+        XCTAssertFalse(store.context.hasChanges, "nothing touched")
+
+        // Taken back here already: a second undo is a no-op too.
+        let first = CareHistory.entries(for: plant).last!
+        XCTAssertNotNil(CareHistory.live(first.log, in: store.context))
+        XCTAssertTrue(CareHistory.undo(first.log, context: store.context))
+        XCTAssertFalse(CareHistory.undo(first.log, context: store.context))
+    }
+
+    func testTheScreenIgnoresOtherContextsChanges() {
+        let nested = Nested(test: self)
+        let store = nested.store
+        let model = CareHistoryModel(plant: nested.abc)
+        let log = nested.abc.wateringTask!.lastLog!
+        let background = store.persistence.container.newBackgroundContext()
+        model.contextChanged(Notification(name: .NSManagedObjectContextObjectsDidChange, object: background,
+                                          userInfo: [NSUpdatedObjectsKey: Set([log])]))
+        XCTAssertEqual(model.builds, 1, "a background context's change waits for the merge")
+        model.contextChanged(Notification(name: .NSManagedObjectContextObjectsDidChange, object: store.context,
+                                          userInfo: [NSUpdatedObjectsKey: Set([log])]))
+        XCTAssertEqual(model.builds, 2)
+    }
+
+    func testASwipeDecidesItsDirectionOnce() {
+        var lock = SwipeAxisLock()
+        let here = CGPoint(x: 200, y: 300)
+        XCTAssertNil(lock.update(CGSize(width: 3, height: 2), from: here), "too small to tell")
+        XCTAssertEqual(lock.update(CGSize(width: 8, height: 12), from: here), .vertical)
+        // A diagonal scroll that drifts sideways stays a scroll.
+        XCTAssertEqual(lock.update(CGSize(width: -60, height: 14), from: here), .vertical)
+        lock.reset()
+        XCTAssertEqual(lock.update(CGSize(width: -30, height: 4), from: here), .horizontal)
+        XCTAssertEqual(lock.update(CGSize(width: -32, height: 40), from: here), .horizontal, "and a swipe stays a swipe")
+    }
+
+    func testANewDragNeverInheritsACancelledOnesDirection() {
+        var lock = SwipeAxisLock()
+        // A scroll the scroll view took over: it never ends, so no reset.
+        XCTAssertEqual(lock.update(CGSize(width: 2, height: 40), from: CGPoint(x: 200, y: 300)), .vertical)
+        // The next drag starts somewhere else and decides afresh.
+        XCTAssertEqual(lock.update(CGSize(width: -30, height: 3), from: CGPoint(x: 210, y: 420)), .horizontal)
+        // And the other way round: a cancelled swipe doesn't make the next scroll a swipe.
+        XCTAssertEqual(lock.update(CGSize(width: 4, height: 30), from: CGPoint(x: 150, y: 500)), .vertical)
+        XCTAssertNil(lock.update(CGSize(width: 1, height: 1), from: CGPoint(x: 90, y: 90)), "undecided until it moves")
+    }
+
+    func testDotsStayOnTheTitleLineAtEveryTextSize() {
+        for size in DynamicTypeSize.allCases {
+            let line = CareHistoryStyle.lineHeight(.body, size: size)
+            let y = CareHistoryStyle.titleMiddle(below: 10, style: .body, size: size)
+            XCTAssertEqual(y, 10 + line / 2, accuracy: 0.001, "\(size)")
+            XCTAssertLessThan(y, 10 + line, "inside the first line at \(size)")
+        }
+        XCTAssertGreaterThan(CareHistoryStyle.lineHeight(.body, size: .accessibility5),
+                             CareHistoryStyle.lineHeight(.body, size: .large) * 2)
+    }
+
+    func testLabelsAlwaysHaveRoomRightOfTheLanes() {
+        XCTAssertEqual(CareHistoryStyle.labelRoom(at: .large), 104, accuracy: 0.001, "the default size keeps 104")
+        XCTAssertGreaterThan(CareHistoryStyle.labelRoom(at: .accessibility2), 104 * 1.5, "it grows with the caption text")
+        for size in [DynamicTypeSize.large, .accessibility2] {
+            let room = CareHistoryStyle.labelRoom(at: size)
+            for columns in 1...CareHistory.maxColumns {
+                let geometry = LaneGeometry.make(level: .allThreads, columns: columns, width: 390, tight: size.isAccessibilitySize,
+                                                 size: size)
+                let rightmost = geometry.xs.max()!
+                XCTAssertLessThanOrEqual(rightmost + room, 390 + 0.001, "\(columns) columns at \(size): the whole room is free")
+                XCTAssertGreaterThanOrEqual(geometry.xs.min()!, CareHistoryStyle.monthColumn)
+            }
+        }
+        // At the very largest sizes the lanes keep their minimum and the labels give way.
+        let squeezed = LaneGeometry.make(level: .allThreads, columns: 4, width: 390, tight: true, size: .accessibility5)
+        XCTAssertGreaterThanOrEqual(squeezed.spacing, CareHistoryStyle.minLaneRoom - 0.001)
+    }
+
+    func testComingBackReplaysTheDotsButALevelChangeDoesNot() {
+        var clock = HistoryDrawClock()
+        clock.restart()
+        XCTAssertEqual(clock.token, 1)
+        XCTAssertEqual(clock.visit, 0, "a level change: dots glide, they don't pop in again")
+        clock.replay()
+        XCTAssertEqual(clock.token, 2)
+        XCTAssertEqual(clock.visit, 1)
     }
 }

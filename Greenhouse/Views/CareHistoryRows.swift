@@ -30,8 +30,6 @@ struct CareHistoryRowView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
-    /// Where a log row's dot sits: level with the middle of its first line.
-    @ScaledMetric(relativeTo: .body) private var logNode: CGFloat = 21
     /// All threads: a labeled row's height (a bare watering is shorter).
     @ScaledMetric(relativeTo: .caption) private var chipRow: CGFloat = 28
     @ScaledMetric(relativeTo: .caption) private var pillHeight: CGFloat = 26
@@ -68,9 +66,10 @@ struct CareHistoryRowView: View {
         return timeline.threads.first { $0.plant == focusPlant }?.lane
     }
 
+    /// The node points at where the plant went (the first new plant of a split).
     private var joinedColor: Int? {
-        guard case .joined(let into, _, _, _) = row.kind else { return nil }
-        return CareHistory.colorOrder(for: viewedPlant)[into.objectID]
+        guard case .joined(let into, _, _, _) = row.kind, let first = into.first else { return nil }
+        return CareHistory.colorOrder(for: viewedPlant)[first.objectID]
     }
 
     private var isAccessibilitySize: Bool { typeSize.isAccessibilitySize }
@@ -81,9 +80,22 @@ struct CareHistoryRowView: View {
             if case .merge = row.kind { return 16 }
             return isBareWatering ? 9 : chipRow / 2
         case .log, .onePlant:
+            // Level with the middle of the title's first line. Only the text
+            // grows with the text size, not the padding above it, so the dot
+            // stays on the title instead of sliding down onto the date.
+            let cards = level == .onePlant
             switch row.kind {
-            case .merge, .joined: return logNode + 6
-            default: return logNode
+            case .merge, .joined:
+                return CareHistoryStyle.titleMiddle(below: LeafCardMetrics.titleTop, style: .headline, size: typeSize)
+            case .milestone(let mark) where cards:
+                let photo = Milestones.photos(of: mark.milestone).isEmpty ? 0 : HistoryMilestoneCard.photoBlock
+                return CareHistoryStyle.titleMiddle(below: GH.Space.xs + HistoryMilestoneCard.padding + photo,
+                                                    style: .headline, size: typeSize)
+            case .cutting where cards:
+                return CareHistoryStyle.titleMiddle(below: HistoryCuttingLink.cardMargin + HistoryLogLine.titleTop,
+                                                    style: .body, size: typeSize)
+            default:
+                return CareHistoryStyle.titleMiddle(below: HistoryLogLine.titleTop, style: .body, size: typeSize)
             }
         }
     }
@@ -144,13 +156,13 @@ struct CareHistoryRowView: View {
                     tag: cards || entry.source == viewedPlant ? nil : (entry.sourceLabel, color(of: entry.source)),
                     onTag: { actions.focus(entry.source) }
                 )
-                .modifier(HistoryUndoSwipe(title: entry.title) { actions.undo(entry) })
+                .modifier(HistoryUndoSwipe { actions.undo(entry) })
                 .contextMenu {
                     if entry.source != (cards ? (focusPlant ?? viewedPlant) : viewedPlant) {
                         Button { actions.focus(entry.source) } label: { Label("Zoom into \(entry.source.displayName)", systemImage: "scope") }
                     }
                     Button(role: .destructive) { actions.undo(entry) } label: {
-                        Label("Undo this \(entry.title.lowercased())…", systemImage: "arrow.uturn.backward")
+                        Label("Undo this log…", systemImage: "arrow.uturn.backward")
                     }
                 }
             case .milestone(let mark):
@@ -169,11 +181,7 @@ struct CareHistoryRowView: View {
             case .merge(let merge):
                 HistoryMergeCard(merge: merge, focus: cards ? (focusPlant ?? viewedPlant) : nil)
             case .joined(let into, let with, let date, let kind):
-                HistoryLeafCard(
-                    title: "\(kind == .split ? "Split into" : "Became part of") \(into.displayName)",
-                    detail: [with.isEmpty ? nil : "With \(CareHistory.names(with))", CareHistory.dayLabel(date)]
-                        .compactMap { $0 }.joined(separator: " · ")
-                )
+                HistoryJoinedCard(into: into, with: with, date: date, kind: kind)
             case .cutting(let mark):
                 HistoryCuttingLink(mark: mark, card: cards)
             case .showEarlier(let count, _):
@@ -213,8 +221,10 @@ struct CareHistoryRowView: View {
             chip(mark.title, plant: mark.source)
         case .cutting(let mark):
             chip(mark.direction == .taken ? "Cutting" : "From \(mark.parent.displayName)", plant: mark.source)
-        case .joined(let into, _, _, _):
-            chip("Became part of \(into.displayName)", plant: viewedPlant, leaf: true)
+        case .joined(let into, _, _, let kind):
+            // One plant to go to: the label opens its history.
+            chip(HistoryJoinedCard.title(into: into, kind: kind), plant: viewedPlant, leaf: true,
+                 opens: into.count == 1 ? into.first : nil)
         case .merge(let merge):
             mergeLanes(merge)
         case .showEarlier(let count, let under):
@@ -228,22 +238,35 @@ struct CareHistoryRowView: View {
         geometry.x(timeline.threads.first { $0.plant == plant }?.column ?? 0)
     }
 
-    /// A label pinned beside its dot: to the right, or to the left on the
-    /// rightmost lane so it isn't cut short at the screen edge.
-    private func chip(_ text: String, plant: Plant, leaf: Bool = false) -> some View {
-        let x = lane(of: plant)
-        let onLeft = geometry.xs.count > 1 && x >= (geometry.xs.last ?? 0) - 0.5
-        return Text(text)
-            .font(.caption.weight(.bold))
-            .lineLimit(1)
-            .foregroundStyle(leaf ? GH.Palette.leafInk : GH.Palette.ink)
-            .padding(.horizontal, GH.Space.xs)
-            .frame(minHeight: 22)
-            .background(leaf ? GH.Palette.leafSoft : GH.Palette.surface, in: Capsule(style: .continuous))
-            .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
-            .padding(.leading, onLeft ? CareHistoryStyle.monthColumn : x + 14)
-            .padding(.trailing, onLeft ? max(geometry.width - x + 14, 0) : GH.Space.xs)
-            .frame(maxWidth: .infinity, minHeight: chipRow, alignment: onLeft ? .trailing : .leading)
+    /// A label pinned just right of its dot, always: the lanes leave room
+    /// for it on the right (`CareHistoryStyle.labelRoom(at:)`).
+    @ViewBuilder private func chip(_ text: String, plant: Plant, leaf: Bool = false, opens: Plant? = nil) -> some View {
+        let label = HStack(spacing: 3) {
+            Text(text).lineLimit(1)
+            if opens != nil {
+                Image(systemName: "chevron.right").font(.caption2.weight(.heavy)).accessibilityHidden(true)
+            }
+        }
+        .font(.caption.weight(.bold))
+        .foregroundStyle(leaf ? GH.Palette.leafInk : GH.Palette.ink)
+        .padding(.horizontal, GH.Space.xs)
+        .frame(minHeight: 22)
+        .background(leaf ? GH.Palette.leafSoft : GH.Palette.surface, in: Capsule(style: .continuous))
+        .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+        Group {
+            if let opens {
+                NavigationLink(value: CareHistoryRoute(plant: opens)) {
+                    // 44 pt to tap, without making the row taller.
+                    label.padding(.vertical, 11).contentShape(Rectangle()).padding(.vertical, -11)
+                }
+                .buttonStyle(.plain)
+            } else {
+                label
+            }
+        }
+        .padding(.leading, lane(of: plant) + CareHistoryStyle.labelGap)
+        .padding(.trailing, GH.Space.xs)
+        .frame(maxWidth: .infinity, minHeight: chipRow, alignment: .leading)
     }
 
     /// The combine node with its date, and a name pill on each original's
@@ -259,6 +282,7 @@ struct CareHistoryRowView: View {
                 .frame(minHeight: 22)
                 .background(GH.Palette.leafSoft, in: Capsule(style: .continuous))
                 .padding(.leading, lane(of: merge.output) + CareHistoryStyle.node / 2 + 6)
+                .padding(.trailing, GH.Space.xs)
                 .padding(.top, 16 - 11)
             ForEach(shown, id: \.objectID) { input in
                 HistoryNamePill(name: input.displayName, color: color(of: input), maxWidth: max(geometry.spacing - 6, 56)) {
@@ -276,6 +300,9 @@ struct CareHistoryRowView: View {
 /// A log line: what, when ("Fri 14"), who, and, before a combine, whose.
 /// The date sits beside the title, and under it at accessibility sizes.
 private struct HistoryLogLine: View {
+    /// Space above the title.
+    static let titleTop: CGFloat = 10
+
     let title: String
     let date: Date?
     let by: String?
@@ -305,7 +332,7 @@ private struct HistoryLogLine: View {
                 }
             }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, Self.titleTop)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
     }
@@ -383,25 +410,102 @@ private struct HistoryEarlierPill: View {
     }
 }
 
+/// A leaf card's padding: outside it, then inside it, above the title.
+private enum LeafCardMetrics {
+    static let margin: CGFloat = 6
+    static let inset: CGFloat = 9
+    /// For lining a dot up with the title.
+    static var titleTop: CGFloat { margin + inset }
+}
+
 /// leafSoft card: a combine, or where a plant went.
-private struct HistoryLeafCard: View {
+private struct HistoryLeafCard<Extra: View>: View {
     let title: String
     let detail: String
+    /// A chevron: the whole card opens something.
+    var opens = false
+    @ViewBuilder var extra: Extra
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.ghRounded(.headline))
-                .foregroundStyle(GH.Palette.leafInk)
+            HStack(alignment: .firstTextBaseline, spacing: GH.Space.xs) {
+                Text(title)
+                    .font(.ghRounded(.headline))
+                    .foregroundStyle(GH.Palette.leafInk)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if opens {
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(GH.Palette.leafInk)
+                        .accessibilityHidden(true)
+                }
+            }
             Text(detail)
                 .font(.subheadline)
                 .foregroundStyle(GH.Palette.ink)
+            extra
         }
-        .padding(.vertical, 9)
+        .padding(.vertical, LeafCardMetrics.inset)
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(GH.Palette.leafSoft, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .padding(.vertical, 6)
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(.vertical, LeafCardMetrics.margin)
+    }
+}
+
+extension HistoryLeafCard where Extra == EmptyView {
+    init(title: String, detail: String, opens: Bool = false) {
+        self.init(title: title, detail: detail, opens: opens) { EmptyView() }
+    }
+}
+
+/// At the top of a plant that went into another: "Became part of The Trio"
+/// opens The Trio's history. A split names every new plant, and each gets
+/// its own link.
+private struct HistoryJoinedCard: View {
+    let into: [Plant]
+    let with: [Plant]
+    let date: Date?
+    let kind: LineageKind
+
+    static func title(into: [Plant], kind: LineageKind) -> String {
+        "\(kind == .split ? "Split into" : "Became part of") \(CareHistory.names(into))"
+    }
+
+    private var detail: String {
+        [with.isEmpty ? nil : "With \(CareHistory.names(with))", CareHistory.dayLabel(date)]
+            .compactMap { $0 }.joined(separator: " · ")
+    }
+
+    var body: some View {
+        if into.count == 1, let only = into.first {
+            NavigationLink(value: CareHistoryRoute(plant: only)) {
+                HistoryLeafCard(title: Self.title(into: into, kind: kind), detail: detail, opens: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens \(only.displayName)'s history")
+        } else {
+            HistoryLeafCard(title: Self.title(into: into, kind: kind), detail: detail) {
+                ForEach(into, id: \.objectID) { plant in
+                    NavigationLink(value: CareHistoryRoute(plant: plant)) {
+                        HStack(spacing: GH.Space.xs) {
+                            Text("\(plant.displayName)'s history")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(GH.Palette.leafInk)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.bold))
+                                .foregroundStyle(GH.Palette.leafInk)
+                                .accessibilityHidden(true)
+                        }
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 }
 
@@ -422,7 +526,8 @@ private struct HistoryMergeCard: View {
     var body: some View {
         let day = CareHistory.dayLabel(merge.date)
         if merge.kind == .split {
-            HistoryLeafCard(title: "Split from \(CareHistory.names(merge.inputs))", detail: "Became \(output.displayName) · \(day)")
+            HistoryLeafCard(title: "Split from \(CareHistory.names(merge.inputs))",
+                            detail: "Became \(CareHistory.names(merge.outputs.isEmpty ? [output] : merge.outputs)) · \(day)")
         } else if let focus, merge.inputs.contains(focus) {
             let others = merge.inputs.filter { $0 != focus }
             HistoryLeafCard(title: "Became part of \(output.displayName)",
@@ -437,6 +542,9 @@ private struct HistoryMergeCard: View {
 
 /// "Cutting taken → Pip Jr." Opens that plant's own history.
 private struct HistoryCuttingLink: View {
+    /// Space above a card (one-plant level).
+    static let cardMargin: CGFloat = 6
+
     let mark: CareHistory.CuttingMark
     let card: Bool
 
@@ -456,7 +564,7 @@ private struct HistoryCuttingLink: View {
                     .font(.footnote.weight(.bold))
                     .foregroundStyle(GH.Palette.ink2)
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, HistoryLogLine.titleTop)
             .padding(.horizontal, card ? 14 : 0)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .background {
@@ -468,12 +576,18 @@ private struct HistoryCuttingLink: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.vertical, card ? 6 : 0)
+        .padding(.vertical, card ? Self.cardMargin : 0)
     }
 }
 
 /// One plant: a milestone opens into a card with its photo and note.
 private struct HistoryMilestoneCard: View {
+    static let padding: CGFloat = 10
+    static let photoHeight: CGFloat = 140
+    static let photoGap: CGFloat = 5
+    /// How far a photo pushes the title down.
+    static var photoBlock: CGFloat { photoHeight + photoGap }
+
     let mark: CareHistory.MilestoneMark
     let photoDelay: Double?
     let clock: HistoryDrawClock
@@ -482,9 +596,9 @@ private struct HistoryMilestoneCard: View {
         VStack(alignment: .leading, spacing: 3) {
             if let photo = Milestones.photos(of: mark.milestone).first {
                 HistoryPhoto(photo: photo, delay: photoDelay, clock: clock)
-                    .frame(height: 140)
+                    .frame(height: Self.photoHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .padding(.bottom, 5)
+                    .padding(.bottom, Self.photoGap)
                     .accessibilityLabel("Photo of \(mark.source.displayName)'s \(mark.title.lowercased())")
             }
             Text(mark.title)
@@ -497,15 +611,15 @@ private struct HistoryMilestoneCard: View {
                 Text(notes).font(.subheadline).foregroundStyle(GH.Palette.ink)
             }
         }
-        .padding(10)
+        .padding(Self.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(GH.Palette.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.06), radius: 6, y: 3)
     }
 }
 
-/// A photo that starts as a shimmer and crossfades in once it's decoded
-/// (off the main thread) and its row has grown in.
+/// A photo that starts as a plain placeholder and crossfades in once it's
+/// decoded (off the main thread) and its row has grown in.
 private struct HistoryPhoto: View {
     let photo: Photo
     let delay: Double?
@@ -515,7 +629,7 @@ private struct HistoryPhoto: View {
 
     var body: some View {
         ZStack {
-            Rectangle().fill(GH.Palette.surface2).shimmer()
+            Rectangle().fill(GH.Palette.surface2)
             if let image {
                 Image(uiImage: image)
                     .resizable()
@@ -565,12 +679,49 @@ private struct HistoryLoadIn: ViewModifier {
     }
 }
 
+/// Decides once per drag whether it's a sideways swipe or a scroll, so a
+/// diagonal scroll never nudges the row back and forth.
+struct SwipeAxisLock {
+    enum Axis { case horizontal, vertical }
+
+    /// How far a drag goes before its direction is decided.
+    static let decideAfter: CGFloat = 10
+    /// Sideways only when clearly more across than down.
+    static let ratio: CGFloat = 1.5
+
+    private(set) var axis: Axis?
+    /// Where the drag being decided started. A drag from somewhere else is
+    /// a new one: the scroll view can cancel a drag without it ever ending,
+    /// so the next one mustn't inherit its direction.
+    private var start: CGPoint?
+
+    /// The drag's direction, decided on the first movement big enough to tell.
+    mutating func update(_ translation: CGSize, from origin: CGPoint) -> Axis? {
+        if origin != start {
+            axis = nil
+            start = origin
+        }
+        if axis == nil, max(abs(translation.width), abs(translation.height)) >= Self.decideAfter {
+            axis = abs(translation.width) > abs(translation.height) * Self.ratio ? .horizontal : .vertical
+        }
+        return axis
+    }
+
+    mutating func reset() {
+        axis = nil
+        start = nil
+    }
+}
+
 /// Swipe a log row left to show Undo. The row's words move; the threads stay.
 private struct HistoryUndoSwipe: ViewModifier {
-    let title: String
     let onUndo: () -> Void
     @State private var offset: CGFloat = 0
     @State private var isOpen = false
+    @State private var lock = SwipeAxisLock()
+    /// True while a drag is live. Falls back to false when the drag ends
+    /// or is cancelled (the scroll view took it), which `onEnded` misses.
+    @GestureState private var dragging = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let reveal: CGFloat = 92
@@ -598,18 +749,34 @@ private struct HistoryUndoSwipe: ViewModifier {
             }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 20)
+                    .updating($dragging) { _, state, _ in state = true }
                     .onChanged { value in
-                        guard abs(value.translation.width) > abs(value.translation.height) * 1.5 else { return }
+                        guard lock.update(value.translation, from: value.startLocation) == .horizontal else { return }
                         offset = min(0, max((isOpen ? -reveal : 0) + value.translation.width, -reveal * 1.4))
                     }
-                    .onEnded { value in
-                        let open = offset < -reveal / 2
-                        withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.fold) {
-                            isOpen = open
-                            offset = open ? -reveal : 0
-                        }
+                    .onEnded { _ in
+                        defer { lock.reset() }
+                        // A scroll leaves the row exactly as it was.
+                        guard lock.axis == .horizontal else { return }
+                        settle()
                     }
             )
+            .onChange(of: dragging) { _, live in
+                // Cancelled rather than ended: onEnded never ran, so let go
+                // here. (After a normal end the lock is already reset.)
+                guard !live, lock.axis != nil else { return }
+                if lock.axis == .horizontal { settle() }
+                lock.reset()
+            }
+    }
+
+    /// Snap open or shut, whichever is nearer.
+    private func settle() {
+        let open = offset < -reveal / 2
+        withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.fold) {
+            isOpen = open
+            offset = open ? -reveal : 0
+        }
     }
 
     private func close() {
@@ -634,6 +801,13 @@ private struct HistoryRowAccessibility: ViewModifier {
             // Real buttons and links: keep them as they are.
             content.accessibilityElement(children: .combine)
                 .accessibilityLabel(CareHistory.spokenLabel(for: row, viewedPlant: viewedPlant))
+        case .joined(let into, _, _, _) where into.count == 1:
+            // A link to that plant's history.
+            content.accessibilityElement(children: .combine)
+                .accessibilityLabel(CareHistory.spokenLabel(for: row, viewedPlant: viewedPlant))
+        case .joined:
+            // A split: the card's words, then a link per new plant.
+            content.accessibilityElement(children: .contain)
         case .month:
             content.accessibilityElement(children: .combine).accessibilityAddTraits(.isHeader)
         default:

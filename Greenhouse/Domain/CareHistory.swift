@@ -237,8 +237,13 @@ enum CareHistory {
     /// The viewed plant first, then every plant it came from (nearest first),
     /// laid out with nothing folded.
     static func threads(for plant: Plant) -> [CareThread] {
+        threads(for: plant, entries: entries(for: plant))
+    }
+
+    /// The same, from entries already worked out, so the history isn't
+    /// gathered twice when the timeline needs both.
+    static func threads(for plant: Plant, entries all: [Entry]) -> [CareThread] {
         let family = [plant] + Lineage.ancestors(of: plant)
-        let all = entries(for: plant)
         let colors = colorOrder(for: plant)
         var result = family.enumerated().map { lane, member in
             let logDates = all.filter { $0.source == member }.compactMap(\.doneAt)
@@ -405,6 +410,9 @@ enum CareHistory {
     struct Merge: Identifiable, Equatable {
         let output: Plant
         let inputs: [Plant]
+        /// Every plant the event made, oldest first, `output` among them. One
+        /// for a combine; a split names all the new plants.
+        let outputs: [Plant]
         let date: Date?
         let kind: LineageKind
         var id: NSManagedObjectID { output.objectID }
@@ -415,7 +423,8 @@ enum CareHistory {
     static func merges(for plant: Plant) -> [Merge] {
         ([plant] + Lineage.ancestors(of: plant)).compactMap { member in
             guard let event = member.producedBy else { return nil }
-            return Merge(output: member, inputs: sortedByAcquired(event.inputs ?? []), date: event.date, kind: event.kindValue)
+            return Merge(output: member, inputs: sortedByAcquired(event.inputs ?? []),
+                         outputs: sortedByAcquired(event.outputs ?? []), date: event.date, kind: event.kindValue)
         }
     }
 
@@ -461,8 +470,9 @@ enum CareHistory {
         case merge(Merge)
         case milestone(MilestoneMark)
         case cutting(CuttingMark)
-        /// At the top of a plant that was combined (or split) into `into`.
-        case joined(into: Plant, with: [Plant], date: Date?, kind: LineageKind)
+        /// At the top of a plant that was combined (or split) into `into`:
+        /// one plant for a combine, every new plant (oldest first) for a split.
+        case joined(into: [Plant], with: [Plant], date: Date?, kind: LineageKind)
         /// Under a folded combine: how many earlier plants it hides.
         case showEarlier(count: Int, under: Plant)
     }
@@ -482,18 +492,6 @@ enum CareHistory {
             case .merge(let merge): merge.output
             case .milestone(let mark): mark.source
             case .cutting(let mark): mark.source
-            }
-        }
-
-        var date: Date? {
-            switch kind {
-            case .month(let date): date
-            case .log(let entry): entry.doneAt
-            case .merge(let merge): merge.date
-            case .milestone(let mark): mark.date
-            case .cutting(let mark): mark.date
-            case .joined(_, _, let date, _): date
-            case .showEarlier: nil
             }
         }
 
@@ -524,7 +522,7 @@ enum CareHistory {
 
     /// The same, from entries already worked out (the screen computes them once for the stats too).
     static func timeline(for plant: Plant, entries allEntries: [Entry], expanded: Bool, calendar: Calendar = .current) -> Timeline {
-        let family = threads(for: plant)
+        let family = threads(for: plant, entries: allEntries)
         let tree = familyTree(family)
         let folding = expanded ? (hidden: Set<Int>(), folds: [Int: Int]()) : fold(tree)
         let layout = columns(of: tree, hidden: folding.hidden)
@@ -539,7 +537,7 @@ enum CareHistory {
 
         enum Item {
             case log(Entry), merge(Merge), milestone(MilestoneMark), cutting(CuttingMark)
-            case joined(Plant, [Plant], Date?, LineageKind), showEarlier(Int, Plant, Date?)
+            case joined([Plant], [Plant], Date?, LineageKind), showEarlier(Int, Plant, Date?)
             var date: Date? {
                 switch self {
                 case .log(let entry): entry.doneAt
@@ -570,9 +568,10 @@ enum CareHistory {
                 items.append(.showEarlier(count, merge.output, merge.date))
             }
         }
-        if let event = plant.consumedBy, let output = sortedByAcquired(event.outputs ?? []).first {
+        if let event = plant.consumedBy {
+            let outputs = sortedByAcquired(event.outputs ?? [])
             let others = sortedByAcquired(event.inputs ?? []).filter { $0 != plant }
-            items.append(.joined(output, others, event.date, event.kindValue))
+            if !outputs.isEmpty { items.append(.joined(outputs, others, event.date, event.kindValue)) }
         }
         // Stable: newest first; ties by rank, then the order they were gathered.
         items = items.enumerated().sorted { a, b in
@@ -723,12 +722,6 @@ enum CareHistory {
         /// The headline without knowing who's looking, so a name is never "you".
         var headline: String { headline(viewerName: nil) }
 
-        /// The other kinds, "Mist 4 · Repot 1", or nil when there's only one kind.
-        var others: String? {
-            let rest = counts.filter { $0.title != lead.title }
-            return rest.isEmpty ? nil : rest.map { "\($0.title) \($0.count)" }.joined(separator: " · ")
-        }
-
         /// How many times it's been watered.
         var waterings: Int { counts.first { $0.isWatering }?.count ?? 0 }
 
@@ -801,15 +794,31 @@ enum CareHistory {
     /// Takes back one log, and only that one: the swipe on a history row. Like
     /// `CareSchedule.undoDone`, a schedule override set by the latest log goes
     /// with it; and a one-time task whose only log this was comes back.
-    static func undo(_ log: CareLog, context: NSManagedObjectContext) {
+    /// Does nothing, and returns false, when the log is already gone (the
+    /// other phone took it back while the question was up).
+    @discardableResult
+    static func undo(_ log: CareLog, context: NSManagedObjectContext) -> Bool {
+        guard let log = live(log, in: context) else { return false }
         let task = log.task
         let wasLatest = task?.lastLog == log
         context.delete(log)
         // Updates `task.logs` now, so the due date is right on the next draw.
         context.processPendingChanges()
-        guard let task else { return }
+        guard let task else { return true }
         if wasLatest { task.dueOverride = nil }
         if task.unit == .once, (task.logs ?? []).isEmpty, task.isRelevant { task.isArchived = false }
+        return true
+    }
+
+    /// The log as `context` has it now, or nil once it's been deleted here or
+    /// in the store (a sync from the other phone). Asks the store rather than
+    /// the object, since a log deleted elsewhere can still look whole here.
+    static func live(_ log: CareLog, in context: NSManagedObjectContext) -> CareLog? {
+        guard !log.isDeleted else { return nil }
+        let request = NSFetchRequest<CareLog>(entityName: "CareLog")
+        request.predicate = NSPredicate(format: "SELF == %@", log.objectID)
+        request.fetchLimit = 1
+        return (try? context.fetch(request))?.first
     }
 
     // MARK: - Helpers
