@@ -292,6 +292,8 @@ struct PlantDetailView: View {
                 ForEach(Array(projects.enumerated()), id: \.element.objectID) { index, project in
                     if index > 0 { CardDivider() }
                     ProjectRow(project: project, household: household)
+                        // Inside a card the row's text would take the leaf tint.
+                        .buttonStyle(.plain)
                 }
             }
         }

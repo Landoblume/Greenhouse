@@ -33,6 +33,16 @@ final class PlantPageTests: XCTestCase {
         XCTAssertNil(PlantPage.birthday(of: new, now: day(2026, 11, 21)))
     }
 
+    func testNoBirthdayForRetiredPlants() {
+        let store = TestStore()
+        let plant = store.plant(acquired: day(2024, 11, 21))
+        XCTAssertNotNil(PlantPage.birthday(of: plant, now: day(2026, 11, 21)))
+        plant.statusValue = .stapled
+        XCTAssertNil(PlantPage.birthday(of: plant, now: day(2026, 11, 21)))
+        plant.statusValue = .split
+        XCTAssertNil(PlantPage.birthday(of: plant, now: day(2026, 11, 21)))
+    }
+
     func testLeapDayBirthdayFallsOnFeb28() {
         let store = TestStore()
         let plant = store.plant(acquired: day(2024, 2, 29))

@@ -17,7 +17,8 @@ enum PlantPage {
     /// earliest acquired date in its family, the first one a year after, and
     /// Feb 29 falling back to Feb 28 in other years.
     static func birthday(of plant: Plant, now: Date = .now, calendar: Calendar = .current) -> Birthday? {
-        guard let since = Lineage.effectiveAcquiredDate(of: plant) else { return nil }
+        // Retired plants (combined away, gone) don't celebrate.
+        guard plant.isActive, let since = Lineage.effectiveAcquiredDate(of: plant) else { return nil }
         let startOfToday = calendar.startOfDay(for: now)
         // Noon today is "after" the start of today, so an anniversary that
         // falls today is the one returned.
