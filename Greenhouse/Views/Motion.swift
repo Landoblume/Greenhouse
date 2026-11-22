@@ -15,12 +15,6 @@ extension View {
     func revealsOnAppear(_ revealed: Binding<Bool>, delay: Double = 0) -> some View {
         modifier(RevealOnAppear(revealed: revealed, delay: delay))
     }
-
-    /// A loading placeholder's soft sweep of light. Under Reduce Motion it
-    /// stays still.
-    func shimmer() -> some View {
-        modifier(Shimmer())
-    }
 }
 
 private struct RevealOnAppear: ViewModifier {
@@ -37,33 +31,5 @@ private struct RevealOnAppear: ViewModifier {
                 withAnimation(.easeOut(duration: 0.7).delay(delay)) { revealed = true }
             }
         }
-    }
-}
-
-private struct Shimmer: ViewModifier {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var phase: CGFloat = -1
-
-    func body(content: Content) -> some View {
-        content
-            .overlay {
-                if !reduceMotion {
-                    GeometryReader { proxy in
-                        LinearGradient(
-                            colors: [.clear, GH.Palette.surface.opacity(0.7), .clear],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                        .frame(width: proxy.size.width * 0.6)
-                        .offset(x: phase * proxy.size.width)
-                    }
-                    .allowsHitTesting(false)
-                }
-            }
-            .clipped()
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) { phase = 1.2 }
-            }
-            .accessibilityHidden(true)
     }
 }

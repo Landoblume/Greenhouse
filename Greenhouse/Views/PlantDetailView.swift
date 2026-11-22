@@ -6,10 +6,15 @@ import SwiftUI
 struct PlantDetailView: View {
     @ObservedObject var plant: Plant
     let household: Household
+    /// How the hero comes in: opened from a tile, the tile's photo has just
+    /// morphed into it (see `TileMorph`).
+    var heroEntrance = PlantHero.Entrance.fadeIn
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
     @AppStorage(SettingsKey.myName) private var myName = ""
     @State private var showingAddPhoto = false
+    @State private var showingFirstPhoto = false
+    @State private var showingShareCard = false
     @State private var showingCombine = false
     @State private var showingCutting = false
     @State private var showingEdit = false
@@ -21,6 +26,9 @@ struct PlantDetailView: View {
     @State private var photoFrames = PhotoFrameStore()
     @State private var viewerPhotoID: NSManagedObjectID?
     @State private var showingViewer = false
+    /// The strip's frame for the cover photo, set aside while the viewer
+    /// grows from (and shrinks back into) the hero instead.
+    @State private var stripFrameUnderHero: (id: NSManagedObjectID, frame: CGRect?)?
 
     /// The hero is "collapsed" once it's scrolled under the bar, which is
     /// about this far from the top.
@@ -31,7 +39,8 @@ struct PlantDetailView: View {
         let entries = CareHistory.entries(for: plant)
         ScrollView {
             VStack(spacing: 0) {
-                PlantHero(photo: PlantPhotos.cover(for: plant), scroll: scroll, collapseDistance: Self.collapseDistance)
+                PlantHero(photo: PlantPhotos.cover(for: plant), scroll: scroll, collapseDistance: Self.collapseDistance,
+                          entrance: heroEntrance, onOpen: openCover)
                 sheet(timeline: timeline, entries: entries)
             }
         }
@@ -40,7 +49,7 @@ struct PlantDetailView: View {
         .ignoresSafeArea(.container, edges: .top)
         .overlay(alignment: .top) {
             PlantPageBar(title: plant.displayName, scroll: scroll, onBack: { dismiss() }, onShare: {
-                // Wave 3 opens the then-vs-now share card from here.
+                showingShareCard = true
             }, showsMenu: plant.isActive) {
                 moreMenu
             }
@@ -48,6 +57,8 @@ struct PlantDetailView: View {
         .toolbar(.hidden, for: .navigationBar)
         .background(InteractivePopEnabler().frame(width: 0, height: 0).accessibilityHidden(true))
         .sheet(isPresented: $showingAddPhoto) { AddPhotoSheet(plant: plant, household: household) }
+        .sheet(isPresented: $showingFirstPhoto) { CheckInCameraView(plant: plant, household: household) }
+        .sheet(isPresented: $showingShareCard) { ShareCardView(plant: plant) }
         .sheet(isPresented: $showingCombine) { CombineSheet(plant: plant, household: household) }
         .sheet(isPresented: $showingCutting) { CuttingSheet(plant: plant, household: household) }
         .sheet(isPresented: $addingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: nil) }
@@ -192,7 +203,7 @@ struct PlantDetailView: View {
         CollapsibleSection("Photos", summary: "\(timeline.count)") {
             if timeline.isEmpty {
                 PlantPhotosEmptyState(name: plant.displayName,
-                                      onTakePhoto: plant.isActive ? { showingAddPhoto = true } : nil)
+                                      onTakePhoto: plant.isActive ? { showingFirstPhoto = true } : nil)
             } else {
                 PlantPhotoStrip(items: PlantPage.strip(timeline), total: timeline.count,
                                 hiddenID: showingViewer ? viewerPhotoID : nil, frames: photoFrames,
@@ -340,6 +351,21 @@ struct PlantDetailView: View {
             showingViewer = false
             viewerPhotoID = nil
         }
+        // The strip only reports its frames when they move, so put back the
+        // one the hero stood in for.
+        if let saved = stripFrameUnderHero {
+            photoFrames.frames[saved.id] = saved.frame
+            stripFrameUnderHero = nil
+        }
+    }
+
+    /// The hero's tap: the viewer opens on the cover photo, growing out of
+    /// the hero rather than out of its thumbnail in the strip.
+    private func openCover() {
+        guard let cover = PlantPhotos.cover(for: plant), !showingViewer else { return }
+        stripFrameUnderHero = (cover.objectID, photoFrames.frames[cover.objectID])
+        photoFrames.frames[cover.objectID] = scroll.heroFrame
+        openViewer(cover)
     }
 
     private func delete(_ milestone: Milestone) {
@@ -489,13 +515,10 @@ extension View {
     /// `includingCare` also watches reminders and care logs, for views that
     /// show counts or "last watered" from them (the plant page).
     func redrawsOnRelatedChanges(_ plant: Plant, includingCare: Bool = false) -> some View {
-        onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
-            let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
-            let changed = keys.contains { key in
-                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { object in
-                    object is Photo || object is Milestone || object is Project
-                        || (includingCare && (object is CareLog || object is CareTask))
-                } ?? false
+        onReceive(ContextChanges.publisher(for: plant.managedObjectContext)) { note in
+            let changed = ContextChanges.touches(note, in: plant.managedObjectContext) { object in
+                object is Photo || object is Milestone || object is Project
+                    || (includingCare && (object is CareLog || object is CareTask))
             }
             if changed { plant.objectWillChange.send() }
         }

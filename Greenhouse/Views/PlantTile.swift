@@ -5,6 +5,11 @@ import SwiftUI
 /// chip, then the nickname and Latin name.
 struct PlantTile: View {
     @ObservedObject var plant: Plant
+    /// Set on the Plants tab, where tapping the tile morphs it into the page.
+    var morph: TileMorphSource? = nil
+    /// The tile photo's decode size; the iOS 17 morph's flying copy uses it
+    /// too, to hit the same cached picture.
+    static let photoMaxPixel: CGFloat = 600
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var photoHeight: CGFloat { PlantTileStyle.photoHeight(forID: plant.uuid) }
@@ -61,7 +66,7 @@ struct PlantTile: View {
                 // -12...+12 pt as the tile crosses the screen without ever
                 // showing an edge. Reduce Motion keeps it still.
                 let drift = !reduceMotion
-                TilePhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 600)
+                TilePhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: Self.photoMaxPixel)
                     .frame(height: photoHeight + 24)
                     .visualEffect { content, proxy in
                         content.offset(y: drift ? Self.parallax(proxy) : 0)
@@ -100,6 +105,8 @@ struct PlantTile: View {
                         .strokeBorder(GH.Palette.leaf, lineWidth: 3)
                 }
             }
+            .tileMorphSource(id: plant.objectID, in: morph?.namespace)
+            .modifier(TileFrameReporter(id: plant.objectID, store: morph?.frames))
     }
 
     /// "Combined" with its icon, or the icon alone when the tile is too narrow.
@@ -122,12 +129,27 @@ struct PlantTile: View {
 
     /// -12 at the top of the screen to +12 at the bottom, from the tile's
     /// middle relative to the scroll view.
-    private static func parallax(_ proxy: GeometryProxy) -> CGFloat {
+    nonisolated private static func parallax(_ proxy: GeometryProxy) -> CGFloat {
         let viewport = proxy.bounds(of: .scrollView)?.height ?? 0
         guard viewport > 0 else { return 0 }
         let middle = proxy.frame(in: .scrollView).midY
         let progress = min(1, max(0, middle / viewport))
         return (progress - 0.5) * 24
+    }
+}
+
+/// Keeps the photo's on-screen frame in the store, for the iOS 17 morph.
+/// Without a store it measures nothing.
+private struct TileFrameReporter: ViewModifier {
+    let id: NSManagedObjectID
+    let store: TileFrameStore?
+
+    func body(content: Content) -> some View {
+        if let store {
+            content.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { store.frames[id] = $0 }
+        } else {
+            content
+        }
     }
 }
 
@@ -173,12 +195,10 @@ extension View {
     /// logs, which the plant doesn't observe. This redraws it when one changes
     /// (marked done here, or a log arriving from the other phone).
     func redrawsOnWateringChanges(_ plant: Plant) -> some View {
-        onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
-            let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
-            let changed = keys.contains { key in
-                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is CareLog || $0 is CareTask } ?? false
+        onReceive(ContextChanges.publisher(for: plant.managedObjectContext)) { note in
+            if ContextChanges.touches(note, in: plant.managedObjectContext, where: { $0 is CareLog || $0 is CareTask }) {
+                plant.objectWillChange.send()
             }
-            if changed { plant.objectWillChange.send() }
         }
     }
 }

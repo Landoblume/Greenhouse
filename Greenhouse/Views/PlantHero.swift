@@ -8,6 +8,9 @@ import UIKit
 @Observable
 final class PlantHeroScroll {
     var progress: CGFloat = 0
+    /// The hero's frame on screen, for the photo viewer to grow out of.
+    /// Not observed: it changes on every scroll frame.
+    @ObservationIgnored var heroFrame: CGRect = .zero
 
     /// `minY` is the hero's top edge in the scroll view (0 at rest, negative
     /// as it scrolls away). Rounded so tiny moves don't redraw the bar.
@@ -23,12 +26,25 @@ final class PlantHeroScroll {
 /// The 380-pt photo at the top of a plant page, with the dappled-light
 /// overlay. It fades in from 1.06 scale, drifts slower than the page as it
 /// scrolls away (softening a little), and stretches when pulled down. Reduce
-/// Motion keeps only the fade: no scale, drift, stretch or blur.
+/// Motion keeps only the fade: no scale, drift, stretch or blur. Opened from
+/// a tile, the tile's photo becomes the hero, so it skips the fade.
 struct PlantHero: View {
+    enum Entrance: Hashable {
+        /// Fades in from 1.06 scale (Reduce Motion: fade only).
+        case fadeIn
+        /// Already there: the zoom from a tile brought it.
+        case shown
+        /// Appears at once when the iOS 17 tile overlay lands on it.
+        case afterFlight
+    }
+
     let photo: Photo?
     let scroll: PlantHeroScroll
     /// The distance over which the hero is considered collapsing.
     let collapseDistance: CGFloat
+    var entrance = Entrance.fadeIn
+    /// Tapping the photo opens it full screen. Nil without a photo.
+    var onOpen: (() -> Void)? = nil
     var height: CGFloat = GH.PlantPage.heroHeight
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -37,31 +53,35 @@ struct PlantHero: View {
     var body: some View {
         let reduce = reduceMotion
         let height = height
-        // The size comes from the clear base; the photo and light only draw
-        // over it. A fill image sized on its own is as wide as its aspect
-        // needs at 380 pt tall, and a landscape photo stretched the page.
+        let visible = shown || entrance == .shown
+        // The size comes from the clear base. Every layer over it covers
+        // exactly that frame, centered (`CoverImage`): fill-scaled images
+        // left to size themselves made the layers' stack as big as the
+        // largest overflow, which pushed a portrait photo off to the right.
         Color.clear
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .overlay {
                 ZStack {
-                    PlantPhotoView(photo: photo, maxPixel: 1600)
+                    if let photo, let image = ThumbnailCache.shared.image(for: photo, maxPixel: 1600) {
+                        CoverImage(image: image)
+                    } else {
+                        PlantPhotoView(photo: nil, maxPixel: 1600)
+                    }
                     // "Greenhouse at night": the photo dims a little in dark mode.
                     if colorScheme == .dark {
                         Color.black.opacity(0.2)
                     }
-                    Image("DappledLight")
-                        .resizable()
-                        .scaledToFill()
+                    CoverImage(image: Self.dappledLight)
                         .blendMode(.softLight)
-                        .opacity(shown ? (colorScheme == .dark ? 0.32 : 0.4) : 0)
-                        .animation(reduce ? GH.Motion.reduced : .easeOut(duration: 1).delay(0.2), value: shown)
+                        .opacity(visible ? (colorScheme == .dark ? 0.32 : 0.4) : 0)
+                        .animation(reduce ? GH.Motion.reduced : .easeOut(duration: 1).delay(0.2), value: visible)
                         .accessibilityHidden(true)
                 }
             }
             .clipped()
-        .scaleEffect(shown || reduce ? 1 : 1.06)
-        .opacity(shown ? 1 : 0)
+        .scaleEffect(visible || reduce ? 1 : 1.06)
+        .opacity(visible ? 1 : 0)
         .visualEffect { content, proxy in
             let minY = proxy.frame(in: .scrollView).minY
             let pull = reduce ? 0 : max(minY, 0)
@@ -78,20 +98,75 @@ struct PlantHero: View {
         } action: { minY in
             scroll.update(heroMinY: minY, collapsesOver: collapseDistance)
         }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { scroll.heroFrame = $0 }
+        // A tap on the photo opens it; the bar's buttons sit above the hero
+        // and keep their own taps, and a tap doesn't hold up a scroll or pull.
+        .contentShape(Rectangle())
+        .onTapGesture { if photo != nil { onOpen?() } }
         .onAppear {
             guard !shown else { return }
-            withAnimation(reduce ? GH.Motion.reduced : .easeOut(duration: 0.8)) { shown = true }
+            switch entrance {
+            case .shown:
+                shown = true
+            case .fadeIn:
+                withAnimation(reduce ? GH.Motion.reduced : .easeOut(duration: 0.8)) { shown = true }
+            case .afterFlight:
+                // Not animated: it appears under the landing photo, which
+                // then fades away over it.
+                DispatchQueue.main.asyncAfter(deadline: .now() + TileMorph.flightDuration) { shown = true }
+            }
         }
         .accessibilityElement()
         .accessibilityLabel(photo == nil ? "No photo yet" : "Main photo")
-        .accessibilityAddTraits(.isImage)
+        .accessibilityAddTraits(opens ? [.isImage, .isButton] : .isImage)
+        .accessibilityHint(opens ? "Opens it full screen" : "")
+        .accessibilityAction(named: "Open photo") { if opens { onOpen?() } }
+    }
+
+    private var opens: Bool { photo != nil && onOpen != nil }
+
+    private static let dappledLight = UIImage(named: "DappledLight") ?? UIImage()
+}
+
+/// A picture covering exactly the frame it's offered, centered, with what
+/// overflows cropped: the same look as `.scaledToFill()`, but its size is
+/// the frame's, never the picture's, whatever the picture's shape.
+struct CoverImage: View {
+    let image: UIImage
+
+    var body: some View {
+        GeometryReader { proxy in
+            let rect = PlantHeroGeometry.coverRect(imageSize: image.size, in: proxy.size)
+            Image(uiImage: image)
+                .resizable()
+                .frame(width: rect.width, height: rect.height)
+                .position(x: rect.midX, y: rect.midY)
+        }
+        .clipped()
+    }
+}
+
+enum PlantHeroGeometry {
+    /// Where a picture of `imageSize` goes to cover `bounds`: scaled by the
+    /// larger of the two ratios (so no edge shows) and centered (so it crops
+    /// evenly), in the bounds' coordinates.
+    static func coverRect(imageSize: CGSize, in bounds: CGSize) -> CGRect {
+        guard imageSize.width > 0, imageSize.height > 0, bounds.width > 0, bounds.height > 0 else {
+            return CGRect(origin: .zero, size: bounds)
+        }
+        let scale = max(bounds.width / imageSize.width, bounds.height / imageSize.height)
+        let size = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+        return CGRect(x: (bounds.width - size.width) / 2, y: (bounds.height - size.height) / 2,
+                      width: size.width, height: size.height)
     }
 }
 
 /// The plant page's top bar: glass back, share and more buttons over the
 /// hero. As the hero scrolls away a compact bar fades in behind them with the
 /// plant's name (the name itself takes 0.3 s). Reduce Motion: a solid bar,
-/// no blur.
+/// no blur. While the hero shows, a soft paper wash sits under the status
+/// bar so the time and battery read on any photo, in the scheme's own ink;
+/// it fades as the hero goes and the bar takes over.
 struct PlantPageBar<MenuContent: View>: View {
     let title: String
     let scroll: PlantHeroScroll
@@ -138,6 +213,16 @@ struct PlantPageBar<MenuContent: View>: View {
         .padding(.horizontal, GH.Space.m)
         .padding(.top, GH.Space.xxs)
         .padding(.bottom, GH.Space.xs)
+        .background {
+            LinearGradient(stops: [.init(color: GH.Palette.paper.opacity(0.72), location: 0),
+                                   .init(color: GH.Palette.paper.opacity(0.32), location: 0.45),
+                                   .init(color: GH.Palette.paper.opacity(0), location: 1)],
+                           startPoint: .top, endPoint: .bottom)
+                .opacity(1 - backdrop)
+                .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .background {
             ZStack(alignment: .bottom) {
                 if reduceMotion {
