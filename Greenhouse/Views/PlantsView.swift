@@ -1,19 +1,32 @@
 import CoreData
 import SwiftUI
 
-/// Home screen: one tile per active plant.
+/// Home screen: a masonry of plant tiles under a friendly header, search,
+/// collection chips and, some days, an "On this day" throwback.
 struct PlantsView: View {
     @ObservedObject var household: Household
     @AppStorage(Collections.selectedKey) private var selectedCollection = ""
+    @AppStorage(SettingsKey.myName) private var myName = ""
     @FetchRequest private var allPlants: FetchedResults<Plant>
     @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    /// The other people sharing the household, and today's throwback. Worked
+    /// out when the data or the day changes, not on every redraw.
+    @State private var others: [String] = []
+    @State private var throwback: OnThisDay.Match<OnThisDay.PlantPhoto>?
     @State private var showingAdd = false
     @State private var combining: Plant?
+    #if DEBUG
+    @State private var filter = PlantFilter(genus: DemoData.startingGenus)
+    #else
     @State private var filter = PlantFilter()
-    @State private var searching = false
+    #endif
     @FocusState private var searchFocused: Bool
     @State private var deleting: Plant?
+    @State private var choosingPlants: PlantCollection?
 
     init(household: Household) {
         self.household = household
@@ -26,92 +39,58 @@ struct PlantsView: View {
     private var collection: PlantCollection? { Collections.find(selectedCollection, in: household) }
     private var inCollection: [Plant] { allPlants.filter { Collections.contains(collection, $0) } }
     private var plants: [Plant] { filter.apply(to: inCollection) }
-    @State private var choosingPlants: PlantCollection?
+    /// One column at accessibility text sizes, where two would squeeze the names.
+    private var columns: Int { typeSize.isAccessibilitySize ? 1 : 2 }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                if searching {
-                    searchField
-                }
-                CollectionBar(household: household)
-                    .padding(.top, 4)
-                if let collection {
-                    Button { choosingPlants = collection } label: {
-                        Label("Choose plants for \(collection.name ?? "this collection")", systemImage: "checklist")
-                            .font(.subheadline)
+                VStack(alignment: .leading, spacing: 14) {
+                    header
+                        .padding(.horizontal, GH.Space.screen)
+                        .growIn(index: 0)
+                    ForEach(HouseholdMerge.candidates(for: household, in: Array(households))) { other in
+                        MergeCard(source: other, target: household)
+                            .padding(.horizontal, GH.Space.screen)
                     }
-                    .padding(.top, 8)
-                }
-                ForEach(HouseholdMerge.candidates(for: household, in: Array(households))) { other in
-                    MergeCard(source: other, target: household)
-                        .padding([.horizontal, .top])
-                }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], spacing: 12) {
-                    ForEach(plants) { plant in
-                        NavigationLink(value: plant) { PlantTile(plant: plant) }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                if allPlants.count >= 2 {
-                                    Button { combining = plant } label: {
-                                        Label("Combine with other plants…", systemImage: "arrow.triangle.merge")
-                                    }
-                                }
-                                Button(role: .destructive) { deleting = plant } label: {
-                                    Label("Delete plant", systemImage: "trash")
-                                }
-                            }
+                    if allPlants.isEmpty {
+                        PlantsEmptyState { showingAdd = true }
+                    } else {
+                        populated
                     }
                 }
-                .padding()
+                .padding(.top, GH.Space.xs)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(GH.Palette.paper.ignoresSafeArea())
             .ghTabBarClearance()
-            .overlay {
-                if allPlants.isEmpty {
-                    ContentUnavailableView("No plants yet", systemImage: "leaf", description: Text("Tap + to add your first plant."))
-                } else if plants.isEmpty, !inCollection.isEmpty {
-                    ContentUnavailableView {
-                        Label("No matching plants", systemImage: "magnifyingglass")
-                    } actions: {
-                        Button("Clear search and filters") {
-                            filter = PlantFilter()
-                            searching = false
-                        }
-                    }
-                } else if plants.isEmpty, let collection {
-                    ContentUnavailableView("Nothing in \(collection.name ?? "this collection") yet", systemImage: "square.stack",
-                                           description: Text("Tap “Choose plants” above, or + to add a new plant here."))
-                        .allowsHitTesting(false)
-                }
-            }
-            .navigationTitle(household.name ?? "Plants")
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Plant.self) { PlantDetailView(plant: $0, household: household) }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0, household: household) }
             .navigationDestination(for: CareHistoryRoute.self) { CareHistoryView(plant: $0.plant) }
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarLeading) {
-                    Button {
-                        if searching {
-                            filter.query = ""
-                            searching = false
-                        } else {
-                            searching = true
-                            searchFocused = true
-                        }
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .accessibilityLabel(searching ? "Close search" : "Search plants")
-                    filterMenu
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingAdd = true } label: { Image(systemName: "plus") }
-                        .accessibilityLabel("Add plant")
-                }
-            }
             .onChange(of: PlantFilter.genera(in: inCollection)) {
                 filter = filter.clearingUnavailableGenus(in: inCollection)
+            }
+            .onAppear { refreshOthers(); refreshThrowback() }
+            .onChange(of: myName) { refreshOthers() }
+            .onChange(of: inCollection.map(\.objectID)) { refreshThrowback() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshOthers(); refreshThrowback() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in refreshThrowback() }
+            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
+                // New care logs (here or syncing in) can add a person; photo,
+                // plant and Combine changes can change the throwback.
+                let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
+                var logs = false, photos = false
+                for key in keys {
+                    for object in note.userInfo?[key] as? Set<NSManagedObject> ?? [] {
+                        if object is CareLog { logs = true }
+                        if object is Photo || object is Plant || object is LineageEvent || object is PlantCollection { photos = true }
+                    }
+                }
+                if logs { refreshOthers() }
+                if photos { refreshThrowback() }
             }
             .sheet(isPresented: $showingAdd) { AddPlantView(household: household) }
             .sheet(item: $choosingPlants) { CollectionPlantsSheet(collection: $0, household: household) }
@@ -133,24 +112,178 @@ struct PlantsView: View {
         }
     }
 
-    private var searchField: some View {
-        HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(GH.Palette.ink2)
-            TextField("Name, species, where it lives or notes", text: $filter.query)
-                .focused($searchFocused)
-                .submitLabel(.search)
-                .autocorrectionDisabled()
-            if !filter.query.isEmpty {
-                Button { filter.query = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(GH.Palette.ink2)
+    // MARK: - Header
+
+    /// Today's date, the big title, the household's avatars and the + button.
+    private var header: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .bottom) {
+                titleBlock
+                Spacer(minLength: GH.Space.s)
+                HStack(spacing: GH.Space.s) {
+                    PeopleAvatars(names: others)
+                    addButton
                 }
-                .accessibilityLabel("Clear search")
+            }
+            VStack(alignment: .leading, spacing: GH.Space.s) {
+                titleBlock
+                HStack(spacing: GH.Space.s) {
+                    PeopleAvatars(names: others)
+                    Spacer(minLength: 0)
+                    addButton
+                }
             }
         }
-        .padding(10)
-        .background(GH.Palette.surface2, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
-        .padding(.horizontal)
-        .padding(.top, 4)
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let name = household.name?.trimmingCharacters(in: .whitespaces), !name.isEmpty {
+                Text(name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(GH.Palette.ink2)
+            }
+            Text("Plants")
+                .font(.ghRounded(.largeTitle))
+                .foregroundStyle(GH.Palette.ink)
+                .accessibilityAddTraits(.isHeader)
+        }
+    }
+
+    private var addButton: some View {
+        Button { showingAdd = true } label: {
+            Image(systemName: "plus")
+                .font(.body.weight(.bold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .foregroundStyle(GH.Palette.onLeaf)
+                .frame(width: 44, height: 44)
+                .background(GH.Palette.leaf, in: Circle())
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add plant")
+    }
+
+    private func refreshOthers() {
+        let loggers = (household.tasks ?? []).flatMap { ($0.logs ?? []).compactMap(\.doneBy) }
+        let updated = PeopleAvatars.others(me: myName, loggers: loggers)
+        if updated != others { others = updated }
+    }
+
+    private func refreshThrowback() {
+        let pick = OnThisDay.pick(in: inCollection, today: .now)
+        let changed = pick?.item.photo != throwback?.item.photo || pick?.yearsAgo != throwback?.yearsAgo
+        if changed { throwback = pick }
+    }
+
+    // MARK: - With plants
+
+    @ViewBuilder
+    private var populated: some View {
+        searchRow
+            .padding(.horizontal, GH.Space.screen)
+            .growIn(index: 1)
+        VStack(alignment: .leading, spacing: 0) {
+            CollectionBar(household: household)
+            if let collection {
+                Button { choosingPlants = collection } label: {
+                    Label("Choose plants for \(collection.name ?? "this collection")", systemImage: "checklist")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(GH.Palette.leafInk)
+                        .frame(minHeight: 44)
+                }
+                .padding(.leading, GH.Space.screen)
+            }
+        }
+        // Chips scroll sideways and fade out at the right edge.
+        .padding(.leading, 4)
+        .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.94),
+                                     .init(color: .clear, location: 1)], startPoint: .leading, endPoint: .trailing))
+        .growIn(index: 2)
+        if let throwback {
+            OnThisDayCard(plant: throwback.item.plant, photo: throwback.item.photo, yearsAgo: throwback.yearsAgo)
+                .padding(.horizontal, GH.Space.screen)
+                .growIn(index: 3)
+        }
+        if let genus = filter.genus {
+            GenusChip(genus: genus) {
+                withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.enter) { filter.genus = nil }
+            }
+                .padding(.horizontal, GH.Space.screen)
+        }
+        grid
+    }
+
+    @ViewBuilder
+    private var grid: some View {
+        if plants.isEmpty, !inCollection.isEmpty {
+            ContentUnavailableView {
+                Label("No matching plants", systemImage: "magnifyingglass")
+            } actions: {
+                Button("Clear search and filters") {
+                    filter = PlantFilter()
+                }
+                .buttonStyle(.ghProminent)
+            }
+        } else if plants.isEmpty, let collection {
+            ContentUnavailableView("Nothing in \(collection.name ?? "this collection") yet", systemImage: "square.stack",
+                                   description: Text("Tap \u{201C}Choose plants\u{201D} above, or + to add a new plant here."))
+        } else {
+            LazyMasonry(items: plants,
+                        heights: plants.map { PlantTileStyle.estimatedHeight(forID: $0.uuid) },
+                        columns: columns) { plant, index in
+                NavigationLink(value: plant) { PlantTile(plant: plant) }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        if allPlants.count >= 2 {
+                            Button { combining = plant } label: {
+                                Label("Combine with other plants…", systemImage: "arrow.triangle.merge")
+                            }
+                        }
+                        Button(role: .destructive) { deleting = plant } label: {
+                            Label("Delete plant", systemImage: "trash")
+                        }
+                    }
+                    .transition(.opacity)
+                    .modifier(FirstTilesGrowIn(index: index))
+                    .scrollSoftening()
+            }
+            .padding(.horizontal, GH.Space.screen)
+            // Filtering or sorting reflows the tiles (the ids are stable);
+            // Reduce Motion makes it a quick ease instead of a spring.
+            .animation(reduceMotion ? GH.Motion.reduced : GH.Motion.enter, value: plants.map(\.objectID))
+        }
+    }
+
+    // MARK: - Search and filter
+
+    private var searchRow: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: GH.Space.xs) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(GH.Palette.ink2)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .accessibilityHidden(true)
+                TextField("Search plants, rooms, Latin names", text: $filter.query)
+                    .focused($searchFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .foregroundStyle(GH.Palette.ink)
+                if !filter.query.isEmpty {
+                    Button { filter.query = "" } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(GH.Palette.ink2)
+                            .frame(minWidth: 44, minHeight: 44)
+                    }
+                    .accessibilityLabel("Clear search")
+                }
+            }
+            .padding(.leading, 14)
+            .padding(.trailing, filter.query.isEmpty ? 14 : 0)
+            .frame(minHeight: 44)
+            .background(GH.Palette.surface2, in: RoundedRectangle(cornerRadius: GH.Radius.control, style: .continuous))
+            filterMenu
+        }
     }
 
     private var filterMenu: some View {
@@ -166,12 +299,12 @@ struct PlantsView: View {
                 }
                 Toggle("Needs water now", isOn: $filter.needsWater)
             }
-            .listRowBackground(GH.Palette.surface)
-            let genera = PlantFilter.genera(in: inCollection)
-            if !genera.isEmpty {
+            if PlantFilter.offersGenusPicker(in: inCollection) {
                 Picker("Genus", selection: $filter.genus) {
                     Text("Any genus").tag(String?.none)
-                    ForEach(genera, id: \.self) { Text($0).tag(String?.some($0)) }
+                    ForEach(PlantFilter.genusCounts(in: inCollection), id: \.genus) {
+                        Text($0.label).tag(String?.some($0.genus))
+                    }
                 }
                 .pickerStyle(.menu)
             }
@@ -190,8 +323,150 @@ struct PlantsView: View {
             Image(systemName: filter.isFiltering
                   ? "line.3.horizontal.decrease.circle.fill"
                   : "line.3.horizontal.decrease.circle")
+                .font(.title3)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .foregroundStyle(filter.isFiltering ? GH.Palette.leafInk : GH.Palette.ink)
+                .frame(width: 44, height: 44)
+                .background(filter.isFiltering ? GH.Palette.leafSoft : GH.Palette.surface2, in: Circle())
         }
         .accessibilityLabel("Filter and sort")
+    }
+}
+
+/// The "Monstera ✕" chip above the grid while a genus filter is on.
+struct GenusChip: View {
+    let genus: String
+    let onClear: () -> Void
+
+    var body: some View {
+        Button(action: onClear) {
+            HStack(spacing: 6) {
+                Text(genus)
+                Image(systemName: "xmark").font(.caption.weight(.heavy))
+            }
+            .font(.ghRounded(.subheadline, weight: .bold))
+            .foregroundStyle(GH.Palette.leafInk)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 34)
+            .background(GH.Palette.leafSoft, in: Capsule(style: .continuous))
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Genus \(genus)")
+        .accessibilityHint("Removes this filter")
+    }
+}
+
+/// Small blob-shaped initials for the other people sharing the household:
+/// two of them, then a "+N" bubble when there are more.
+struct PeopleAvatars: View {
+    /// Everyone else, in a stable order. Empty hides the avatars.
+    let names: [String]
+
+    /// The other people who've logged care: not this phone's own name, and
+    /// nobody at all when this phone's name isn't set yet (there's no telling
+    /// which logger is "me"). Case and spacing don't make a different person,
+    /// and the order is by name so both phones show the same people.
+    static func others(me: String, loggers: [String]) -> [String] {
+        func clean(_ name: String) -> String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let mine = clean(me)
+        guard !mine.isEmpty else { return [] }
+        var seen: Set<String> = [mine.lowercased()]
+        var result: [String] = []
+        func inOrder(_ a: String, _ b: String) -> Bool {
+            let order = a.localizedCaseInsensitiveCompare(b)
+            return order == .orderedSame ? a < b : order == .orderedAscending
+        }
+        for name in loggers.map(clean).sorted(by: inOrder) where !name.isEmpty {
+            if seen.insert(name.lowercased()).inserted { result.append(name) }
+        }
+        return result
+    }
+
+    /// "Shared with Alex", "Shared with Alex and Sam", "Shared with Alex, Sam and Riley".
+    static func spokenLabel(for names: [String]) -> String {
+        "Shared with \(names.formatted(.list(type: .and)))"
+    }
+
+    private static let fills: [(Color, Color)] = [(GH.Palette.terraSoft, GH.Palette.terraInk), (GH.Palette.skySoft, GH.Palette.skyInk),
+                                                  (GH.Palette.leafSoft, GH.Palette.leafInk)]
+
+    var body: some View {
+        if !names.isEmpty {
+            let shown = Array(names.prefix(2))
+            let extra = names.count - shown.count
+            HStack(spacing: -8) {
+                ForEach(Array(shown.enumerated()), id: \.offset) { index, name in
+                    bubble(String(name.prefix(1)).uppercased(), index: index)
+                }
+                if extra > 0 { bubble("+\(extra)", index: 2) }
+            }
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Self.spokenLabel(for: names))
+        }
+    }
+
+    private func bubble(_ text: String, index: Int) -> some View {
+        let colors = Self.fills[index % Self.fills.count]
+        return Text(text)
+            .font(.ghRounded(.footnote))
+            .foregroundStyle(colors.1)
+            .minimumScaleFactor(0.7)
+            .lineLimit(1)
+            .frame(width: 32, height: 32)
+            .background(colors.0, in: BlobShape(variant: index))
+            .overlay { if index > 0 { BlobShape(variant: index).stroke(GH.Palette.paper, lineWidth: 2) } }
+    }
+}
+
+/// Only the first screenful of tiles grows in; tiles scrolled to later are
+/// built on demand and just appear (scroll softening handles their entrance).
+struct FirstTilesGrowIn: ViewModifier {
+    let index: Int
+
+    func body(content: Content) -> some View {
+        if index < 8 {
+            content.growIn(index: index, baseDelay: 0.2)
+        } else {
+            content
+        }
+    }
+}
+
+/// An irregular rounded rectangle, for avatars only.
+struct BlobShape: Shape {
+    var variant = 0
+
+    func path(in rect: CGRect) -> Path {
+        // Horizontal and vertical corner radii as fractions of the size:
+        // top-left, top-right, bottom-right, bottom-left.
+        let (rx, ry): ([CGFloat], [CGFloat]) = variant % 2 == 0
+            ? ([0.58, 0.42, 0.55, 0.45], [0.52, 0.58, 0.42, 0.48])
+            : ([0.45, 0.55, 0.42, 0.58], [0.58, 0.45, 0.55, 0.42])
+        let w = rect.width, h = rect.height
+        let k: CGFloat = 0.5523
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + rx[0] * w, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - rx[1] * w, y: rect.minY))
+        path.addCurve(to: CGPoint(x: rect.maxX, y: rect.minY + ry[1] * h),
+                      control1: CGPoint(x: rect.maxX - rx[1] * w * (1 - k), y: rect.minY),
+                      control2: CGPoint(x: rect.maxX, y: rect.minY + ry[1] * h * (1 - k)))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - ry[2] * h))
+        path.addCurve(to: CGPoint(x: rect.maxX - rx[2] * w, y: rect.maxY),
+                      control1: CGPoint(x: rect.maxX, y: rect.maxY - ry[2] * h * (1 - k)),
+                      control2: CGPoint(x: rect.maxX - rx[2] * w * (1 - k), y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + rx[3] * w, y: rect.maxY))
+        path.addCurve(to: CGPoint(x: rect.minX, y: rect.maxY - ry[3] * h),
+                      control1: CGPoint(x: rect.minX + rx[3] * w * (1 - k), y: rect.maxY),
+                      control2: CGPoint(x: rect.minX, y: rect.maxY - ry[3] * h * (1 - k)))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + ry[0] * h))
+        path.addCurve(to: CGPoint(x: rect.minX + rx[0] * w, y: rect.minY),
+                      control1: CGPoint(x: rect.minX, y: rect.minY + ry[0] * h * (1 - k)),
+                      control2: CGPoint(x: rect.minX + rx[0] * w * (1 - k), y: rect.minY))
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -234,57 +509,6 @@ struct MergeCard: View {
                 Text("Everyone in the household will see them. Your separate household is removed once they've moved.")
             }
         }
-    }
-}
-
-struct PlantTile: View {
-    @ObservedObject var plant: Plant
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            PlantPhotoView(photo: PlantPhotos.cover(for: plant), maxPixel: 400)
-                .frame(height: 150)
-                .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
-            Text(plant.displayName)
-                .font(.ghRounded(.headline))
-                .foregroundStyle(GH.Palette.ink)
-                .lineLimit(1)
-            if let latin = plant.scientificName {
-                Text(latin)
-                    .font(.caption)
-                    .italic()
-                    .foregroundStyle(GH.Palette.ink2)
-                    .lineLimit(1)
-            }
-            if let since = Lineage.effectiveAcquiredDate(of: plant) {
-                Text("Since \(Lineage.format(since))")
-                    .font(.caption2)
-                    .foregroundStyle(GH.Palette.ink2)
-            }
-            if let watering = plant.wateringTask {
-                DueBadge(task: watering)
-            }
-        }
-        .padding(8)
-        .ghCard()
-        .overlay {
-            if Plans.isInActiveProject(plant) {
-                RoundedRectangle(cornerRadius: GH.Radius.card, style: .continuous).strokeBorder(GH.Palette.leaf, lineWidth: 3)
-            }
-        }
-        .overlay(alignment: .topLeading) {
-            if Plans.isInActiveProject(plant) {
-                Image(systemName: "hammer.fill")
-                    .font(.caption)
-                    .foregroundStyle(GH.Palette.onLeaf)
-                    .padding(6)
-                    .background(GH.Palette.leaf, in: Circle())
-                    .padding(14)
-                    .accessibilityLabel("Part of a project in progress")
-            }
-        }
-        .redrawsOnRelatedChanges(plant)
     }
 }
 
