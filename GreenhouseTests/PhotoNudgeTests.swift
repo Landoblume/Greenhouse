@@ -667,6 +667,24 @@ final class PhotoNudgeTests: XCTestCase {
         XCTAssertNil(CheckInThumbnails.file(photoID: UUID(), imageData: Data("not an image".utf8), in: folder))
     }
 
+    func testMakingThumbnailsNeverDeletesOtherFiles() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("thumb-test-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // A thumbnail a newer reschedule just made, for a photo this run doesn't know.
+        let newer = try XCTUnwrap(CheckInThumbnails.file(photoID: UUID(), imageData: try jpegData(color: .systemBlue), in: folder))
+
+        let store = TestStore()
+        let fern = store.plant(nickname: "Fern", acquired: day(2025, 1, 1))
+        PlantFactory.addPhoto(try jpegData(), takenAt: day(2026, 3, 1), to: fern, household: store.household,
+                              context: store.context, persistence: store.persistence)
+        store.save()
+        let photo = try XCTUnwrap(Lineage.timeline(for: fern).last?.photo)
+        let made = await CheckInThumbnails.files(for: [try XCTUnwrap(fern.uuid): photo.objectID], in: store.persistence, folder: folder)
+
+        XCTAssertEqual(made.count, 1)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: newer.path), "only the current reschedule prunes")
+    }
+
     func testAnOvertakenRescheduleDoesNotRun() {
         let generations = RescheduleGeneration()
         let first = generations.next()

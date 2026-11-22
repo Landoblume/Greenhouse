@@ -559,6 +559,9 @@ enum NotificationPlanner {
                 let categoryPlants = categoryPlantIDs(planned: planned, delivered: delivered)
                 let thumbnails = await CheckInThumbnails.files(for: latestPhotos, in: persistence)
                 rescheduleGeneration.runIfCurrent(generation) {
+                    // Only the current reschedule prunes: an overtaken one could
+                    // delete a thumbnail the newer one just made.
+                    CheckInThumbnails.prune(keeping: Set(thumbnails.values.map(\.lastPathComponent)), in: CheckInThumbnails.cacheFolder)
                     center.removeAllPendingNotificationRequests()
                     center.setNotificationCategories(Set(categoryPlants.compactMap { id in
                         names[id].map { checkInCategory(plantID: id, plantName: $0) }
@@ -631,25 +634,19 @@ enum CheckInThumbnails {
     }
 
     /// The cached thumbnail for each plant's photo, made now if it isn't there
-    /// yet. Runs on a background context. Thumbnails of photos no check-in
-    /// needs any more are removed.
+    /// yet. Runs on a background context. It never deletes anything: the
+    /// caller prunes (see `prune`) once it knows its plan is still current.
     static func files(for photos: [UUID: NSManagedObjectID], in persistence: Persistence, folder: URL = cacheFolder) async -> [UUID: URL] {
-        guard !photos.isEmpty else {
-            prune(keeping: [], in: folder)
-            return [:]
-        }
+        guard !photos.isEmpty else { return [:] }
         let context = persistence.container.newBackgroundContext()
         return await context.perform {
             var result: [UUID: URL] = [:]
-            var kept: Set<String> = []
             for (plantID, objectID) in photos {
                 guard let photo = try? context.existingObject(with: objectID) as? Photo,
                       let uuid = photo.uuid, let data = photo.imageData,
                       let url = file(photoID: uuid, imageData: data, in: folder) else { continue }
                 result[plantID] = url
-                kept.insert(url.lastPathComponent)
             }
-            prune(keeping: kept, in: folder)
             return result
         }
     }
