@@ -26,9 +26,13 @@ enum CareHistoryStyle {
     /// All threads: the left-hand month labels, and the widest lane spacing.
     static let monthColumn: CGFloat = 60
     static let wideSpacing: CGFloat = 95
-    /// All threads: room kept clear right of the lanes, so every label can
-    /// sit to the right of its dot, even on the rightmost lane.
+    /// All threads: room kept clear right of the lanes at the default text
+    /// size, so every label can sit to the right of its dot, even on the
+    /// rightmost lane. It grows with the caption text: see `labelRoom(at:)`.
     static let labelRoom: CGFloat = 104
+    /// All threads: the least each lane keeps when big text wants more label
+    /// room, so dots never pile up (the labels truncate instead).
+    static let minLaneRoom: CGFloat = 24
     /// All threads: from a dot's center to its label.
     static let labelGap: CGFloat = 14
 
@@ -39,6 +43,12 @@ enum CareHistoryStyle {
     /// level with the middle of the title's first line however big the text.
     static func titleMiddle(below padding: CGFloat, style: UIFont.TextStyle, size: DynamicTypeSize) -> CGFloat {
         padding + lineHeight(style, size: size) / 2
+    }
+
+    /// `labelRoom`, scaled by how much the labels' caption text has grown:
+    /// 104 at the default size, more at larger ones.
+    static func labelRoom(at size: DynamicTypeSize) -> CGFloat {
+        labelRoom * lineHeight(.caption1, size: size) / lineHeight(.caption1, size: .large)
     }
 
     static func lineHeight(_ style: UIFont.TextStyle, size: DynamicTypeSize) -> CGFloat {
@@ -83,13 +93,15 @@ struct LaneGeometry: Equatable {
 
     func x(_ column: Int) -> CGFloat { column >= 0 && column < xs.count ? xs[column] : (xs.first ?? 0) }
 
-    static func make(level: CareHistoryLevel, columns: Int, width: CGFloat, tight: Bool) -> LaneGeometry {
+    static func make(level: CareHistoryLevel, columns: Int, width: CGFloat, tight: Bool,
+                     size: DynamicTypeSize = .large) -> LaneGeometry {
         let n = max(columns, 1)
         switch level {
         case .allThreads:
             // Lanes fill what's left after the month labels on the left and
-            // the label room on the right.
-            let available = max(width - CareHistoryStyle.monthColumn - CareHistoryStyle.labelRoom, 40)
+            // the label room (which grows with the text) on the right.
+            let room = CareHistoryStyle.labelRoom(at: size)
+            let available = max(width - CareHistoryStyle.monthColumn - room, CGFloat(n) * CareHistoryStyle.minLaneRoom)
             let spacing = min(CareHistoryStyle.wideSpacing, available / CGFloat(n))
             let center = CareHistoryStyle.monthColumn + available / 2
             let xs = (0..<n).map { center + (CGFloat($0) - CGFloat(n - 1) / 2) * spacing }

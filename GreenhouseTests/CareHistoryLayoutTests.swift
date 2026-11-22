@@ -621,13 +621,25 @@ final class CareHistoryLayoutTests: XCTestCase {
 
     func testASwipeDecidesItsDirectionOnce() {
         var lock = SwipeAxisLock()
-        XCTAssertNil(lock.update(CGSize(width: 3, height: 2)), "too small to tell")
-        XCTAssertEqual(lock.update(CGSize(width: 8, height: 12)), .vertical)
+        let here = CGPoint(x: 200, y: 300)
+        XCTAssertNil(lock.update(CGSize(width: 3, height: 2), from: here), "too small to tell")
+        XCTAssertEqual(lock.update(CGSize(width: 8, height: 12), from: here), .vertical)
         // A diagonal scroll that drifts sideways stays a scroll.
-        XCTAssertEqual(lock.update(CGSize(width: -60, height: 14)), .vertical)
+        XCTAssertEqual(lock.update(CGSize(width: -60, height: 14), from: here), .vertical)
         lock.reset()
-        XCTAssertEqual(lock.update(CGSize(width: -30, height: 4)), .horizontal)
-        XCTAssertEqual(lock.update(CGSize(width: -32, height: 40)), .horizontal, "and a swipe stays a swipe")
+        XCTAssertEqual(lock.update(CGSize(width: -30, height: 4), from: here), .horizontal)
+        XCTAssertEqual(lock.update(CGSize(width: -32, height: 40), from: here), .horizontal, "and a swipe stays a swipe")
+    }
+
+    func testANewDragNeverInheritsACancelledOnesDirection() {
+        var lock = SwipeAxisLock()
+        // A scroll the scroll view took over: it never ends, so no reset.
+        XCTAssertEqual(lock.update(CGSize(width: 2, height: 40), from: CGPoint(x: 200, y: 300)), .vertical)
+        // The next drag starts somewhere else and decides afresh.
+        XCTAssertEqual(lock.update(CGSize(width: -30, height: 3), from: CGPoint(x: 210, y: 420)), .horizontal)
+        // And the other way round: a cancelled swipe doesn't make the next scroll a swipe.
+        XCTAssertEqual(lock.update(CGSize(width: 4, height: 30), from: CGPoint(x: 150, y: 500)), .vertical)
+        XCTAssertNil(lock.update(CGSize(width: 1, height: 1), from: CGPoint(x: 90, y: 90)), "undecided until it moves")
     }
 
     func testDotsStayOnTheTitleLineAtEveryTextSize() {
@@ -642,12 +654,21 @@ final class CareHistoryLayoutTests: XCTestCase {
     }
 
     func testLabelsAlwaysHaveRoomRightOfTheLanes() {
-        for columns in 1...CareHistory.maxColumns {
-            let geometry = LaneGeometry.make(level: .allThreads, columns: columns, width: 390, tight: false)
-            let rightmost = geometry.xs.max()!
-            XCTAssertLessThanOrEqual(rightmost + CareHistoryStyle.labelGap + 80, 390, "\(columns) columns")
-            XCTAssertGreaterThanOrEqual(geometry.xs.min()!, CareHistoryStyle.monthColumn)
+        XCTAssertEqual(CareHistoryStyle.labelRoom(at: .large), 104, accuracy: 0.001, "the default size keeps 104")
+        XCTAssertGreaterThan(CareHistoryStyle.labelRoom(at: .accessibility2), 104 * 1.5, "it grows with the caption text")
+        for size in [DynamicTypeSize.large, .accessibility2] {
+            let room = CareHistoryStyle.labelRoom(at: size)
+            for columns in 1...CareHistory.maxColumns {
+                let geometry = LaneGeometry.make(level: .allThreads, columns: columns, width: 390, tight: size.isAccessibilitySize,
+                                                 size: size)
+                let rightmost = geometry.xs.max()!
+                XCTAssertLessThanOrEqual(rightmost + room, 390 + 0.001, "\(columns) columns at \(size): the whole room is free")
+                XCTAssertGreaterThanOrEqual(geometry.xs.min()!, CareHistoryStyle.monthColumn)
+            }
         }
+        // At the very largest sizes the lanes keep their minimum and the labels give way.
+        let squeezed = LaneGeometry.make(level: .allThreads, columns: 4, width: 390, tight: true, size: .accessibility5)
+        XCTAssertGreaterThanOrEqual(squeezed.spacing, CareHistoryStyle.minLaneRoom - 0.001)
     }
 
     func testComingBackReplaysTheDotsButALevelChangeDoesNot() {

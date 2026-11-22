@@ -239,7 +239,7 @@ struct CareHistoryRowView: View {
     }
 
     /// A label pinned just right of its dot, always: the lanes leave room
-    /// for it on the right (`CareHistoryStyle.labelRoom`).
+    /// for it on the right (`CareHistoryStyle.labelRoom(at:)`).
     @ViewBuilder private func chip(_ text: String, plant: Plant, leaf: Bool = false, opens: Plant? = nil) -> some View {
         let label = HStack(spacing: 3) {
             Text(text).lineLimit(1)
@@ -690,16 +690,27 @@ struct SwipeAxisLock {
     static let ratio: CGFloat = 1.5
 
     private(set) var axis: Axis?
+    /// Where the drag being decided started. A drag from somewhere else is
+    /// a new one: the scroll view can cancel a drag without it ever ending,
+    /// so the next one mustn't inherit its direction.
+    private var start: CGPoint?
 
     /// The drag's direction, decided on the first movement big enough to tell.
-    mutating func update(_ translation: CGSize) -> Axis? {
+    mutating func update(_ translation: CGSize, from origin: CGPoint) -> Axis? {
+        if origin != start {
+            axis = nil
+            start = origin
+        }
         if axis == nil, max(abs(translation.width), abs(translation.height)) >= Self.decideAfter {
             axis = abs(translation.width) > abs(translation.height) * Self.ratio ? .horizontal : .vertical
         }
         return axis
     }
 
-    mutating func reset() { axis = nil }
+    mutating func reset() {
+        axis = nil
+        start = nil
+    }
 }
 
 /// Swipe a log row left to show Undo. The row's words move; the threads stay.
@@ -708,6 +719,9 @@ private struct HistoryUndoSwipe: ViewModifier {
     @State private var offset: CGFloat = 0
     @State private var isOpen = false
     @State private var lock = SwipeAxisLock()
+    /// True while a drag is live. Falls back to false when the drag ends
+    /// or is cancelled (the scroll view took it), which `onEnded` misses.
+    @GestureState private var dragging = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let reveal: CGFloat = 92
@@ -735,21 +749,34 @@ private struct HistoryUndoSwipe: ViewModifier {
             }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 20)
+                    .updating($dragging) { _, state, _ in state = true }
                     .onChanged { value in
-                        guard lock.update(value.translation) == .horizontal else { return }
+                        guard lock.update(value.translation, from: value.startLocation) == .horizontal else { return }
                         offset = min(0, max((isOpen ? -reveal : 0) + value.translation.width, -reveal * 1.4))
                     }
                     .onEnded { _ in
                         defer { lock.reset() }
                         // A scroll leaves the row exactly as it was.
                         guard lock.axis == .horizontal else { return }
-                        let open = offset < -reveal / 2
-                        withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.fold) {
-                            isOpen = open
-                            offset = open ? -reveal : 0
-                        }
+                        settle()
                     }
             )
+            .onChange(of: dragging) { _, live in
+                // Cancelled rather than ended: onEnded never ran, so let go
+                // here. (After a normal end the lock is already reset.)
+                guard !live, lock.axis != nil else { return }
+                if lock.axis == .horizontal { settle() }
+                lock.reset()
+            }
+    }
+
+    /// Snap open or shut, whichever is nearer.
+    private func settle() {
+        let open = offset < -reveal / 2
+        withAnimation(reduceMotion ? GH.Motion.reduced : GH.Motion.fold) {
+            isOpen = open
+            offset = open ? -reveal : 0
+        }
     }
 
     private func close() {

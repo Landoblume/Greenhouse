@@ -110,7 +110,7 @@ struct CareHistoryView: View {
     var body: some View {
         let timeline = shown
         let geometry = LaneGeometry.make(level: level, columns: timeline.columnCount, width: viewport.width,
-                                         tight: typeSize.isAccessibilitySize)
+                                         tight: typeSize.isAccessibilitySize, size: typeSize)
         let schedule = CareHistory.drawSchedule(for: timeline, window: window)
         let actions = CareHistoryActions(
             focus: { zoom(into: $0) },
