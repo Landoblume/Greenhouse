@@ -1,3 +1,4 @@
+import Combine
 import CoreData
 import SwiftUI
 
@@ -275,12 +276,40 @@ extension View {
     /// changes, here or on the other phone. This tells it, which also redraws
     /// the tabs that filter by the picked collection.
     func redrawsOnCollectionChanges(_ household: Household) -> some View {
-        onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange)) { note in
-            let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
-            let changed = keys.contains { key in
-                (note.userInfo?[key] as? Set<NSManagedObject>)?.contains { $0 is PlantCollection } ?? false
+        onReceive(ContextChanges.publisher(for: household.managedObjectContext)) { note in
+            if ContextChanges.touches(note, in: household.managedObjectContext, where: { $0 is PlantCollection }) {
+                household.objectWillChange.send()
             }
-            if changed { household.objectWillChange.send() }
+        }
+    }
+}
+
+/// `NSManagedObjectContextObjectsDidChange`, but only from one context: the
+/// main-thread one a view's objects live in. Listening to every context also
+/// hears background ones (a CloudKit import, a save on another queue), which
+/// post on their own thread: reading their objects there is unsafe, and
+/// redrawing from there is the "Publishing changes from background threads"
+/// warning. Their changes still arrive: merging them into the main context
+/// posts again, on the main thread.
+enum ContextChanges {
+    static let keys = [NSInsertedObjectsKey, NSUpdatedObjectsKey, NSDeletedObjectsKey, NSRefreshedObjectsKey]
+
+    /// The change notifications of `context` alone; none at all without one
+    /// (an object that was deleted has no context).
+    static func publisher(for context: NSManagedObjectContext?) -> AnyPublisher<Notification, Never> {
+        guard let context else { return Empty().eraseToAnyPublisher() }
+        return NotificationCenter.default
+            .publisher(for: .NSManagedObjectContextObjectsDidChange, object: context)
+            .eraseToAnyPublisher()
+    }
+
+    /// True when `note` comes from `context` and names an object that
+    /// `matches`. A note from any other context is never read.
+    static func touches(_ note: Notification, in context: NSManagedObjectContext?,
+                        where matches: (NSManagedObject) -> Bool) -> Bool {
+        guard let context, (note.object as? NSManagedObjectContext) === context else { return false }
+        return keys.contains { key in
+            (note.userInfo?[key] as? Set<NSManagedObject>)?.contains(where: matches) ?? false
         }
     }
 }
