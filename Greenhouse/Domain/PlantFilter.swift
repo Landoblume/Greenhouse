@@ -55,6 +55,31 @@ struct PlantFilter: Equatable {
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
+    /// One row of the genus picker: "Monstera (3)".
+    struct GenusCount: Equatable {
+        let genus: String
+        let count: Int
+        var label: String { "\(genus) (\(count))" }
+    }
+
+    /// The genera present in these plants with how many plants each has,
+    /// sorted by genus, for the picker's options.
+    static func genusCounts(in plants: [Plant]) -> [GenusCount] {
+        var counts: [String: Int] = [:]
+        for plant in plants {
+            if let genus = genus(of: plant) { counts[genus, default: 0] += 1 }
+        }
+        return counts
+            .map { GenusCount(genus: $0.key, count: $0.value) }
+            .sorted { $0.genus.localizedCaseInsensitiveCompare($1.genus) == .orderedAscending }
+    }
+
+    /// The genus picker only earns its place with a choice to make: two or
+    /// more genera in the collection.
+    static func offersGenusPicker(in plants: [Plant]) -> Bool {
+        genera(in: plants).count >= 2
+    }
+
     /// This filter with the genus dropped if none of these plants has it, so
     /// switching collections can't leave a genus selected that the menu no
     /// longer offers (and an empty grid with no obvious cause).

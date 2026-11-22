@@ -1,6 +1,7 @@
 #if DEBUG
 import CoreData
 import SwiftUI
+import UIKit
 
 /// Sample plants for looking at screens in the simulator, where there's no
 /// one to tap through setup. Debug builds only:
@@ -23,14 +24,28 @@ enum DemoData {
         let household = persistence.createHousehold(name: "Demo household", in: context)
         household.hardinessZone = "7a"
         let catalog = SpeciesCatalog.shared
-        func plant(_ id: String, _ nickname: String, monthsAgo: Int) -> Plant {
-            let acquired = Calendar.current.date(byAdding: .month, value: -monthsAgo, to: .now)!
-            return PlantFactory.create(scientificName: "", species: catalog.species(id: id), nickname: nickname,
-                                       acquired: acquired, location: nil, setting: .indoor, waterEvery: 7,
-                                       photo: nil, now: acquired, household: household, context: context)
+        let calendar = Calendar.current
+        func ago(months: Int = 0, days: Int = 0, years: Int = 0) -> Date {
+            var date = calendar.date(byAdding: .year, value: -years, to: .now)!
+            date = calendar.date(byAdding: .month, value: -months, to: date)!
+            return calendar.date(byAdding: .day, value: -days, to: date)!
         }
-        let aloe = plant("aloe-vera", "Spike", monthsAgo: 7)
-        let pothos = plant("nephrolepis-exaltata", "Fernando", monthsAgo: 3)
+        // The one bundled sample picture stands in for every plant photo.
+        let samplePhoto = UIImage(named: "SampleMonstera").flatMap { ImageTools.preparedJPEG(from: $0) }
+        func plant(_ id: String, _ nickname: String, monthsAgo: Int, acquired: Date? = nil,
+                   photoTakenAt: Date? = nil, waterEvery: Int = 7) -> Plant {
+            let acquired = acquired ?? ago(months: monthsAgo)
+            return PlantFactory.create(scientificName: "", species: catalog.species(id: id), nickname: nickname,
+                                       acquired: acquired, location: nil, setting: .indoor, waterEvery: waterEvery,
+                                       photo: photoTakenAt == nil ? nil : samplePhoto, photoTakenAt: photoTakenAt,
+                                       now: acquired, household: household, context: context)
+        }
+        func water(_ plant: Plant, by name: String, at date: Date) {
+            guard let task = plant.wateringTask else { return }
+            CareSchedule.markDone(task, by: name, at: date, household: household, context: context)
+        }
+        let aloe = plant("aloe-vera", "Spike", monthsAgo: 7, photoTakenAt: ago(months: 6))
+        let pothos = plant("nephrolepis-exaltata", "Fernando", monthsAgo: 3, photoTakenAt: ago(months: 2))
         _ = plant("aloe-vera", "Little aloe", monthsAgo: 1)
         let succulents = Collections.create(name: "Succulents", plants: [aloe], household: household, context: context)
         Collections.create(name: "Bathroom", plants: [pothos], household: household, context: context)
@@ -54,6 +69,44 @@ enum DemoData {
                        notes: "Terracotta from the garden center", by: "Sam", to: aloe, household: household, context: context)
         Milestones.add(title: "First bloom", date: Calendar.current.date(byAdding: .day, value: -3, to: .now) ?? .now,
                        notes: nil, by: "Sam", to: aloe, household: household, context: context)
+
+        // --- Fixtures other screens need for screenshots (placeholder names only) ---
+
+        // A plant whose anniversary is today, with a photo taken one year ago today:
+        // the birthday banner and the Plants-tab "On this day" card.
+        let birthday = plant("monstera-deliciosa", "Birdie", monthsAgo: 0, acquired: ago(years: 2),
+                             photoTakenAt: ago(years: 1), waterEvery: 7)
+        water(birthday, by: "Alex", at: ago(days: 5))
+        water(birthday, by: "Sam", at: ago(days: 12))
+
+        // Nested Combine: A + B -> AB, then AB + C -> ABC, with care logged by
+        // two people on every source before it merged.
+        let rosetteA = plant("echeveria-elegans", "Rosette A", monthsAgo: 0, acquired: ago(months: 7), photoTakenAt: ago(months: 7))
+        let rosetteB = plant("echeveria-elegans", "Rosette B", monthsAgo: 0, acquired: ago(months: 6))
+        for (index, source) in [rosetteA, rosetteB].enumerated() {
+            water(source, by: "Alex", at: ago(months: 5, days: 10 + index))
+            water(source, by: "Sam", at: ago(months: 5, days: 3 + index))
+        }
+        let rosetteAB = Lineage.staple([rosetteA, rosetteB], nickname: "Rosette AB", date: ago(months: 4),
+                                       household: household, context: context)
+        water(rosetteAB, by: "Alex", at: ago(months: 3, days: 20))
+        water(rosetteAB, by: "Sam", at: ago(months: 3, days: 12))
+        let rosetteC = plant("echeveria-elegans", "Rosette C", monthsAgo: 0, acquired: ago(months: 3))
+        water(rosetteC, by: "Sam", at: ago(months: 2, days: 20))
+        water(rosetteC, by: "Alex", at: ago(months: 2, days: 14))
+        let trio = Lineage.staple([rosetteAB, rosetteC], nickname: "The Trio", date: ago(months: 2),
+                                  household: household, context: context)
+        water(trio, by: "Alex", at: ago(days: 9))
+
+        // A plant with no photos at all.
+        _ = plant("ocimum-basilicum", "Bare Basil", monthsAgo: 1)
+
+        // A plant with 100+ waterings, alternating between the two people.
+        let veteran = plant("ficus-lyrata", "Centurion", monthsAgo: 0, acquired: ago(years: 3), photoTakenAt: ago(months: 2))
+        for week in 0..<110 {
+            water(veteran, by: week.isMultiple(of: 2) ? "Alex" : "Sam", at: ago(days: week * 7 + 2))
+        }
+
         persistence.save(context)
     }
 }
