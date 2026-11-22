@@ -100,19 +100,37 @@ enum CareSchedule {
 
     // MARK: - Undo
 
-    /// Same-day only: an older log is history, not a slip of the thumb. A
-    /// finished one-time task has already left the list.
+    /// Done today: the row shows its finished circle and tint. Same-day only: an
+    /// older log is history, not a slip of the thumb. A finished one-time task
+    /// has already left the list.
     static func canUndoDone(_ task: CareTask, now: Date = .now, calendar: Calendar = .current) -> Bool {
         guard task.unit != .once, let doneAt = task.lastLog?.doneAt else { return false }
         return calendar.isDate(doneAt, inSameDayAs: now)
     }
 
-    static func undoDone(_ task: CareTask, context: NSManagedObjectContext) {
-        guard let log = task.lastLog else { return }
+    /// The log `logID` names on `task`, while it's still there and still from
+    /// today: the only entry a Done circle may take back.
+    static func undoableLog(_ logID: UUID?, of task: CareTask, now: Date = .now, calendar: Calendar = .current) -> CareLog? {
+        guard let logID, task.unit != .once,
+              let log = (task.logs ?? []).first(where: { $0.uuid == logID && !$0.isDeleted }),
+              let doneAt = log.doneAt, calendar.isDate(doneAt, inSameDayAs: now) else { return nil }
+        return log
+    }
+
+    /// Takes back exactly `log` and nothing else, and only while it's from
+    /// today (a row drawn before midnight can't take back yesterday's entry).
+    /// If it was the latest log, the schedule override it set goes with it.
+    /// Returns false when there was nothing to undo.
+    @discardableResult
+    static func undoDone(_ log: CareLog, now: Date = .now, calendar: Calendar = .current, context: NSManagedObjectContext) -> Bool {
+        guard !log.isDeleted, let task = log.task, task.unit != .once,
+              let doneAt = log.doneAt, calendar.isDate(doneAt, inSameDayAs: now) else { return false }
+        let wasLatest = task.lastLog == log
         context.delete(log)
         // Updates `task.logs` now, so the due date is right on the next draw.
         context.processPendingChanges()
-        task.dueOverride = nil
+        if wasLatest { task.dueOverride = nil }
+        return true
     }
 
     static func status(nextDue: Date, now: Date = .now, calendar: Calendar = .current) -> DueStatus {
@@ -144,6 +162,8 @@ enum CareSchedule {
         cadenceWord(count: count, unit: unit) ?? "every \(count) \(unit.label(count: count))"
     }
 
+    /// Logs the task as done and returns the new entry.
+    @discardableResult
     static func markDone(
         _ task: CareTask,
         by name: String,
@@ -152,7 +172,7 @@ enum CareSchedule {
         household: Household,
         context: NSManagedObjectContext,
         persistence: Persistence = .shared
-    ) {
+    ) -> CareLog {
         // Read before the log goes in; the log changes the schedule.
         let original = snoozeChoice(for: task, doneAt: date)?.originalDue
         let log = persistence.insert(CareLog.self, alongside: household, in: context)
@@ -164,6 +184,7 @@ enum CareSchedule {
         task.dueOverride = keepNewTiming ? nil : original
         // A one-time task is finished, so it leaves Care and the plant page.
         if task.unit == .once { task.isArchived = true }
+        return log
     }
 
     @discardableResult
@@ -236,5 +257,75 @@ enum CareSchedule {
         case .once: 0
         }
         return Int(task.intervalCount) * perUnit
+    }
+}
+
+extension SettingsKey {
+    /// Per phone: which care entry each task's Done circle made today (task
+    /// uuid -> log uuid and when), so hold-to-undo survives the app being
+    /// closed in the background. See `CareUndoMemory`.
+    static let careUndoEntries = "careUndoEntries"
+}
+
+/// Which entry each task's Done circle made on this phone, so hold-to-undo takes
+/// back that entry and never another one: not one synced in from the other
+/// phone, not one added in history. Shared by every row showing the task (the
+/// Care tab and the plant page). Stored per phone in UserDefaults (never
+/// synced), so a row finished earlier today keeps its undo after iOS closes the
+/// app. Same day only: older records are dropped whenever the store is written.
+@MainActor
+struct CareUndoMemory {
+    static let shared = CareUndoMemory()
+
+    private struct Record: Codable {
+        let log: UUID
+        let doneAt: Date
+    }
+
+    private let defaults: UserDefaults
+    private let key: String
+
+    init(defaults: UserDefaults = .standard, key: String = SettingsKey.careUndoEntries) {
+        self.defaults = defaults
+        self.key = key
+    }
+
+    func remember(_ log: CareLog, now: Date = .now, calendar: Calendar = .current) {
+        guard let task = log.task?.uuid, let entry = log.uuid else { return }
+        var records = load()
+        records[task.uuidString] = Record(log: entry, doneAt: log.doneAt ?? now)
+        save(records, now: now, calendar: calendar)
+    }
+
+    /// The entry this phone's Done made for `task`, while it's still there and
+    /// still from today. Read-only, so rows can ask while they draw.
+    func undoableLog(for task: CareTask, now: Date = .now, calendar: Calendar = .current) -> CareLog? {
+        guard let id = task.uuid, let record = load()[id.uuidString],
+              calendar.isDate(record.doneAt, inSameDayAs: now) else { return nil }
+        return CareSchedule.undoableLog(record.log, of: task, now: now, calendar: calendar)
+    }
+
+    /// Drops the task's record: after an undo, or when its entry is gone.
+    func forget(_ task: CareTask, now: Date = .now, calendar: Calendar = .current) {
+        guard let id = task.uuid else { return }
+        var records = load()
+        records[id.uuidString] = nil
+        save(records, now: now, calendar: calendar)
+    }
+
+    private func load() -> [String: Record] {
+        guard let data = defaults.data(forKey: key),
+              let records = try? JSONDecoder().decode([String: Record].self, from: data) else { return [:] }
+        return records
+    }
+
+    /// Keeps only today's records, so the store never grows past one day's Dones.
+    private func save(_ records: [String: Record], now: Date, calendar: Calendar) {
+        let today = records.filter { calendar.isDate($0.value.doneAt, inSameDayAs: now) }
+        if today.isEmpty {
+            defaults.removeObject(forKey: key)
+        } else if let data = try? JSONEncoder().encode(today) {
+            defaults.set(data, forKey: key)
+        }
     }
 }

@@ -158,11 +158,42 @@ private struct CareRipple: View {
     }
 }
 
-/// The 44-pt Done circle. Tap to finish; once finished, press and hold for 0.6 s to undo.
+/// Where a held Done circle sits on screen. If the circle itself moves while the
+/// finger is down, the row is being swiped or scrolled, so the hold is not an
+/// undo. A plain class: updating it never redraws the row.
+private final class CareHoldTracker {
+    private var origin: CGPoint = .zero
+    private var start: CGPoint?
+    private(set) var cancelled = false
+
+    func begin() {
+        start = origin
+        cancelled = false
+    }
+
+    func end() { start = nil }
+
+    /// True the moment the held circle has moved too far to be a hold.
+    func move(to point: CGPoint) -> Bool {
+        origin = point
+        guard let start, !cancelled, hypot(point.x - start.x, point.y - start.y) > 6 else { return false }
+        cancelled = true
+        return true
+    }
+}
+
+/// The 44-pt Done circle. Tap to finish; once finished, press and hold for 0.6 s
+/// to undo, when `canUndo` (this phone made today's entry). At accessibility
+/// sizes `showsWord` puts "Mark watered" / "Watered" beside the circle, inside
+/// the same target, so it's one button that VoiceOver reads once.
 struct CareDoneButton: View {
     let isDone: Bool
+    /// False for a finished row this phone can't take back (done on the other
+    /// phone, or before a relaunch): no hold, no ring, no Undo action.
+    var canUndo = true
     /// "Watered" or "Done".
     let word: String
+    var showsWord = false
     /// Bump to play the ripple.
     let celebrate: Int
     let onDone: () -> Void
@@ -171,10 +202,14 @@ struct CareDoneButton: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var holding = false
     @State private var drawn: Bool
+    @State private var hold = CareHoldTracker()
 
-    init(isDone: Bool, word: String, celebrate: Int, onDone: @escaping () -> Void, onUndo: @escaping () -> Void) {
+    init(isDone: Bool, canUndo: Bool = true, word: String, showsWord: Bool = false, celebrate: Int,
+         onDone: @escaping () -> Void, onUndo: @escaping () -> Void) {
         self.isDone = isDone
+        self.canUndo = canUndo
         self.word = word
+        self.showsWord = showsWord
         self.celebrate = celebrate
         self.onDone = onDone
         self.onUndo = onUndo
@@ -182,59 +217,87 @@ struct CareDoneButton: View {
     }
 
     var body: some View {
-        ZStack {
+        // The ripples stay put while the circle swaps from pending to finished,
+        // so they keep playing across the change.
+        ZStack(alignment: .leading) {
             if !reduceMotion {
-                CareRipple(color: GH.Palette.leaf, delay: 0, trigger: celebrate).padding(-4)
-                CareRipple(color: GH.Palette.sky, delay: 0.15, trigger: celebrate).padding(-4)
+                ZStack {
+                    CareRipple(color: GH.Palette.leaf, delay: 0, trigger: celebrate).padding(-4)
+                    CareRipple(color: GH.Palette.sky, delay: 0.15, trigger: celebrate).padding(-4)
+                }
+                .frame(width: 44, height: 44)
             }
             if isDone { finished } else { pending }
         }
-        .frame(width: 44, height: 44)
         .onChange(of: isDone) { _, done in
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3).delay(0.08)) { drawn = done }
         }
     }
 
+    @ViewBuilder private func wordLabel(_ text: String, color: Color) -> some View {
+        if showsWord {
+            Text(text)
+                .font(.ghRounded(.body, weight: .bold))
+                .foregroundStyle(color)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var pending: some View {
         Button(action: onDone) {
-            ZStack {
-                Circle().strokeBorder(GH.Palette.ink2.opacity(0.6), lineWidth: 2)
-                CareCheck()
-                    .stroke(GH.Palette.ink2, style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
-                    .frame(width: 18, height: 18)
+            HStack(spacing: GH.Space.s) {
+                ZStack {
+                    Circle().strokeBorder(GH.Palette.ink2.opacity(0.6), lineWidth: 2)
+                    CareCheck()
+                        .stroke(GH.Palette.ink2, style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
+                        .frame(width: 18, height: 18)
+                }
+                .frame(width: 44, height: 44)
+                wordLabel("Mark \(word.lowercased())", color: GH.Palette.ink)
             }
-            .contentShape(Circle())
+            .contentShape(Rectangle())
         }
         .buttonStyle(CareSquashStyle())
         .accessibilityLabel("Mark \(word.lowercased())")
     }
 
     private var finished: some View {
-        ZStack {
-            Circle().fill(GH.Palette.leaf)
-            CareCheck()
-                .trim(from: 0, to: drawn ? 1 : 0)
-                .stroke(GH.Palette.onLeaf, style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round))
-                .frame(width: 18, height: 18)
-            // The hold-to-undo ring fills while the finger is down.
-            Circle()
-                .trim(from: 0, to: holding ? 1 : 0)
-                .stroke(GH.Palette.sky, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .padding(1)
-                .animation(holding ? .linear(duration: 0.6) : .easeOut(duration: 0.15), value: holding)
+        HStack(spacing: GH.Space.s) {
+            ZStack {
+                Circle().fill(GH.Palette.leaf)
+                CareCheck()
+                    .trim(from: 0, to: drawn ? 1 : 0)
+                    .stroke(GH.Palette.onLeaf, style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round))
+                    .frame(width: 18, height: 18)
+                // The hold-to-undo ring fills while the finger is down.
+                Circle()
+                    .trim(from: 0, to: holding ? 1 : 0)
+                    .stroke(GH.Palette.sky, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .padding(1)
+                    .animation(holding ? .linear(duration: 0.6) : .easeOut(duration: 0.15), value: holding)
+            }
+            .frame(width: 44, height: 44)
+            wordLabel(word, color: GH.Palette.leafInk)
         }
-        .contentShape(Circle())
-        .onLongPressGesture(minimumDuration: 0.6, maximumDistance: 40) {
+        .contentShape(Rectangle())
+        .onGeometryChange(for: CGPoint.self) { $0.frame(in: .global).origin } action: { origin in
+            if hold.move(to: origin) { holding = false }
+        }
+        .onLongPressGesture(minimumDuration: 0.6, maximumDistance: 10) {
             holding = false
+            guard canUndo, !hold.cancelled else { return }
             onUndo()
         } onPressingChanged: { pressing in
-            holding = pressing
+            if pressing { hold.begin() } else { hold.end() }
+            holding = pressing && canUndo
         }
+        // Not a button: a tap does nothing here. Undo is a VoiceOver action.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(word). Press and hold to undo")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction(named: "Undo", onUndo)
+        .accessibilityLabel("\(word) today")
+        .accessibilityActions {
+            if canUndo { Button("Undo", action: onUndo) }
+        }
     }
 }
 
@@ -408,17 +471,26 @@ struct CareNextUpCard: View {
 /// against the scroll view's bounds with `visualEffect`, because `scrollTransition`
 /// is unreliable on List rows (every row in the list came out faded).
 struct CareSoftening: ViewModifier {
+    /// Where the visible list ends, in global coordinates: the top of the
+    /// floating tab bar. The scroll view runs on under the bar, so without this
+    /// a row would only start to fade once it was already behind it.
+    var visibleBottom: CGFloat = .infinity
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         let reduce = reduceMotion
+        let visibleBottom = visibleBottom
         return content.visualEffect { view, proxy in
             let frame = proxy.frame(in: .scrollView(axis: .vertical))
             let height = max(frame.height, 1)
             let viewport = proxy.bounds(of: .scrollView(axis: .vertical))?.height ?? .infinity
+            // How far the row's bottom is past the visible area.
+            let past = visibleBottom.isFinite
+                ? proxy.frame(in: .global).maxY - visibleBottom
+                : (viewport.isFinite ? frame.maxY - viewport : 0)
             // 0 when the row is fully inside the viewport, 1 when it has fully left.
             let above = max(0, -frame.minY) / height
-            let below = viewport.isFinite ? max(0, frame.maxY - viewport) / height : 0
+            let below = max(0, past) / height
             let amount = min(1, max(above, below))
             let direction: CGFloat = above > below ? -1 : 1
             return view
@@ -430,5 +502,7 @@ struct CareSoftening: ViewModifier {
 }
 
 extension View {
-    func careSoftening() -> some View { modifier(CareSoftening()) }
+    func careSoftening(visibleBottom: CGFloat = .infinity) -> some View {
+        modifier(CareSoftening(visibleBottom: visibleBottom))
+    }
 }
