@@ -1,4 +1,5 @@
 import CloudKit
+import CoreData
 import SwiftUI
 
 /// Picks the first screen: your name, then a household, then the app.
@@ -30,8 +31,10 @@ struct MainTabView: View {
     @ObservedObject private var router = NotificationRouter.shared
     @Environment(\.scenePhase) private var scenePhase
     /// The plant a tapped photo check-in is asking for a photo of.
-    @State private var checkInPlant: Plant?
+    @State private var checkIn: CheckInSheet?
     @State private var checkInAskedAt = Date.distantPast
+    /// True while the check-in camera is on screen.
+    @State private var checkInShowing = false
     @StateObject private var keyboard = KeyboardWatcher()
     /// Measured height of the floating tab bar, including its bottom padding.
     @State private var tabBarHeight: CGFloat = 0
@@ -84,50 +87,83 @@ struct MainTabView: View {
                 .ignoresSafeArea(.keyboard)
         }
         .onAppear {
+            #if DEBUG
+            // Demo runs are for simulator screenshots: no permission alert on top.
+            if !UserDefaults.standard.bool(forKey: "demoData") { NotificationPlanner.requestAuthorization() }
+            #else
             NotificationPlanner.requestAuthorization()
+            #endif
             NotificationPlanner.reschedule()
             if PlantPhotos.saveMissingCovers(in: household) > 0, let context = household.managedObjectContext {
                 Persistence.shared.save(context)
             }
             openPhotoCheckIn()
         }
-        .onChange(of: router.photoCheckInPlantID) { openPhotoCheckIn() }
+        .onChange(of: router.photoCheckIn) { openPhotoCheckIn() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { openPhotoCheckIn() }
         }
-        .sheet(item: $checkInPlant) { plant in
-            AddPhotoSheet(plant: plant, household: household)
+        .sheet(item: $checkIn) { item in
+            CheckInCameraView(plant: item.plant, household: household, firedAt: item.firedAt)
                 // Only now is the tap handled. Until the sheet is really up
                 // (another sheet was open, or this view was being rebuilt),
-                // the plant stays in the router for the next try.
-                .onAppear { router.photoCheckInPlantID = nil }
+                // the request stays in the router for the next try.
+                .onAppear {
+                    router.photoCheckIn = nil
+                    checkInShowing = true
+                }
+                .onDisappear { checkInShowing = false }
         }
+        #if DEBUG
+        .background { DebugSampleLauncher() }
+        #endif
     }
 
-    /// Opens Add photo for the plant a tapped check-in named, or for the plant
-    /// it was combined into since. Tried again when this view appears and
-    /// when the app comes forward, in case the sheet couldn't show the first
-    /// time.
+    /// Opens the check-in camera for the plant a tapped check-in named, or
+    /// for the plant it was combined into since. Tried again when this view
+    /// appears and when the app comes forward, in case the sheet couldn't
+    /// show the first time, and given up a minute after the tap (UX#3), so it
+    /// never pops up later on its own.
     private func openPhotoCheckIn() {
-        guard let id = router.photoCheckInPlantID else { return }
-        guard let plant = NotificationPlanner.photoCheckInTarget(plantID: id, in: household) else {
-            router.photoCheckInPlantID = nil  // deleted, or split: nothing to open
+        guard let request = router.photoCheckIn else { return }
+        if request.isExpired(at: .now) {
+            router.photoCheckIn = nil
+            // Still waiting to present (showing clears the router): cancel it.
+            if !checkInShowing { checkIn = nil }
             return
         }
-        if checkInPlant == nil {
-            checkInPlant = plant
+        guard let plant = NotificationPlanner.photoCheckInTarget(plantID: request.plantID, in: household) else {
+            router.photoCheckIn = nil  // deleted, or split: nothing to open
+            return
+        }
+        let sheet = CheckInSheet(plant: plant, firedAt: request.firedAt)
+        if checkIn == nil {
+            checkIn = sheet
             checkInAskedAt = .now
-        } else if Date.now.timeIntervalSince(checkInAskedAt) > 2 {
-            // Asked for a while ago but never shown (showing clears the
-            // router), e.g. another sheet was up: reset so it presents again.
-            // A sheet still sliding up is left alone.
-            checkInPlant = nil
+        } else if !checkInShowing, Date.now.timeIntervalSince(checkInAskedAt) > 2 {
+            // Asked for a while ago but never shown, e.g. another sheet was
+            // up: reset so it presents again. A sheet still sliding up is
+            // left alone.
+            checkIn = nil
             DispatchQueue.main.async {
-                checkInPlant = plant
+                checkIn = sheet
                 checkInAskedAt = .now
             }
         }
+        // Come back once it's due to expire; if it still isn't up by then,
+        // that call drops it.
+        let remaining = PhotoCheckInRequest.lifetime - Date.now.timeIntervalSince(request.requestedAt)
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(remaining, 0) + 0.5) {
+            if router.photoCheckIn == request { openPhotoCheckIn() }
+        }
     }
+}
+
+/// What the check-in camera sheet is showing.
+private struct CheckInSheet: Identifiable {
+    let plant: Plant
+    let firedAt: Date?
+    var id: NSManagedObjectID { plant.objectID }
 }
 
 struct NameEntryView: View {

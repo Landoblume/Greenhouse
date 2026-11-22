@@ -17,9 +17,14 @@ struct GHTabBar: View {
     @Binding var selection: Int
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var pill
+    /// The icon's box grows with the symbol, so a taller glyph (the Plans
+    /// list) never pushes its label off the shared line.
+    @ScaledMetric(relativeTo: .title3) private var iconHeight: CGFloat = 26
 
     var body: some View {
-        HStack(spacing: 2) {
+        // Labels share one baseline whatever each icon's shape: the bar lines
+        // the items up by their last text baseline, not by their centers.
+        HStack(alignment: .lastTextBaseline, spacing: 2) {
             ForEach(items) { item in
                 let selected = item.tag == selection
                 Button {
@@ -29,7 +34,7 @@ struct GHTabBar: View {
                         Image(systemName: selected ? item.selectedIcon : item.icon)
                             .font(.system(.title3, weight: .semibold))
                             .imageScale(.medium)
-                            .frame(height: 26)
+                            .frame(height: iconHeight)
                         Text(item.title)
                             .font(.ghRounded(.caption2, weight: .bold))
                             .lineLimit(1)

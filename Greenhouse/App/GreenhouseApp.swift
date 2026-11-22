@@ -57,16 +57,29 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         [.banner, .sound]
     }
 
-    // A tapped photo check-in opens the camera for that plant. This also runs
-    // when the tap launched the app, before any screen is up, so the plant
-    // waits in the router until MainTabView picks it up.
+    // A tapped photo check-in (or its "Open camera" action) opens the
+    // check-in camera for that plant. This also runs when the tap launched
+    // the app, before any screen is up, so the request waits in the router
+    // until MainTabView picks it up. The other two actions run in the
+    // background and only change this phone's plan.
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let request = response.notification.request
-        guard response.actionIdentifier == UNNotificationDefaultActionIdentifier,
-              request.identifier.hasPrefix(NotificationPlanner.photoCheckInPrefix),
+        guard request.identifier.hasPrefix(NotificationPlanner.photoCheckInPrefix),
               let raw = request.content.userInfo[NotificationPlanner.plantIDKey] as? String,
               let plantID = UUID(uuidString: raw) else { return }
-        await MainActor.run { NotificationRouter.shared.photoCheckInPlantID = plantID }
+        switch response.actionIdentifier {
+        case UNNotificationDefaultActionIdentifier, NotificationPlanner.openCameraAction:
+            let firedAt = response.notification.date
+            await MainActor.run {
+                NotificationRouter.shared.photoCheckIn = PhotoCheckInRequest(plantID: plantID, firedAt: firedAt, requestedAt: .now)
+            }
+        case NotificationPlanner.remindWeekendAction:
+            await NotificationPlanner.remindThisWeekend(plantID: plantID)
+        case NotificationPlanner.stopAction:
+            await NotificationPlanner.mute(plantID: plantID)
+        default:
+            break
+        }
     }
 }
 
@@ -74,8 +87,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 @MainActor
 final class NotificationRouter: ObservableObject {
     static let shared = NotificationRouter()
-    /// Set by a tapped photo check-in; MainTabView clears it once the sheet is up.
-    @Published var photoCheckInPlantID: UUID?
+    /// Set by a tapped photo check-in; MainTabView clears it once the camera
+    /// is up, or once it's expired (see `PhotoCheckInRequest.lifetime`).
+    @Published var photoCheckIn: PhotoCheckInRequest?
 }
 
 /// Receives the household invite when someone taps the iCloud link. iOS hands
