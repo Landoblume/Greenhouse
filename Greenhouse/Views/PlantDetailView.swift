@@ -26,6 +26,9 @@ struct PlantDetailView: View {
     @State private var photoFrames = PhotoFrameStore()
     @State private var viewerPhotoID: NSManagedObjectID?
     @State private var showingViewer = false
+    /// The strip's frame for the cover photo, set aside while the viewer
+    /// grows from (and shrinks back into) the hero instead.
+    @State private var stripFrameUnderHero: (id: NSManagedObjectID, frame: CGRect?)?
 
     /// The hero is "collapsed" once it's scrolled under the bar, which is
     /// about this far from the top.
@@ -37,7 +40,7 @@ struct PlantDetailView: View {
         ScrollView {
             VStack(spacing: 0) {
                 PlantHero(photo: PlantPhotos.cover(for: plant), scroll: scroll, collapseDistance: Self.collapseDistance,
-                          entrance: heroEntrance)
+                          entrance: heroEntrance, onOpen: openCover)
                 sheet(timeline: timeline, entries: entries)
             }
         }
@@ -348,6 +351,21 @@ struct PlantDetailView: View {
             showingViewer = false
             viewerPhotoID = nil
         }
+        // The strip only reports its frames when they move, so put back the
+        // one the hero stood in for.
+        if let saved = stripFrameUnderHero {
+            photoFrames.frames[saved.id] = saved.frame
+            stripFrameUnderHero = nil
+        }
+    }
+
+    /// The hero's tap: the viewer opens on the cover photo, growing out of
+    /// the hero rather than out of its thumbnail in the strip.
+    private func openCover() {
+        guard let cover = PlantPhotos.cover(for: plant), !showingViewer else { return }
+        stripFrameUnderHero = (cover.objectID, photoFrames.frames[cover.objectID])
+        photoFrames.frames[cover.objectID] = scroll.heroFrame
+        openViewer(cover)
     }
 
     private func delete(_ milestone: Milestone) {

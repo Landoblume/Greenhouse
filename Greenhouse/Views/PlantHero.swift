@@ -8,6 +8,9 @@ import UIKit
 @Observable
 final class PlantHeroScroll {
     var progress: CGFloat = 0
+    /// The hero's frame on screen, for the photo viewer to grow out of.
+    /// Not observed: it changes on every scroll frame.
+    @ObservationIgnored var heroFrame: CGRect = .zero
 
     /// `minY` is the hero's top edge in the scroll view (0 at rest, negative
     /// as it scrolls away). Rounded so tiny moves don't redraw the bar.
@@ -40,6 +43,8 @@ struct PlantHero: View {
     /// The distance over which the hero is considered collapsing.
     let collapseDistance: CGFloat
     var entrance = Entrance.fadeIn
+    /// Tapping the photo opens it full screen. Nil without a photo.
+    var onOpen: (() -> Void)? = nil
     var height: CGFloat = GH.PlantPage.heroHeight
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -49,22 +54,25 @@ struct PlantHero: View {
         let reduce = reduceMotion
         let height = height
         let visible = shown || entrance == .shown
-        // The size comes from the clear base; the photo and light only draw
-        // over it. A fill image sized on its own is as wide as its aspect
-        // needs at 380 pt tall, and a landscape photo stretched the page.
+        // The size comes from the clear base. Every layer over it covers
+        // exactly that frame, centered (`CoverImage`): fill-scaled images
+        // left to size themselves made the layers' stack as big as the
+        // largest overflow, which pushed a portrait photo off to the right.
         Color.clear
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .overlay {
                 ZStack {
-                    PlantPhotoView(photo: photo, maxPixel: 1600)
+                    if let photo, let image = ThumbnailCache.shared.image(for: photo, maxPixel: 1600) {
+                        CoverImage(image: image)
+                    } else {
+                        PlantPhotoView(photo: nil, maxPixel: 1600)
+                    }
                     // "Greenhouse at night": the photo dims a little in dark mode.
                     if colorScheme == .dark {
                         Color.black.opacity(0.2)
                     }
-                    Image("DappledLight")
-                        .resizable()
-                        .scaledToFill()
+                    CoverImage(image: Self.dappledLight)
                         .blendMode(.softLight)
                         .opacity(visible ? (colorScheme == .dark ? 0.32 : 0.4) : 0)
                         .animation(reduce ? GH.Motion.reduced : .easeOut(duration: 1).delay(0.2), value: visible)
@@ -90,6 +98,11 @@ struct PlantHero: View {
         } action: { minY in
             scroll.update(heroMinY: minY, collapsesOver: collapseDistance)
         }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { scroll.heroFrame = $0 }
+        // A tap on the photo opens it; the bar's buttons sit above the hero
+        // and keep their own taps, and a tap doesn't hold up a scroll or pull.
+        .contentShape(Rectangle())
+        .onTapGesture { if photo != nil { onOpen?() } }
         .onAppear {
             guard !shown else { return }
             switch entrance {
@@ -105,7 +118,46 @@ struct PlantHero: View {
         }
         .accessibilityElement()
         .accessibilityLabel(photo == nil ? "No photo yet" : "Main photo")
-        .accessibilityAddTraits(.isImage)
+        .accessibilityAddTraits(opens ? [.isImage, .isButton] : .isImage)
+        .accessibilityHint(opens ? "Opens it full screen" : "")
+        .accessibilityAction(named: "Open photo") { if opens { onOpen?() } }
+    }
+
+    private var opens: Bool { photo != nil && onOpen != nil }
+
+    private static let dappledLight = UIImage(named: "DappledLight") ?? UIImage()
+}
+
+/// A picture covering exactly the frame it's offered, centered, with what
+/// overflows cropped: the same look as `.scaledToFill()`, but its size is
+/// the frame's, never the picture's, whatever the picture's shape.
+struct CoverImage: View {
+    let image: UIImage
+
+    var body: some View {
+        GeometryReader { proxy in
+            let rect = PlantHeroGeometry.coverRect(imageSize: image.size, in: proxy.size)
+            Image(uiImage: image)
+                .resizable()
+                .frame(width: rect.width, height: rect.height)
+                .position(x: rect.midX, y: rect.midY)
+        }
+        .clipped()
+    }
+}
+
+enum PlantHeroGeometry {
+    /// Where a picture of `imageSize` goes to cover `bounds`: scaled by the
+    /// larger of the two ratios (so no edge shows) and centered (so it crops
+    /// evenly), in the bounds' coordinates.
+    static func coverRect(imageSize: CGSize, in bounds: CGSize) -> CGRect {
+        guard imageSize.width > 0, imageSize.height > 0, bounds.width > 0, bounds.height > 0 else {
+            return CGRect(origin: .zero, size: bounds)
+        }
+        let scale = max(bounds.width / imageSize.width, bounds.height / imageSize.height)
+        let size = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+        return CGRect(x: (bounds.width - size.width) / 2, y: (bounds.height - size.height) / 2,
+                      width: size.width, height: size.height)
     }
 }
 
