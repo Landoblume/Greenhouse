@@ -51,7 +51,7 @@ struct PlantTile: View {
         var parts = [plant.displayName]
         if let latin = plant.scientificName, !latin.isEmpty, latin != plant.displayName { parts.append(latin) }
         if let watering = plant.wateringTask, let status = CareSchedule.status(of: watering) {
-            parts.append((plant.mediumValue == .soil ? "watering " : "water change ") + status.label.prefix(1).lowercased() + status.label.dropFirst())
+            parts.append((plant.mediumValue == .soil ? "watering " : plant.mediumValue.careTaskName.lowercased() + " ") + status.label.prefix(1).lowercased() + status.label.dropFirst())
         }
         if isCombined { parts.append("Combined") }
         if inProject { parts.append("in a project") }

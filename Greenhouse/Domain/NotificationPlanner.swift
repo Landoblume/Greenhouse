@@ -63,19 +63,25 @@ enum NotificationPlanner {
 
         let tasks = (household.tasks ?? []).filter { !$0.isArchived && $0.isRelevant }
 
-        // Watering: one notification per day listing every plant due.
-        var wateringByDay: [Date: [String]] = [:]
+        // Watering: one notification per day listing every plant due, and a
+        // separate one for water changes (water, LECA, sphagnum) when both fall
+        // on the same day.
+        struct WateringKey: Hashable { let fire: Date; let changesWater: Bool }
+        var wateringByDay: [WateringKey: [String]] = [:]
         for task in tasks where task.isWatering {
             guard let due = CareSchedule.nextDue(for: task, calendar: calendar),
                   let fire = at(due), fire > now else { continue }
-            wateringByDay[fire, default: []].append(contentsOf: task.activePlants.map(\.displayName))
+            let key = WateringKey(fire: fire, changesWater: task.wateringMedium != .soil)
+            wateringByDay[key, default: []].append(contentsOf: task.activePlants.map(\.displayName))
         }
-        for (fire, names) in wateringByDay {
+        for (key, names) in wateringByDay {
+            let list = names.sorted().joined(separator: ", ")
+            let stamp = Int(key.fire.timeIntervalSince1970)
             planned.append(PlannedNotification(
-                id: "water-\(Int(fire.timeIntervalSince1970))",
-                date: fire,
-                title: "Watering day 💧",
-                body: "Time to water \(names.sorted().joined(separator: ", "))"
+                id: key.changesWater ? "changewater-\(stamp)" : "water-\(stamp)",
+                date: key.fire,
+                title: key.changesWater ? "Water change day 💧" : "Watering day 💧",
+                body: key.changesWater ? "Time to change the water for \(list)" : "Time to water \(list)"
             ))
         }
 
