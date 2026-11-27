@@ -300,6 +300,7 @@ struct EditPlantView: View {
     @State private var acquired: Date
     @State private var setting: PlantSetting
     @State private var light: LightSource?
+    @State private var medium: GrowMedium
     @State private var collections: Set<PlantCollection>
     @State private var projects: Set<Project>
     @State private var cuttingOf: Plant?
@@ -313,6 +314,7 @@ struct EditPlantView: View {
         _acquired = State(initialValue: plant.acquiredDate ?? Date())
         _setting = State(initialValue: plant.settingValue)
         _light = State(initialValue: plant.lightSourceValue)
+        _medium = State(initialValue: plant.mediumValue)
         _collections = State(initialValue: plant.collections ?? [])
         _projects = State(initialValue: plant.projects ?? [])
         _cuttingOf = State(initialValue: plant.cuttingOf)
@@ -330,6 +332,15 @@ struct EditPlantView: View {
                         ForEach(PlantSetting.allCases) { Text($0.label).tag($0) }
                     }
                     LightSourcePicker(selection: $light)
+                }
+                .listRowBackground(GH.Palette.surface)
+                Section {
+                    GrowMediumPicker(selection: $medium)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                } header: {
+                    Text("Grown in")
+                } footer: {
+                    Text("Changing this renames the watering reminder if it still has its usual name. How often stays as it is.")
                 }
                 .listRowBackground(GH.Palette.surface)
                 if let household = plant.household {
@@ -401,6 +412,7 @@ struct EditPlantView: View {
                         plant.acquiredDate = acquired
                         plant.settingValue = setting
                         plant.lightSourceValue = light
+                        GrowMedium.apply(medium, to: plant)
                         Collections.setMembership(of: plant, to: collections)
                         Plans.setProjects(of: plant, to: projects)
                         Lineage.setCuttingParent(of: plant, to: cuttingOf)

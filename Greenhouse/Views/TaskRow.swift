@@ -39,7 +39,7 @@ struct TaskRow: View {
         ("1 day", 1), ("2 days", 2), ("3 days", 3), ("1 week", 7),
     ]
 
-    private var doneWord: String { task.isWatering ? "Watered" : "Done" }
+    private var doneWord: String { task.isWatering ? task.wateringMedium.doneWord : "Done" }
     /// Done today: the circle is filled and the row tinted. Reads `clock` so a
     /// row drawn before midnight is drawn again after it.
     private var isDone: Bool { CareSchedule.canUndoDone(task, now: max(clock, .now)) }
@@ -172,7 +172,8 @@ struct TaskRow: View {
                 // Words wrap between words, never mid-word, and take as many lines as they need.
                 VStack(alignment: .leading, spacing: 2) {
                     // The chevron says the row opens; testers didn't know tapping it edits.
-                    (Text(task.title)
+                    (titleIcon
+                     + Text(task.title)
                         .font(.body.weight(.semibold))
                         .foregroundStyle(isDone ? GH.Palette.leafInk : GH.Palette.ink)
                      + Text("  ")
@@ -215,6 +216,13 @@ struct TaskRow: View {
         // it would win the press-and-hold that undoes.
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
         .contextMenu { menu }
+    }
+
+    /// "Change water" rows lead with their own icon; every other row is as it was.
+    private var titleIcon: Text {
+        guard task.isWatering, task.wateringMedium != .soil else { return Text("") }
+        return Text(Image(systemName: task.wateringMedium.careIcon)).font(.callout.weight(.semibold)).foregroundStyle(GH.Palette.skyInk)
+            + Text(" ")
     }
 
     @ViewBuilder private var detailLine: some View {

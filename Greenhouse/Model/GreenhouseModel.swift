@@ -42,6 +42,8 @@ enum GreenhouseModel {
             attr("acquiredDate", .date),
             attr("location", .string),
             attr("lightSource", .string),
+            /// What it's grown in (GrowMedium); nil means soil.
+            attr("medium", .string),
             attr("notes", .string),
             /// The photo shown on the tile and at the top of the plant's page;
             /// set to the first photo added; nil means the oldest one.
