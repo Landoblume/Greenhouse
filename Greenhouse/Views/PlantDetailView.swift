@@ -60,7 +60,7 @@ struct PlantDetailView: View {
         .sheet(isPresented: $showingFirstPhoto) { CheckInCameraView(plant: plant, household: household) }
         .sheet(isPresented: $showingShareCard) { ShareCardView(plant: plant) }
         .sheet(isPresented: $showingCombine) { CombineSheet(plant: plant, household: household) }
-        .sheet(isPresented: $showingCutting) { CuttingSheet(plant: plant, household: household) }
+        .sheet(isPresented: $showingCutting) { CuttingCameraView(plant: plant, household: household) }
         .sheet(isPresented: $addingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: nil) }
         .sheet(item: $editingMilestone) { MilestoneEditorView(plant: plant, household: household, milestone: $0) }
         .sheet(isPresented: $showingEdit) { EditPlantView(plant: plant) }

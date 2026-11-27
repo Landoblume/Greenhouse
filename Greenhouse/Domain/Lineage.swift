@@ -33,6 +33,9 @@ enum Lineage {
         }
         CareSchedule.transferTasks(from: plants, to: [merged], date: date, household: household, context: context, persistence: persistence)
         Collections.inherit(from: plants, to: [merged])
+        // Grown in what they all were grown in; Soil when they differ.
+        let media = Set(plants.map(\.mediumValue))
+        GrowMedium.apply(media.count == 1 ? media.first ?? .soil : .soil, to: merged)
         return merged
     }
 
@@ -88,26 +91,43 @@ enum Lineage {
     }
 
     /// A new plant started from `parent`, which stays active. The cutting
-    /// counts from the day it was taken, gets the parent's watering schedule,
-    /// and joins its collections.
+    /// counts from the day it was taken and joins the parent's collections.
+    /// Its main reminder follows what it's grown in: "Change water" every 21
+    /// days for water, LECA or sphagnum, and for soil the parent's watering
+    /// schedule (or the species default when the parent isn't in soil, since
+    /// its 21 days are for changing water). A photo becomes the cutting's
+    /// first photo and its main photo.
     @discardableResult
     static func takeCutting(
         from parent: Plant,
         nickname: String?,
         date: Date = .now,
+        medium: GrowMedium = .soil,
+        photo: Data? = nil,
         household: Household,
         context: NSManagedObjectContext,
         persistence: Persistence = .shared
     ) -> Plant {
         let cutting = makeChild(of: parent, nickname: nickname, date: date, household: household, context: context, persistence: persistence)
         cutting.cuttingOf = parent
-        let watering = parent.wateringTask
-        let count = watering.map { Int($0.intervalCount) } ?? 7
-        let unit = watering?.unit ?? .day
+        cutting.mediumValue = medium
+        var count = medium.defaultIntervalDays ?? 7
+        var unit = IntervalUnit.day
+        if medium == .soil {
+            if parent.mediumValue == .soil, let watering = parent.wateringTask {
+                count = Int(watering.intervalCount)
+                unit = watering.unit
+            } else {
+                count = parent.species?.waterDays ?? 7
+            }
+        }
         let firstDue = CareSchedule.addInterval(count, unit, to: Calendar.current.startOfDay(for: date))
-        CareSchedule.makeTask(name: "Water", count: count, unit: unit, firstDue: firstDue, isWatering: true,
+        CareSchedule.makeTask(name: medium.careTaskName, count: count, unit: unit, firstDue: firstDue, isWatering: true,
                               plants: [cutting], household: household, context: context, persistence: persistence)
         Collections.inherit(from: [parent], to: [cutting])
+        if let photo {
+            PlantFactory.addPhoto(photo, takenAt: date, to: cutting, household: household, context: context, persistence: persistence)
+        }
         return cutting
     }
 
