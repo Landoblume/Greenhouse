@@ -185,7 +185,8 @@ struct CombineSheet: View {
     }
 }
 
-/// A new plant from a cutting; the parent stays as it is.
+/// A new plant from a cutting, without a photo (Skip photo, or no camera);
+/// the parent stays as it is. CuttingCameraView is the usual way in.
 struct CuttingSheet: View {
     let plant: Plant
     let household: Household
@@ -193,11 +194,12 @@ struct CuttingSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var nickname: String
     @State private var date = Date()
+    @State private var medium = CuttingDefaults.medium
 
     init(plant: Plant, household: Household) {
         self.plant = plant
         self.household = household
-        _nickname = State(initialValue: "\(plant.displayName) cutting")
+        _nickname = State(initialValue: CuttingDefaults.name(for: plant))
     }
 
     var body: some View {
@@ -211,6 +213,10 @@ struct CuttingSheet: View {
                     Text(footer)
                 }
                 .listRowBackground(GH.Palette.surface)
+                Section("Grown in") {
+                    GrowMediumPicker(selection: $medium)
+                }
+                .listRowBackground(GH.Palette.surface)
             }
             .ghScreen()
             .navigationTitle("Take a cutting")
@@ -219,7 +225,8 @@ struct CuttingSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
-                        Lineage.takeCutting(from: plant, nickname: nickname, date: date, household: household, context: context)
+                        Lineage.takeCutting(from: plant, nickname: nickname, date: date, medium: medium,
+                                            household: household, context: context)
                         Persistence.shared.save(context)
                         NotificationPlanner.reschedule()
                         dismiss()
@@ -230,7 +237,7 @@ struct CuttingSheet: View {
     }
 
     private var footer: String {
-        "\(plant.displayName) stays as it is. The cutting gets its own tile and watering schedule, counts from the day it was taken, and each links to the other in History."
+        "\(plant.displayName) stays as it is. The cutting gets its own tile and reminder, counts from the day it was taken, and each links to the other in History."
     }
 }
 
