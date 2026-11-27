@@ -14,7 +14,7 @@ reference ZIPs (84043, 84101).
 
 | What | Command |
 |---|---|
-| Checks (xcodegen + unit tests on a simulator) | `~/.claude/skills/ship/scripts/checks.sh` |
+| Checks (xcodegen + unit tests on a simulator) | `~/.claude/skills/ship-gate/scripts/checks.sh` |
 | Debug build on the plugged-in iPhone | `./install.sh --launch` (phone unlocked) |
 | Wait for the CloudKit schema upload | `scripts/schema-status.sh` |
 | Archive + upload to TestFlight | `scripts/testflight.sh` (build number = timestamp) |

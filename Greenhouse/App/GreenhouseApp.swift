@@ -35,6 +35,9 @@ enum SettingsKey {
     static let myName = "myName"
     /// Plant-page sections folded away on this phone, one title per line.
     static let collapsedPlantSections = "collapsedPlantSections"
+    /// Whether Plants-tab tiles show their watering chip. Per phone, and only
+    /// visual: reminders and the Care tab don't change.
+    static let showCareBadges = "showCareBadges"
 }
 
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {

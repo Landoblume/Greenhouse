@@ -7,6 +7,8 @@ struct PlantTile: View {
     @ObservedObject var plant: Plant
     /// Set on the Plants tab, where tapping the tile morphs it into the page.
     var morph: TileMorphSource? = nil
+    /// Off when the Plants tab's "Show care badges" is turned off.
+    var showsCareBadge = true
     /// The tile photo's decode size; the iOS 17 morph's flying copy uses it
     /// too, to hit the same cached picture.
     static let photoMaxPixel: CGFloat = 600
@@ -75,7 +77,7 @@ struct PlantTile: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: GH.Radius.tile, style: .continuous))
             .overlay(alignment: .topLeading) {
-                if let watering = plant.wateringTask {
+                if showsCareBadge, let watering = plant.wateringTask {
                     WateringChipView(task: watering).padding(10)
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 }
