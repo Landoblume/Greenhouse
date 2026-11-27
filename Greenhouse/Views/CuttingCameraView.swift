@@ -23,7 +23,7 @@ struct CuttingCameraView: View {
     @State private var prepared: Data?
     @State private var shooting = false
     @State private var nickname: String
-    @State private var medium = CuttingDefaults.medium
+    @State private var medium: GrowMedium
     @State private var saving = false
     @State private var addCount = 0
     @State private var libraryNotice: String?
@@ -32,6 +32,7 @@ struct CuttingCameraView: View {
         self.plant = plant
         self.household = household
         _nickname = State(initialValue: CuttingDefaults.name(for: plant))
+        _medium = State(initialValue: CuttingDefaults.medium(for: plant))
     }
 
     var body: some View {
@@ -93,6 +94,7 @@ struct CuttingCameraView: View {
                         .frame(minHeight: 44)
                 }
                 .buttonStyle(.plain)
+                .disabled(shooting)
                 .frame(width: 96, alignment: .leading)
                 Spacer()
                 ShutterButton(enabled: camera.isRunning && !shooting) {
@@ -157,7 +159,9 @@ struct CuttingCameraView: View {
         shooting = true
         defer { shooting = false }
         guard let captured = await camera.capture(),
-              let data = ImageTools.preparedJPEG(from: captured.image) else { return }
+              let data = ImageTools.preparedJPEG(from: captured.image),
+              // Closed or skipped while the shot was being taken: drop it.
+              stage == .camera else { return }
         // The camera's own file goes to the photo library; the app keeps the prepared copy.
         shot = CapturedPhoto(image: captured.image, data: captured.data)
         prepared = data
@@ -255,8 +259,12 @@ struct CuttingCameraView: View {
 
 /// What a new cutting starts as, shared by the photo card and the form.
 enum CuttingDefaults {
-    /// Most cuttings start in water, so that's what's picked.
-    static let medium = GrowMedium.water
+    /// Most cuttings start in water, so that's what's picked, unless the
+    /// parent isn't in soil: then the cutting starts in what it grows in.
+    static func medium(for parent: Plant) -> GrowMedium {
+        let parentMedium = parent.mediumValue
+        return parentMedium == .soil ? .water : parentMedium
+    }
 
     static func name(for parent: Plant) -> String { "\(parent.displayName) cutting" }
 

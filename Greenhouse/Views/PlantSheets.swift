@@ -194,12 +194,13 @@ struct CuttingSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var nickname: String
     @State private var date = Date()
-    @State private var medium = CuttingDefaults.medium
+    @State private var medium: GrowMedium
 
     init(plant: Plant, household: Household) {
         self.plant = plant
         self.household = household
         _nickname = State(initialValue: CuttingDefaults.name(for: plant))
+        _medium = State(initialValue: CuttingDefaults.medium(for: plant))
     }
 
     var body: some View {

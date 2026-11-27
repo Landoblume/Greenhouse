@@ -33,6 +33,9 @@ enum Lineage {
         }
         CareSchedule.transferTasks(from: plants, to: [merged], date: date, household: household, context: context, persistence: persistence)
         Collections.inherit(from: plants, to: [merged])
+        // Grown in what they all were grown in; Soil when they differ.
+        let media = Set(plants.map(\.mediumValue))
+        GrowMedium.apply(media.count == 1 ? media.first ?? .soil : .soil, to: merged)
         return merged
     }
 

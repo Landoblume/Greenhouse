@@ -80,6 +80,38 @@ final class CuttingTests: XCTestCase {
         let store = TestStore()
         let parent = store.plant(nickname: "Pip", acquired: day(2025, 1, 1))
         XCTAssertEqual(CuttingDefaults.name(for: parent), "Pip cutting")
-        XCTAssertEqual(CuttingDefaults.medium, .water)
+        XCTAssertEqual(CuttingDefaults.medium(for: parent), .water, "a soil parent's cutting starts in water")
+        for medium in [GrowMedium.water, .leca, .sphagnum] {
+            parent.mediumValue = medium
+            XCTAssertEqual(CuttingDefaults.medium(for: parent), medium, "otherwise it starts like its parent")
+        }
+    }
+
+    // MARK: Combine keeps the medium
+
+    private func combine(_ media: [GrowMedium], in store: TestStore) -> Plant {
+        let plants = media.map { medium -> Plant in
+            let plant = store.plant(acquired: day(2025, 1, 1))
+            GrowMedium.apply(medium, to: plant)
+            return plant
+        }
+        let merged = Lineage.staple(plants, nickname: "Both", date: day(2026, 11, 26), household: store.household,
+                                    context: store.context, persistence: store.persistence)
+        store.save()
+        return merged
+    }
+
+    func testCombiningPlantsInTheSameMediumKeepsIt() {
+        let store = TestStore()
+        let merged = combine([.water, .water], in: store)
+        XCTAssertEqual(merged.mediumValue, .water)
+        XCTAssertEqual(merged.wateringTask?.name, "Change water")
+    }
+
+    func testCombiningMixedMediaFallsBackToSoil() {
+        let store = TestStore()
+        let merged = combine([.water, .soil], in: store)
+        XCTAssertNil(merged.medium)
+        XCTAssertEqual(merged.wateringTask?.name, "Water")
     }
 }
