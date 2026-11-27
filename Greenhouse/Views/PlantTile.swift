@@ -51,7 +51,7 @@ struct PlantTile: View {
         var parts = [plant.displayName]
         if let latin = plant.scientificName, !latin.isEmpty, latin != plant.displayName { parts.append(latin) }
         if let watering = plant.wateringTask, let status = CareSchedule.status(of: watering) {
-            parts.append("watering " + status.label.prefix(1).lowercased() + status.label.dropFirst())
+            parts.append((plant.mediumValue == .soil ? "watering " : plant.mediumValue.careTaskName.lowercased() + " ") + status.label.prefix(1).lowercased() + status.label.dropFirst())
         }
         if isCombined { parts.append("Combined") }
         if inProject { parts.append("in a project") }
@@ -78,7 +78,7 @@ struct PlantTile: View {
             .clipShape(RoundedRectangle(cornerRadius: GH.Radius.tile, style: .continuous))
             .overlay(alignment: .topLeading) {
                 if showsCareBadge, let watering = plant.wateringTask {
-                    WateringChipView(task: watering).padding(10)
+                    WateringChipView(task: watering, medium: plant.mediumValue).padding(10)
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 }
             }
@@ -160,13 +160,14 @@ private struct TileFrameReporter: ViewModifier {
 /// truncates. Watches the watering task, so it updates the moment someone waters.
 struct WateringChipView: View {
     @ObservedObject var task: CareTask
+    var medium: GrowMedium = .soil
 
     var body: some View {
-        if let chip = WateringChip.make(for: CareSchedule.status(of: task)) {
+        if let chip = WateringChip.make(for: CareSchedule.status(of: task), medium: medium) {
             let colors = Self.colors(chip.tone)
             ViewThatFits(in: .horizontal) {
-                label(chip.label)
-                label(chip.shortLabel)
+                label(chip.label, icon: chip.icon)
+                label(chip.shortLabel, icon: chip.icon)
             }
             .foregroundStyle(colors.ink)
             .background(colors.fill, in: RoundedRectangle(cornerRadius: GH.Radius.chip, style: .continuous))
@@ -174,8 +175,8 @@ struct WateringChipView: View {
         }
     }
 
-    private func label(_ text: String) -> some View {
-        Label(text, systemImage: "drop.fill")
+    private func label(_ text: String, icon: String) -> some View {
+        Label(text, systemImage: icon)
             .font(.caption.weight(.bold))
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)

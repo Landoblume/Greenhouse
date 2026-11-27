@@ -292,8 +292,8 @@ struct PlantsView: View {
                         // at its watering status.
                         if !showCareBadges, let watering = plant.wateringTask,
                            let status = CareSchedule.status(of: watering) {
-                            Section("Watering") {
-                                Label(status.label, systemImage: "drop.fill")
+                            Section(plant.mediumValue == .soil ? "Watering" : "Water changes") {
+                                Label(status.label, systemImage: plant.mediumValue.careIcon)
                             }
                         }
                         if allPlants.count >= 2 {

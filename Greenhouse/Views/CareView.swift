@@ -356,7 +356,7 @@ struct TaskEditorView: View {
                 }
             }
             .ghScreen()
-            .navigationTitle(task == nil ? "New reminder" : (isWatering ? "Watering" : "Edit reminder"))
+            .navigationTitle(task == nil ? "New reminder" : (isWatering ? (task?.wateringMedium == .soil ? "Watering" : "Water changes") : "Edit reminder"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

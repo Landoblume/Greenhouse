@@ -112,6 +112,8 @@ final class Plant: NSManagedObject {
     @NSManaged var acquiredDate: Date?
     @NSManaged var location: String?
     @NSManaged var lightSource: String?
+    /// What it's grown in (GrowMedium raw value); nil means soil.
+    @NSManaged var medium: String?
     /// Free-form notes anyone in the household can leave on the plant.
     @NSManaged var notes: String?
     @NSManaged var coverPhotoID: UUID?
@@ -152,6 +154,12 @@ final class Plant: NSManagedObject {
     var lightSourceValue: LightSource? {
         get { lightSource.flatMap(LightSource.init(rawValue:)) }
         set { lightSource = newValue?.rawValue }
+    }
+
+    var mediumValue: GrowMedium {
+        get { medium.flatMap(GrowMedium.init(rawValue:)) ?? .soil }
+        // Soil is stored as nothing, so plants that never chose one stay as they were.
+        set { medium = newValue == .soil ? nil : newValue.rawValue }
     }
 
     var species: Species? { SpeciesCatalog.shared.species(id: catalogID) }
@@ -244,10 +252,18 @@ final class CareTask: NSManagedObject {
     /// False once every plant it was for has been stapled or split away.
     var isRelevant: Bool { (plants ?? []).isEmpty || !activePlants.isEmpty }
 
+    /// What its plants are grown in when they all agree; soil otherwise
+    /// (including a household-wide task with no plants).
+    var wateringMedium: GrowMedium {
+        let media = Set(activePlants.map(\.mediumValue))
+        return media.count == 1 ? media.first! : .soil
+    }
+
     var title: String {
         if isWatering {
+            let verb = wateringMedium.careTaskName
             let names = activePlants.map(\.displayName)
-            return names.isEmpty ? "Water" : "Water " + names.joined(separator: ", ")
+            return names.isEmpty ? verb : verb + " " + names.joined(separator: ", ")
         }
         return name ?? "Care task"
     }

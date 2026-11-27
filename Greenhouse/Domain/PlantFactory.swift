@@ -13,7 +13,8 @@ enum PlantFactory {
         location: String?,
         setting: PlantSetting,
         lightSource: LightSource? = nil,
-        waterEvery days: Int,
+        medium: GrowMedium = .soil,
+        waterEvery days: Int? = nil,
         photo: Data?,
         photoTakenAt: Date? = nil,
         collections: [PlantCollection] = [],
@@ -33,12 +34,14 @@ enum PlantFactory {
         plant.location = nonEmpty(location)
         plant.settingValue = setting
         plant.lightSourceValue = lightSource
+        plant.mediumValue = medium
         plant.statusValue = .active
         plant.household = household
         plant.mutableSetValue(forKey: "collections").addObjects(from: collections)
 
+        let days = days ?? medium.defaultIntervalDays ?? species?.waterDays ?? 7
         let firstDue = CareSchedule.addInterval(days, .day, to: Calendar.current.startOfDay(for: now))
-        CareSchedule.makeTask(name: "Water", count: days, unit: .day, firstDue: firstDue, isWatering: true,
+        CareSchedule.makeTask(name: medium.careTaskName, count: days, unit: .day, firstDue: firstDue, isWatering: true,
                               plants: [plant], household: household, context: context, persistence: persistence)
 
         if let photo {

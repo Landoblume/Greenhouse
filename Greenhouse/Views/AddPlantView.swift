@@ -18,6 +18,7 @@ struct AddPlantView: View {
     @State private var location = ""
     @State private var setting: PlantSetting = .indoor
     @State private var light: LightSource?
+    @State private var medium: GrowMedium = .soil
     @State private var waterEvery = 7
     @State private var image: UIImage?
     @State private var showingSpeciesPicker = false
@@ -76,11 +77,21 @@ struct AddPlantView: View {
                 CollectionToggles(household: household, selection: $collections)
 
                 Section {
-                    Stepper("Water every \(waterEvery) day\(waterEvery == 1 ? "" : "s")", value: $waterEvery, in: 1...90)
+                    GrowMediumPicker(selection: $medium)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                 } header: {
-                    Text("Watering")
+                    Text("Grown in")
+                }
+                .listRowBackground(GH.Palette.surface)
+
+                Section {
+                    Stepper("\(medium.careTaskName) every \(waterEvery) day\(waterEvery == 1 ? "" : "s")", value: $waterEvery, in: 1...90)
+                } header: {
+                    Text(medium == .soil ? "Watering" : "Water changes")
                 } footer: {
-                    if let species {
+                    if medium != .soil {
+                        Text("A starting point. Snooze it, or keep a new day, to find what suits this plant.")
+                    } else if let species {
                         Text("Starting point for \(species.primaryCommonName). Light: \(species.light).")
                     }
                 }
@@ -100,15 +111,24 @@ struct AddPlantView: View {
                 SpeciesPickerView { picked in
                     species = picked
                     customLatin = ""
-                    waterEvery = picked.waterDays
+                    waterEvery = defaultInterval
                 } onCustom: { typed in
                     species = nil
                     customLatin = typed
                 }
             }
+            .onChange(of: medium) { old, new in
+                // A hand-set interval sticks; only the old default moves with the medium.
+                if waterEvery == (old.defaultIntervalDays ?? species?.waterDays ?? 7) {
+                    waterEvery = new.defaultIntervalDays ?? species?.waterDays ?? 7
+                }
+            }
             .onAppear(perform: prefill)
         }
     }
+
+    /// Soil follows the species; the other media start at 21 days.
+    private var defaultInterval: Int { medium.defaultIntervalDays ?? species?.waterDays ?? 7 }
 
     private func prefill() {
         if let collection = Collections.find(selectedCollection, in: household) {
@@ -118,7 +138,7 @@ struct AddPlantView: View {
         if let collection = wish.collection { collections.insert(collection) }
         if let match = wish.species {
             species = match
-            waterEvery = match.waterDays
+            waterEvery = defaultInterval
         } else {
             customLatin = wish.scientificName ?? ""
         }
@@ -133,6 +153,7 @@ struct AddPlantView: View {
             location: location,
             setting: setting,
             lightSource: light,
+            medium: medium,
             waterEvery: waterEvery,
             photo: image.flatMap { ImageTools.preparedJPEG(from: $0) },
             photoTakenAt: photoDate,

@@ -53,14 +53,26 @@ struct WateringChip: Equatable {
     /// For a tile too narrow for `label` ("207d", "Due", "in 3d").
     let shortLabel: String
     let tone: Tone
+    /// An SF Symbol: a droplet for soil, a different one for changing water.
+    var icon = GrowMedium.soil.careIcon
 
-    static func make(for status: DueStatus?) -> WateringChip? {
+    /// A soil plant's chip is "Water today" / "Tomorrow" / "In 4 days"; a
+    /// water-, LECA- or sphagnum-grown one reads "Change water today" /
+    /// "Change water tomorrow" / "Change water in 4 days". Overdue and the
+    /// narrow-tile short labels say the same for every medium.
+    static func make(for status: DueStatus?, medium: GrowMedium = .soil) -> WateringChip? {
+        let soil = medium == .soil
+        let icon = medium.careIcon
         switch status {
-        case nil: nil
-        case .overdue(let days)?: WateringChip(label: "Overdue · \(days) day\(days == 1 ? "" : "s")", shortLabel: "\(days)d", tone: .overdue)
-        case .today?: WateringChip(label: "Water today", shortLabel: "Due", tone: .due)
-        case .upcoming(1)?: WateringChip(label: "Tomorrow", shortLabel: "in 1d", tone: .later)
-        case .upcoming(let days)?: WateringChip(label: "In \(days) days", shortLabel: "in \(days)d", tone: .later)
+        case nil: return nil
+        case .overdue(let days)?:
+            return WateringChip(label: "Overdue · \(days) day\(days == 1 ? "" : "s")", shortLabel: "\(days)d", tone: .overdue, icon: icon)
+        case .today?:
+            return WateringChip(label: soil ? "Water today" : "\(medium.careTaskName) today", shortLabel: "Due", tone: .due, icon: icon)
+        case .upcoming(1)?:
+            return WateringChip(label: soil ? "Tomorrow" : "\(medium.careTaskName) tomorrow", shortLabel: "in 1d", tone: .later, icon: icon)
+        case .upcoming(let days)?:
+            return WateringChip(label: soil ? "In \(days) days" : "\(medium.careTaskName) in \(days) days", shortLabel: "in \(days)d", tone: .later, icon: icon)
         }
     }
 }
