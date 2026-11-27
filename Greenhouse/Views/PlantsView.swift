@@ -7,6 +7,7 @@ struct PlantsView: View {
     @ObservedObject var household: Household
     @AppStorage(Collections.selectedKey) private var selectedCollection = ""
     @AppStorage(SettingsKey.myName) private var myName = ""
+    @AppStorage(SettingsKey.showCareBadges) private var showCareBadges = true
     @FetchRequest private var allPlants: FetchedResults<Plant>
     @FetchRequest(fetchRequest: Household.all()) private var households: FetchedResults<Household>
     @Environment(\.managedObjectContext) private var context
@@ -282,10 +283,19 @@ struct PlantsView: View {
                         columns: columns) { plant, index in
                 Button { open(plant) } label: {
                     PlantTile(plant: plant, morph: TileMorphSource(namespace: morphSpace,
-                                                                   frames: morphStyle == .overlay ? tileFrames : nil))
+                                                                   frames: morphStyle == .overlay ? tileFrames : nil),
+                              showsCareBadge: showCareBadges)
                 }
                     .buttonStyle(.plain)
                     .contextMenu {
+                        // With badges hidden, holding a tile is how you peek
+                        // at its watering status.
+                        if !showCareBadges, let watering = plant.wateringTask,
+                           let status = CareSchedule.status(of: watering) {
+                            Section("Watering") {
+                                Label(status.label, systemImage: "drop.fill")
+                            }
+                        }
                         if allPlants.count >= 2 {
                             Button { combining = plant } label: {
                                 Label("Combine with other plants…", systemImage: "arrow.triangle.merge")
@@ -361,6 +371,11 @@ struct PlantsView: View {
             }
             Picker("Sort by", selection: $filter.sort) {
                 ForEach(PlantFilter.Sort.allCases) { Text($0.label).tag($0) }
+            }
+            // Not a filter (it doesn't light up the icon or get cleared with
+            // them): it only hides the watering chips so you can browse.
+            Section {
+                Toggle("Show care badges", isOn: $showCareBadges)
             }
             if filter.isFiltering {
                 Button("Clear filters", role: .destructive) {
