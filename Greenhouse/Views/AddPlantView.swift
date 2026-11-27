@@ -85,7 +85,7 @@ struct AddPlantView: View {
                 .listRowBackground(GH.Palette.surface)
 
                 Section {
-                    Stepper("\(medium == .soil ? "Water" : "Change water") every \(waterEvery) day\(waterEvery == 1 ? "" : "s")", value: $waterEvery, in: 1...90)
+                    Stepper("\(medium.careTaskName) every \(waterEvery) day\(waterEvery == 1 ? "" : "s")", value: $waterEvery, in: 1...90)
                 } header: {
                     Text(medium == .soil ? "Watering" : "Water changes")
                 } footer: {
@@ -117,7 +117,12 @@ struct AddPlantView: View {
                     customLatin = typed
                 }
             }
-            .onChange(of: medium) { waterEvery = defaultInterval }
+            .onChange(of: medium) { old, new in
+                // A hand-set interval sticks; only the old default moves with the medium.
+                if waterEvery == (old.defaultIntervalDays ?? species?.waterDays ?? 7) {
+                    waterEvery = new.defaultIntervalDays ?? species?.waterDays ?? 7
+                }
+            }
             .onAppear(perform: prefill)
         }
     }

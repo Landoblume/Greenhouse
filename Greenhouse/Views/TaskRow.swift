@@ -62,6 +62,14 @@ struct TaskRow: View {
                 Button { choosingSnooze = true } label: { Label("Snooze", systemImage: "moon.zzz") }
                     .tint(GH.Palette.swipeSky)
             }
+            // The title follows the plants' medium, which the task doesn't observe:
+            // redraw when one of its plants changes (here or from the other phone).
+            .onReceive(ContextChanges.publisher(for: task.managedObjectContext)) { note in
+                let plants = task.plants ?? []
+                if ContextChanges.touches(note, in: task.managedObjectContext, where: { ($0 as? Plant).map(plants.contains) ?? false }) {
+                    task.objectWillChange.send()
+                }
+            }
             .sensoryFeedback(.success, trigger: celebrate)
             .sensoryFeedback(.impact(weight: .light), trigger: undone)
             .task(id: celebrationEnds) {

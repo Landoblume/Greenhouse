@@ -124,4 +124,20 @@ final class GrowMediumTests: XCTestCase {
         XCTAssertEqual(a.wateringTask?.title, "Change water Alpha")
         XCTAssertEqual(b.wateringTask?.title, "Water Beta")
     }
+
+    func testWaterChangesGetTheirOwnNotificationWording() {
+        let store = TestStore()
+        store.plant(nickname: "Aloe", acquired: day(2026, 10, 1), waterEvery: 7, now: day(2026, 10, 10))
+        let jar = store.plant(nickname: "Jar", acquired: day(2026, 10, 1), waterEvery: 7, now: day(2026, 10, 10))
+        GrowMedium.apply(.water, to: jar)
+        store.save()
+
+        let planned = NotificationPlanner.plan(household: store.household, now: day(2026, 10, 15), hour: 9)
+        let soil = planned.filter { $0.id.hasPrefix("water-") }
+        let changes = planned.filter { $0.id.hasPrefix("changewater-") }
+        XCTAssertEqual(soil.map(\.body), ["Time to water Aloe"])
+        XCTAssertEqual(soil.map(\.title), ["Watering day 💧"])
+        XCTAssertEqual(changes.map(\.body), ["Time to change the water for Jar"])
+        XCTAssertEqual(changes.map(\.title), ["Water change day 💧"])
+    }
 }

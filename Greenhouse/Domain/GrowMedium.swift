@@ -45,9 +45,6 @@ enum GrowMedium: String, CaseIterable, Identifiable {
     /// Soil follows the species ("Water every 7 days"); the rest start at 21.
     var defaultIntervalDays: Int? { self == .soil ? nil : 21 }
 
-    /// Every name a watering reminder gets by default, to tell a custom one apart.
-    static let defaultTaskNames: Set<String> = Set(allCases.map(\.careTaskName))
-
     /// Sets the plant's medium and renames its watering reminder, but only if
     /// that still has the old medium's default name (a name someone typed is
     /// kept). The interval is never touched: how often is up to them.
@@ -57,9 +54,6 @@ enum GrowMedium: String, CaseIterable, Identifiable {
         guard old != medium else { return }
         for task in plant.tasks ?? [] where task.isWatering && !task.isArchived {
             if task.name == nil || task.name == old.careTaskName { task.name = medium.careTaskName }
-            // Its row's title follows the plant's medium, so rows watching the
-            // task redraw even when a custom name meant nothing was renamed.
-            task.objectWillChange.send()
         }
     }
 }
